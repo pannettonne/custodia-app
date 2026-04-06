@@ -16,8 +16,7 @@ const CAT_CONFIG: Record<EventCategory, { label: string; icon: string; color: st
 }
 
 export function EventsPanel() {
-  const { user } = useAuth()
-  const { events, children, selectedChildId } = useAppStore()
+  const { events } = useAppStore()
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState<EventCategory | 'all'>('all')
 
@@ -41,7 +40,6 @@ export function EventsPanel() {
         <button onClick={() => setShowForm(true)} style={{ background: '#10b981', border: 'none', borderRadius: 12, padding: '8px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Evento</button>
       </div>
 
-      {/* Filter pills */}
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }}>
         {[['all', '🗓️', 'Todos'] as const, ...Object.entries(CAT_CONFIG).map(([k, v]) => [k, v.icon, v.label] as const)].map(([k, icon, label]) => (
           <button key={k} onClick={() => setFilter(k as any)}
@@ -105,6 +103,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
   const [category, setCategory] = useState<EventCategory>('reunion')
   const [date, setDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [allDay, setAllDay] = useState(true)
   const [time, setTime] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -113,7 +112,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
     if (!user || !child || !title.trim() || !date) return
     setLoading(true)
     try {
-      await createEvent({ childId: child.id, createdBy: user.uid, title: title.trim(), category, date, endDate: endDate || undefined, allDay: !time, time: time || undefined, notes: notes.trim() || undefined })
+      await createEvent({ childId: child.id, createdBy: user.uid, title: title.trim(), category, date, endDate: endDate || undefined, allDay, time: allDay ? undefined : (time || undefined), notes: notes.trim() || undefined })
       onClose()
     } finally { setLoading(false) }
   }
@@ -121,12 +120,10 @@ function EventForm({ onClose }: { onClose: () => void }) {
   return (
     <div className="card" style={{ marginBottom: 14, borderColor: 'rgba(16,185,129,0.3)' }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>🎓 Nuevo evento</div>
-
       <div style={{ marginBottom: 10 }}>
         <div className="settings-label">Título</div>
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Reunión trimestral" className="settings-input" />
       </div>
-
       <div style={{ marginBottom: 10 }}>
         <div className="settings-label">Categoría</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
@@ -138,24 +135,28 @@ function EventForm({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       </div>
-
       <div style={{ marginBottom: 10 }}>
         <div className="date-pair">
           <div><div className="date-pair-label">Fecha</div><input type="date" value={date} onChange={e => setDate(e.target.value)} className="settings-input" /></div>
           <div><div className="date-pair-label">Hasta (opcional)</div><input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" /></div>
         </div>
       </div>
-
       <div style={{ marginBottom: 10 }}>
-        <div className="settings-label">Hora (opcional)</div>
-        <input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" />
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#cbd5e1', fontSize: 13, fontWeight: 600 }}>
+          <input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) setTime('') }} />
+          Evento de todo el día
+        </label>
       </div>
-
+      {!allDay && (
+        <div style={{ marginBottom: 10 }}>
+          <div className="settings-label">Hora (opcional)</div>
+          <input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" />
+        </div>
+      )}
       <div style={{ marginBottom: 14 }}>
         <div className="settings-label">Observaciones (opcional)</div>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={2} className="settings-textarea" />
       </div>
-
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={onClose}>Cancelar</button>
         <button style={{ flex:1, padding:11, borderRadius:12, border:"none", background:"#10b981", color:"#fff", fontSize:13, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:(!title.trim()||!date||loading)?0.4:1 }} onClick={handleSubmit} disabled={!title.trim()||!date||loading}>
