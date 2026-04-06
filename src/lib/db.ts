@@ -16,6 +16,10 @@ import {
 import { db } from './firebase'
 import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod } from '@/types'
 
+function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T>
+}
+
 export function subscribeToChildren(uid: string, cb: (children: Child[]) => void): Unsubscribe {
   const q = query(collection(db, 'children'), where('parents', 'array-contains', uid))
   return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as Child))))
@@ -82,8 +86,8 @@ export function subscribeToOverrides(childId: string, cb: (overrides: CustodyOve
 export async function setOverride(data: Omit<CustodyOverride, 'id' | 'createdAt'>): Promise<void> {
   const q = query(collection(db, 'custodyOverrides'), where('childId', '==', data.childId), where('date', '==', data.date))
   const snap = await getDocs(q)
-  if (!snap.empty) await updateDoc(snap.docs[0].ref, { parentId: data.parentId, reason: data.reason })
-  else await addDoc(collection(db, 'custodyOverrides'), { ...data, createdAt: serverTimestamp() })
+  if (!snap.empty) await updateDoc(snap.docs[0].ref, compactUndefined({ parentId: data.parentId, reason: data.reason }))
+  else await addDoc(collection(db, 'custodyOverrides'), compactUndefined({ ...data, createdAt: serverTimestamp() }))
 }
 
 export function subscribeToRequests(childId: string, cb: (requests: ChangeRequest[]) => void): Unsubscribe {
@@ -95,7 +99,7 @@ export function subscribeToRequests(childId: string, cb: (requests: ChangeReques
 }
 
 export async function createChangeRequest(data: Omit<ChangeRequest, 'id' | 'createdAt' | 'status'>): Promise<string> {
-  const ref = await addDoc(collection(db, 'changeRequests'), { ...data, status: 'pending', createdAt: serverTimestamp() })
+  const ref = await addDoc(collection(db, 'changeRequests'), compactUndefined({ ...data, status: 'pending', createdAt: serverTimestamp() }))
   return ref.id
 }
 
@@ -163,7 +167,7 @@ export function subscribeToNotes(childId: string, cb: (notes: Note[]) => void): 
 }
 
 export async function createNote(data: Omit<Note, 'id' | 'createdAt'>): Promise<string> {
-  const ref = await addDoc(collection(db, 'notes'), { ...data, createdAt: serverTimestamp() })
+  const ref = await addDoc(collection(db, 'notes'), compactUndefined({ ...data, createdAt: serverTimestamp() }))
   return ref.id
 }
 
@@ -184,13 +188,13 @@ export function subscribeToEvents(childId: string, cb: (events: SchoolEvent[]) =
 }
 
 export async function createEvent(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Promise<string> {
-  const payload = {
+  const payload = compactUndefined({
     ...data,
     time: data.allDay ? undefined : (data.time || undefined),
     endDate: data.endDate || undefined,
     notes: data.notes || undefined,
     createdAt: serverTimestamp(),
-  }
+  })
   const ref = await addDoc(collection(db, 'schoolEvents'), payload)
   return ref.id
 }
@@ -205,12 +209,12 @@ export function subscribeToPackingItems(childId: string, cb: (items: PackingItem
 }
 
 export async function createPackingItem(data: Omit<PackingItem, 'id'>): Promise<string> {
-  const ref = await addDoc(collection(db, 'packingItems'), data)
+  const ref = await addDoc(collection(db, 'packingItems'), compactUndefined(data))
   return ref.id
 }
 
 export async function updatePackingItem(id: string, data: Partial<PackingItem>): Promise<void> {
-  await updateDoc(doc(db, 'packingItems', id), { ...data, updatedAt: serverTimestamp() })
+  await updateDoc(doc(db, 'packingItems', id), compactUndefined({ ...data, updatedAt: serverTimestamp() }))
 }
 
 export async function deletePackingItem(id: string): Promise<void> {
@@ -226,12 +230,12 @@ export function subscribeToSpecialPeriods(childId: string, cb: (periods: Special
 }
 
 export async function createSpecialPeriod(data: Omit<SpecialPeriod, 'id' | 'createdAt'>): Promise<string> {
-  const ref = await addDoc(collection(db, 'specialPeriods'), { ...data, createdAt: serverTimestamp() })
+  const ref = await addDoc(collection(db, 'specialPeriods'), compactUndefined({ ...data, createdAt: serverTimestamp() }))
   return ref.id
 }
 
 export async function updateSpecialPeriod(id: string, data: Partial<SpecialPeriod>): Promise<void> {
-  await updateDoc(doc(db, 'specialPeriods', id), data)
+  await updateDoc(doc(db, 'specialPeriods', id), compactUndefined(data))
 }
 
 export async function deleteSpecialPeriod(id: string): Promise<void> {
