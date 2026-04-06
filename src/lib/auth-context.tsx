@@ -7,6 +7,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signOut as firebaseSignOut,
+  setPersistence,
+  browserLocalPersistence,
   type User as FirebaseUser,
 } from 'firebase/auth'
 import { auth, googleProvider } from '@/lib/firebase'
@@ -33,34 +35,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // onAuthStateChanged is the single source of truth.
-    // It fires automatically after getRedirectResult resolves internally.
-    // We just need to call getRedirectResult to "consume" the redirect —
-    // the actual user state will arrive via onAuthStateChanged.
-    getRedirectResult(auth).catch(() => {
-      // No pending redirect — completely normal
-    })
+    let unsubscribe: (() => void) | undefined
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser)
-      setLoading(false)
-    })
+    const initAuth = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence)
+      } catch {
+        // Ignore persistence errors and continue with auth resolution
+      }
 
-    return unsubscribe
+      try {
+        await getRedirectResult(auth)
+      } catch {
+        // No pending redirect or redirect result unavailable
+      }
+
+      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        setUser(firebaseUser)
+        setLoading(false)
+      })
+    }
+
+    initAuth()
+
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
   }, [])
 
   const signInWithGoogle = async () => {
+    try {
+      await setPersistence(auth, browserLocalPersistence)
+    } catch {
+      // Continue even if Safari/iOS limits persistence setup
+    }
+
     if (isSafariOrIOS()) {
       await signInWithRedirect(auth, googleProvider)
-    } else {
-      try {
-        await signInWithPopup(auth, googleProvider)
-      } catch (err: any) {
-        if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-          await signInWithRedirect(auth, googleProvider)
-        } else {
-          throw err
-        }
+      return
+    }
+
+    try {
+      await signInWithPopup(auth, googleProvider)
+    } catch (err: any) {
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+        await signInWithRedirect(auth, googleProvider)
+      } else {
+        throw err
       }
     }
   }
