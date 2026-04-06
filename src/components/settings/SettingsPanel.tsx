@@ -96,7 +96,7 @@ function ChildSection({ child }: { child: Child | null }) {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancelar</button>
-            <button className={`btn-primary btn-pink ${(!name.trim() || loading) ? 'btn-disabled' : ''}`} style={{ flex: 1 }} onClick={handleCreate}>{loading ? '...' : 'Crear'}</button>
+            <button style={{ flex:1, padding:'10px', borderRadius:12, border:'none', background:(!name.trim()||loading)?'rgba(255,255,255,0.08)':'#EC4899', color:(!name.trim()||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!name.trim()||loading)?'not-allowed':'pointer' }} onClick={handleCreate} disabled={!name.trim()||loading}>{loading ? '...' : 'Crear'}</button>
           </div>
         </div>
       )}
@@ -144,7 +144,7 @@ function PatternSection({ child }: { child: Child }) {
           </div>
         </div>
       )}
-      <button className={`btn-primary ${saved ? 'btn-success' : 'btn-violet'} ${(!startDate || loading) ? 'btn-disabled' : ''}`} onClick={handleSave}>
+      <button style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:(!startDate||loading)?'rgba(255,255,255,0.08)':saved?'#10b981':'#8B5CF6', color:(!startDate||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!startDate||loading)?'not-allowed':'pointer' }} onClick={handleSave} disabled={!startDate||loading}>
         {loading ? 'Guardando...' : saved ? '✓ Guardado' : 'Guardar patrón'}
       </button>
     </div>
@@ -180,7 +180,7 @@ function InviteSection({ child }: { child: Child }) {
         <>
           <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>Introduce el email de Google del otro progenitor.</div>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@ejemplo.com" className="settings-input" style={{ marginBottom: 10 }} />
-          <button className={`btn-primary btn-green ${(!email.includes('@') || loading) ? 'btn-disabled' : ''}`} onClick={handleInvite}>{loading ? 'Enviando...' : 'Enviar invitación'}</button>
+          <button style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:(!email.includes('@')||loading)?'rgba(255,255,255,0.08)':'#10b981', color:(!email.includes('@')||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!email.includes('@')||loading)?'not-allowed':'pointer' }} onClick={handleInvite} disabled={!email.includes('@')||loading}>{loading ? 'Enviando...' : 'Enviar invitación'}</button>
         </>
       )}
     </div>

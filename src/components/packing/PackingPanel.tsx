@@ -192,7 +192,11 @@ function PackingForm({ onClose, locLabels }: { onClose: () => void; locLabels: R
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={onClose}>Cancelar</button>
-        <button className={`btn-primary btn-violet ${(!name.trim() || loading) ? 'btn-disabled' : ''}`} style={{ flex: 1 }} onClick={handleSubmit}>
+        <button
+          style={{ flex:1, padding:'11px', borderRadius:12, border:'none', background:(!name.trim()||loading)?'rgba(255,255,255,0.08)':'#8b5cf6', color:(!name.trim()||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!name.trim()||loading)?'not-allowed':'pointer' }}
+          onClick={handleSubmit}
+          disabled={!name.trim()||loading}
+        >
           {loading ? 'Guardando...' : 'Añadir objeto'}
         </button>
       </div>

@@ -84,7 +84,7 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
 
             <div className="modal-footer">
               <button className="btn-primary btn-outline" style={{flex:1}} onClick={onClose}>Cancelar</button>
-              <button className={`btn-primary btn-blue ${(!isValid||loading)?'btn-disabled':''}`} style={{flex:1}} onClick={handleSubmit}>
+              <button style={{flex:1,padding:'11px',borderRadius:12,border:'none',background:(!isValid||loading)?'rgba(255,255,255,0.08)':'#3B82F6',color:(!isValid||loading)?'#6b7280':'#fff',fontSize:13,fontWeight:700,cursor:(!isValid||loading)?'not-allowed':'pointer'}} onClick={handleSubmit} disabled={!isValid||loading}>
                 {loading ? 'Enviando...' : 'Enviar solicitud'}
               </button>
             </div>

@@ -158,7 +158,7 @@ function EventForm({ onClose }: { onClose: () => void }) {
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={onClose}>Cancelar</button>
-        <button className={`btn-primary btn-green ${(!title.trim() || !date || loading) ? 'btn-disabled' : ''}`} style={{ flex: 1 }} onClick={handleSubmit}>
+        <button style={{ flex:1, padding:11, borderRadius:12, border:"none", background:"#10b981", color:"#fff", fontSize:13, fontWeight:700, cursor:loading?"not-allowed":"pointer", opacity:(!title.trim()||!date||loading)?0.4:1 }} onClick={handleSubmit} disabled={!title.trim()||!date||loading}>
           {loading ? 'Guardando...' : 'Guardar evento'}
         </button>
       </div>

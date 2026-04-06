@@ -265,9 +265,11 @@ function SpecialPeriodForm({ child, onClose }: { child: any; onClose: () => void
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={onClose}>Cancelar</button>
-        <button className={`btn-primary ${(!isValid || loading) ? 'btn-disabled' : ''}`}
-          style={{ flex: 1, background: isValid ? '#f59e0b' : undefined, color: '#fff', border: 'none' }}
-          onClick={handleSubmit}>
+        <button
+          style={{ flex:1, padding:'11px', borderRadius:12, border:'none', background:(!isValid||loading)?'rgba(255,255,255,0.08)':'#f59e0b', color:(!isValid||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!isValid||loading)?'not-allowed':'pointer' }}
+          onClick={handleSubmit}
+          disabled={!isValid||loading}
+        >
           {loading ? 'Guardando...' : 'Guardar periodo'}
         </button>
       </div>
