@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react'
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -28,31 +28,39 @@ function isMobile(): boolean {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const redirectHandled = useRef(false)
 
   useEffect(() => {
-    // Handle redirect result on page load (iOS/Android)
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) setUser(result.user)
-      })
-      .catch((err) => {
-        // Ignore — happens when there's no pending redirect
-        console.log('No redirect result:', err.code)
-      })
-
+    // First set up the auth state listener
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u)
       setLoading(false)
     })
+
+    // Then handle any pending redirect result (iOS/Android flow)
+    // Only run once, guard with ref to avoid loops
+    if (!redirectHandled.current) {
+      redirectHandled.current = true
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result?.user) {
+            setUser(result.user)
+            setLoading(false)
+          }
+        })
+        .catch(() => {
+          // No pending redirect or error — perfectly normal
+        })
+    }
+
     return unsub
   }, [])
 
   const signInWithGoogle = async () => {
     if (isMobile()) {
-      // iOS/Android: use redirect (popup doesn't work reliably)
+      // iOS Safari: redirect flow avoids popup/sessionStorage issues
       await signInWithRedirect(auth, googleProvider)
     } else {
-      // Desktop: popup is fine
       await signInWithPopup(auth, googleProvider)
     }
   }
