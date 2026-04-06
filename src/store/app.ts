@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem } from '@/types'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod } from '@/types'
 
 interface AppState {
   selectedChildId: string | null
@@ -20,6 +20,8 @@ interface AppState {
   setEvents: (e: SchoolEvent[]) => void
   packingItems: PackingItem[]
   setPackingItems: (p: PackingItem[]) => void
+  specialPeriods: SpecialPeriod[]
+  setSpecialPeriods: (s: SpecialPeriod[]) => void
   currentMonth: Date
   setCurrentMonth: (d: Date) => void
 }
@@ -43,6 +45,8 @@ export const useAppStore = create<AppState>((set) => ({
   setEvents: events => set({ events }),
   packingItems: [],
   setPackingItems: packingItems => set({ packingItems }),
+  specialPeriods: [],
+  setSpecialPeriods: specialPeriods => set({ specialPeriods }),
   currentMonth: new Date(),
   setCurrentMonth: currentMonth => set({ currentMonth }),
 }))

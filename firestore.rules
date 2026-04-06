@@ -104,3 +104,16 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/children/$(request.resource.data.childId))
         && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
     }
+
+    // ── Special Periods ───────────────────────────────────────────────────────
+    match /specialPeriods/{periodId} {
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/children/$(resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
+      allow create: if request.auth != null
+        && exists(/databases/$(database)/documents/children/$(request.resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow delete: if request.auth != null
+        && exists(/databases/$(database)/documents/children/$(resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
+    }

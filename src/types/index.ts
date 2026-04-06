@@ -116,3 +116,19 @@ export interface PackingItem {
   createdBy: string
   updatedAt: Date
 }
+
+// ─── Periodos especiales ──────────────────────────────────────────────────────
+export type SpecialPeriodLabel = 'verano' | 'navidad' | 'semana_santa' | 'pascua' | 'otro'
+
+export interface SpecialPeriod {
+  id: string
+  childId: string
+  label: SpecialPeriodLabel
+  customLabel?: string      // si label === 'otro'
+  startDate: string         // YYYY-MM-DD
+  endDate: string           // YYYY-MM-DD
+  parentId: string          // quién tiene al menor ese período
+  notes?: string
+  createdBy: string
+  createdAt: Date
+}

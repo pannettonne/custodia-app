@@ -16,7 +16,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem } from '@/types'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod } from '@/types'
 
 // ─── Children ────────────────────────────────────────────────────────────────
 
@@ -264,4 +264,27 @@ export async function updatePackingItem(id: string, data: Partial<PackingItem>):
 
 export async function deletePackingItem(id: string): Promise<void> {
   await deleteDoc(doc(db, 'packingItems', id))
+}
+
+// ─── Special Periods ──────────────────────────────────────────────────────────
+export function subscribeToSpecialPeriods(childId: string, cb: (periods: SpecialPeriod[]) => void): Unsubscribe {
+  const q = query(
+    collection(db, 'specialPeriods'),
+    where('childId', '==', childId),
+    orderBy('startDate', 'asc')
+  )
+  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as SpecialPeriod))))
+}
+
+export async function createSpecialPeriod(data: Omit<SpecialPeriod, 'id' | 'createdAt'>): Promise<string> {
+  const ref = await addDoc(collection(db, 'specialPeriods'), { ...data, createdAt: serverTimestamp() })
+  return ref.id
+}
+
+export async function updateSpecialPeriod(id: string, data: Partial<SpecialPeriod>): Promise<void> {
+  await updateDoc(doc(db, 'specialPeriods', id), data)
+}
+
+export async function deleteSpecialPeriod(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'specialPeriods', id))
 }

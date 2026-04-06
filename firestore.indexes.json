@@ -1,45 +1,11 @@
 {
   "indexes": [
-    {
-      "collectionGroup": "changeRequests",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "childId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "custodyOverrides",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "childId", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "invitations",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "toEmail", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    }
-  ],
-  "fieldOverrides": []
-}
-EOF
-
-# Rewrite clean indexes file
-cat > /home/claude/custodia-app/firestore.indexes.json << 'EOF'
-{
-  "indexes": [
-    { "collectionGroup": "changeRequests", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "childId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "changeRequests",  "queryScope": "COLLECTION", "fields": [{ "fieldPath": "childId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
     { "collectionGroup": "custodyOverrides", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "childId", "order": "ASCENDING" }, { "fieldPath": "date", "order": "ASCENDING" }] },
-    { "collectionGroup": "invitations", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "toEmail", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }] },
-    { "collectionGroup": "notes", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "childId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
-    { "collectionGroup": "schoolEvents", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "childId", "order": "ASCENDING" }, { "fieldPath": "date", "order": "ASCENDING" }] }
+    { "collectionGroup": "invitations",      "queryScope": "COLLECTION", "fields": [{ "fieldPath": "toEmail", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" }] },
+    { "collectionGroup": "notes",            "queryScope": "COLLECTION", "fields": [{ "fieldPath": "childId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "schoolEvents",     "queryScope": "COLLECTION", "fields": [{ "fieldPath": "childId", "order": "ASCENDING" }, { "fieldPath": "date", "order": "ASCENDING" }] },
+    { "collectionGroup": "specialPeriods",   "queryScope": "COLLECTION", "fields": [{ "fieldPath": "childId", "order": "ASCENDING" }, { "fieldPath": "startDate", "order": "ASCENDING" }] }
   ],
   "fieldOverrides": []
 }
-EOF
-echo "✅ Rules and indexes updated"

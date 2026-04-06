@@ -7,14 +7,14 @@ import { getParentForDate, formatDate } from '@/lib/utils'
 
 export function QuickDateQuery() {
   const { user } = useAuth()
-  const { children, selectedChildId, pattern, overrides } = useAppStore()
+  const { children, selectedChildId, pattern, overrides, specialPeriods } = useAppStore()
   const [date, setDate] = useState('')
   const [queried, setQueried] = useState(false)
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
 
   const result = useMemo(() => {
     if (!queried || !date || !child || !pattern) return null
-    const parentId = getParentForDate(parseISO(date), pattern, overrides, child)
+    const parentId = getParentForDate(parseISO(date), pattern, overrides, child, specialPeriods)
     if (!parentId) return null
     return { parentId, name: child.parentNames?.[parentId] ?? 'Progenitor', color: child.parentColors?.[parentId] ?? '#6B7280', isMe: parentId === user?.uid }
   }, [queried, date, child, pattern, overrides, user?.uid])

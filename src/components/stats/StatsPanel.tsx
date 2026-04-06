@@ -10,7 +10,7 @@ type Period = 'month' | 'year' | '3months'
 
 export function StatsPanel() {
   const { user } = useAuth()
-  const { children, selectedChildId, pattern, overrides, requests } = useAppStore()
+  const { children, selectedChildId, pattern, overrides, requests, specialPeriods } = useAppStore()
   const [period, setPeriod] = useState<Period>('month')
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
 
@@ -28,7 +28,7 @@ export function StatsPanel() {
     child.parents.forEach(p => { counts[p] = 0 })
 
     for (const day of days) {
-      const pid = getParentForDate(day, pattern, overrides, child)
+      const pid = getParentForDate(day, pattern, overrides, child, specialPeriods)
       if (pid) counts[pid] = (counts[pid] ?? 0) + 1
     }
 
@@ -54,7 +54,7 @@ export function StatsPanel() {
       const counts: Record<string, number> = {}
       child.parents.forEach(p => { counts[p] = 0 })
       for (const day of days) {
-        const pid = getParentForDate(day, pattern, overrides, child)
+        const pid = getParentForDate(day, pattern, overrides, child, specialPeriods)
         if (pid) counts[pid] = (counts[pid] ?? 0) + 1
       }
       return { month: format(month, 'MMM', { locale: es }), counts, total: days.length }

@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { createChild, createInvitation, acceptInvitation, setPattern } from '@/lib/db'
 import { PARENT_COLORS, PATTERN_LABELS } from '@/lib/utils'
 import type { Child } from '@/types'
+import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManager'
 
 export function SettingsPanel() {
   const { user } = useAuth()
@@ -15,6 +16,8 @@ export function SettingsPanel() {
       {invitations.length > 0 && <PendingInvitations invitations={invitations} />}
       <ChildSection child={child} />
       {child && <PatternSection child={child} />}
+      {child && <SpecialPeriodsManager />}
+      {child && <SpecialPeriodsManager />}
       {child && child.parents.length < 2 && <InviteSection child={child} />}
       {child && child.parents.length >= 2 && <ParentsInfo child={child} />}
     </div>
