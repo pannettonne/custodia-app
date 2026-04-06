@@ -67,3 +67,40 @@ service cloud.firestore {
     }
   }
 }
+
+    // ── Notes ─────────────────────────────────────────────────────────────────
+    match /notes/{noteId} {
+      allow read, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/children/$(resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.createdBy
+        && exists(/databases/$(database)/documents/children/$(request.resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow update: if request.auth != null
+        && exists(/databases/$(database)/documents/children/$(resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+    }
+
+    // ── School Events ─────────────────────────────────────────────────────────
+    match /schoolEvents/{eventId} {
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/children/$(resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.createdBy
+        && exists(/databases/$(database)/documents/children/$(request.resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+    }
+
+    // ── Packing Items ─────────────────────────────────────────────────────────
+    match /packingItems/{itemId} {
+      allow read, write: if request.auth != null
+        && exists(/databases/$(database)/documents/children/$(resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
+      allow create: if request.auth != null
+        && exists(/databases/$(database)/documents/children/$(request.resource.data.childId))
+        && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+    }

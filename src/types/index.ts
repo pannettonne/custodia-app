@@ -65,3 +65,54 @@ export interface Invitation {
   status: 'pending' | 'accepted' | 'rejected'
   createdAt: Date
 }
+
+// ─── Notas ────────────────────────────────────────────────────────────────────
+export type NoteTag = 'info' | 'importante' | 'urgente'
+
+export interface Note {
+  id: string
+  childId: string
+  createdBy: string
+  createdByName: string
+  type: 'single' | 'range'
+  date?: string        // YYYY-MM-DD (tipo single)
+  startDate?: string   // tipo range
+  endDate?: string     // tipo range
+  text: string
+  tag: NoteTag
+  mentionOther: boolean // true = notifica al otro progenitor
+  read: boolean         // leída por el destinatario
+  createdAt: Date
+}
+
+// ─── Eventos escolares ────────────────────────────────────────────────────────
+export type EventCategory = 'reunion' | 'excursion' | 'examen' | 'extraescolar' | 'festivo' | 'otro'
+
+export interface SchoolEvent {
+  id: string
+  childId: string
+  createdBy: string
+  title: string
+  category: EventCategory
+  date: string       // YYYY-MM-DD
+  endDate?: string   // si dura varios días
+  allDay: boolean
+  time?: string      // HH:mm si no es allDay
+  notes?: string
+  createdAt: Date
+}
+
+// ─── Lista de equipaje ────────────────────────────────────────────────────────
+export type ItemLocation = 'casa1' | 'casa2' | 'desconocido'
+
+export interface PackingItem {
+  id: string
+  childId: string
+  name: string
+  category: 'ropa' | 'escolar' | 'ocio' | 'salud' | 'otro'
+  location: ItemLocation
+  isRecurring: boolean  // viaja siempre en los cambios
+  notes?: string
+  createdBy: string
+  updatedAt: Date
+}

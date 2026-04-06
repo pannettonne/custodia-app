@@ -1,66 +1,34 @@
 'use client'
-
 import { useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
-import {
-  subscribeToChildren,
-  subscribeToPattern,
-  subscribeToOverrides,
-  subscribeToRequests,
-  subscribeToInvitations,
-} from '@/lib/db'
+import { subscribeToChildren, subscribeToPattern, subscribeToOverrides, subscribeToRequests, subscribeToInvitations, subscribeToNotes, subscribeToEvents, subscribeToPackingItems } from '@/lib/db'
 
 export function useDataSubscriptions() {
   const { user } = useAuth()
-  const {
-    selectedChildId,
-    setChildren,
-    setPattern,
-    setOverrides,
-    setRequests,
-    setInvitations,
-    setSelectedChildId,
-    children,
-  } = useAppStore()
+  const { selectedChildId, setChildren, setPattern, setOverrides, setRequests, setInvitations, setNotes, setEvents, setPackingItems, setSelectedChildId, children } = useAppStore()
 
-  // Subscribe to children
   useEffect(() => {
     if (!user) return
-    const unsub = subscribeToChildren(user.uid, (kids) => {
+    return subscribeToChildren(user.uid, kids => {
       setChildren(kids)
-      // Auto-select first child if none selected
-      if (kids.length > 0 && !selectedChildId) {
-        setSelectedChildId(kids[0].id)
-      }
+      if (kids.length > 0 && !selectedChildId) setSelectedChildId(kids[0].id)
     })
-    return unsub
   }, [user?.uid])
 
-  // Subscribe to invitations
   useEffect(() => {
     if (!user?.email) return
-    const unsub = subscribeToInvitations(user.email, setInvitations)
-    return unsub
+    return subscribeToInvitations(user.email, setInvitations)
   }, [user?.email])
 
-  // Subscribe to selected child data
   useEffect(() => {
-    if (!selectedChildId) {
-      setPattern(null)
-      setOverrides([])
-      setRequests([])
-      return
-    }
-
-    const unsubPattern = subscribeToPattern(selectedChildId, setPattern)
-    const unsubOverrides = subscribeToOverrides(selectedChildId, setOverrides)
-    const unsubRequests = subscribeToRequests(selectedChildId, setRequests)
-
-    return () => {
-      unsubPattern()
-      unsubOverrides()
-      unsubRequests()
-    }
+    if (!selectedChildId) { setPattern(null); setOverrides([]); setRequests([]); setNotes([]); setEvents([]); setPackingItems([]); return }
+    const u1 = subscribeToPattern(selectedChildId, setPattern)
+    const u2 = subscribeToOverrides(selectedChildId, setOverrides)
+    const u3 = subscribeToRequests(selectedChildId, setRequests)
+    const u4 = subscribeToNotes(selectedChildId, setNotes)
+    const u5 = subscribeToEvents(selectedChildId, setEvents)
+    const u6 = subscribeToPackingItems(selectedChildId, setPackingItems)
+    return () => { u1(); u2(); u3(); u4(); u5(); u6() }
   }, [selectedChildId])
 }

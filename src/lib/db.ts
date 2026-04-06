@@ -16,7 +16,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation } from '@/types'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem } from '@/types'
 
 // ─── Children ────────────────────────────────────────────────────────────────
 
@@ -211,4 +211,57 @@ export async function acceptInvitation(inv: Invitation, uid: string, displayName
   parentColors[uid] = newColor
 
   await updateDoc(childRef, { parents, parentEmails, parentNames, parentColors })
+}
+
+// ─── Notes ────────────────────────────────────────────────────────────────────
+export function subscribeToNotes(childId: string, cb: (notes: Note[]) => void): Unsubscribe {
+  const q = query(collection(db, 'notes'), where('childId', '==', childId), orderBy('createdAt', 'desc'))
+  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as Note))))
+}
+
+export async function createNote(data: Omit<Note, 'id' | 'createdAt'>): Promise<string> {
+  const ref = await addDoc(collection(db, 'notes'), { ...data, createdAt: serverTimestamp() })
+  return ref.id
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'notes', id))
+}
+
+export async function markNoteRead(id: string): Promise<void> {
+  await updateDoc(doc(db, 'notes', id), { read: true })
+}
+
+// ─── School Events ────────────────────────────────────────────────────────────
+export function subscribeToEvents(childId: string, cb: (events: SchoolEvent[]) => void): Unsubscribe {
+  const q = query(collection(db, 'schoolEvents'), where('childId', '==', childId), orderBy('date', 'asc'))
+  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as SchoolEvent))))
+}
+
+export async function createEvent(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Promise<string> {
+  const ref = await addDoc(collection(db, 'schoolEvents'), { ...data, createdAt: serverTimestamp() })
+  return ref.id
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'schoolEvents', id))
+}
+
+// ─── Packing Items ────────────────────────────────────────────────────────────
+export function subscribeToPackingItems(childId: string, cb: (items: PackingItem[]) => void): Unsubscribe {
+  const q = query(collection(db, 'packingItems'), where('childId', '==', childId))
+  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as PackingItem))))
+}
+
+export async function createPackingItem(data: Omit<PackingItem, 'id'>): Promise<string> {
+  const ref = await addDoc(collection(db, 'packingItems'), data)
+  return ref.id
+}
+
+export async function updatePackingItem(id: string, data: Partial<PackingItem>): Promise<void> {
+  await updateDoc(doc(db, 'packingItems', id), { ...data, updatedAt: serverTimestamp() })
+}
+
+export async function deletePackingItem(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'packingItems', id))
 }

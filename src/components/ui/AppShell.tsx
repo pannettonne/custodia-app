@@ -7,8 +7,12 @@ import { CustodyCalendar } from '@/components/calendar/CustodyCalendar'
 import { QuickDateQuery } from '@/components/calendar/QuickDateQuery'
 import { RequestsList } from '@/components/requests/RequestsList'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
+import { NotesPanel } from '@/components/notes/NotesPanel'
+import { EventsPanel } from '@/components/events/EventsPanel'
+import { PackingPanel } from '@/components/packing/PackingPanel'
+import { StatsPanel } from '@/components/stats/StatsPanel'
 
-type Tab = 'calendar' | 'requests' | 'settings'
+type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
 
 const CalIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
 const MsgIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -16,13 +20,32 @@ const CfgIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 
 export function AppShell() {
   const { user, signOut } = useAuth()
-  const { children, selectedChildId, setSelectedChildId, requests, invitations } = useAppStore()
+  const { children, selectedChildId, setSelectedChildId, requests, invitations, notes } = useAppStore()
   const [tab, setTab] = useState<Tab>('calendar')
   useDataSubscriptions()
 
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const pendingReqs = useMemo(() => requests.filter(r => r.status === 'pending' && r.toParentId === user?.uid).length, [requests, user?.uid])
-  const totalBadge = pendingReqs + invitations.length
+  const unreadNotes = useMemo(() => notes.filter(n => !n.read && n.createdBy !== user?.uid && n.mentionOther).length, [notes, user?.uid])
+  const totalBadge = pendingReqs + invitations.length + unreadNotes
+
+  // Bottom nav tabs (5 main)
+  const mainTabs = [
+    { id: 'calendar' as Tab, label: 'Calendario', emoji: '📅' },
+    { id: 'requests' as Tab, label: 'Cambios', emoji: '🔄', badge: pendingReqs },
+    { id: 'notes' as Tab, label: 'Notas', emoji: '📝', badge: unreadNotes },
+    { id: 'events' as Tab, label: 'Eventos', emoji: '🎓' },
+    { id: 'settings' as Tab, label: 'Más', emoji: '⋯', badge: invitations.length },
+  ]
+
+  // "Más" shows a submenu for packing, stats, settings
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  const handleTabClick = (id: Tab) => {
+    if (id === 'settings') { setMoreOpen(!moreOpen); return }
+    setMoreOpen(false)
+    setTab(id)
+  }
 
   return (
     <div className="app-shell">
@@ -42,9 +65,8 @@ export function AppShell() {
             </select>
           )}
           {totalBadge > 0 && (
-            <button className="notif-btn" onClick={() => setTab(invitations.length > 0 ? 'settings' : 'requests')}>
-              🔔
-              <span className="notif-count">{totalBadge}</span>
+            <button className="notif-btn" onClick={() => { setMoreOpen(false); setTab(unreadNotes > 0 ? 'notes' : pendingReqs > 0 ? 'requests' : 'settings') }}>
+              🔔<span className="notif-count">{totalBadge}</span>
             </button>
           )}
           <button className="user-avatar" onClick={signOut} title="Cerrar sesión">
@@ -53,23 +75,40 @@ export function AppShell() {
         </div>
       </header>
 
+      {/* More submenu */}
+      {moreOpen && (
+        <div style={{ background: '#161b22', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 12px', display: 'flex', gap: 6 }}>
+          {[
+            { id: 'packing' as Tab, label: '🧳 Equipaje' },
+            { id: 'stats' as Tab, label: '📊 Estadísticas' },
+            { id: 'settings' as Tab, label: '⚙️ Ajustes' },
+          ].map(({ id, label }) => (
+            <button key={id} onClick={() => { setTab(id); setMoreOpen(false) }}
+              style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: `1px solid ${tab===id ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)'}`, background: tab===id ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)', color: tab===id ? '#fff' : '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <main className="app-main">
-        {tab === 'calendar' && <><CustodyCalendar /><QuickDateQuery /></>}
-        {tab === 'requests' && <><div className="page-title">Solicitudes de cambio</div><RequestsList /></>}
-        {tab === 'settings' && <><div className="page-title">Configuración</div><SettingsPanel /></>}
+        {tab === 'calendar'  && <><CustodyCalendar /><QuickDateQuery /></>}
+        {tab === 'requests'  && <RequestsList />}
+        {tab === 'notes'     && <NotesPanel />}
+        {tab === 'events'    && <EventsPanel />}
+        {tab === 'packing'   && <PackingPanel />}
+        {tab === 'stats'     && <StatsPanel />}
+        {tab === 'settings'  && <><div className="page-title">Configuración</div><SettingsPanel /></>}
       </main>
 
       <nav className="bottom-nav">
-        {([
-          { id: 'calendar', label: 'Calendario', Icon: CalIcon, badge: 0 },
-          { id: 'requests', label: 'Solicitudes', Icon: MsgIcon, badge: pendingReqs },
-          { id: 'settings', label: 'Ajustes', Icon: CfgIcon, badge: invitations.length },
-        ] as const).map(({ id, label, Icon, badge }) => (
-          <button key={id} className={`nav-btn ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)}>
-            <Icon />
+        {mainTabs.map(({ id, label, emoji, badge }) => (
+          <button key={id} className={`nav-btn ${(tab === id || (id === 'settings' && ['packing','stats','settings'].includes(tab))) ? 'active' : ''}`}
+            onClick={() => handleTabClick(id)}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>{emoji}</span>
             <span>{label}</span>
-            {badge > 0 && <span className="nav-badge">{badge}</span>}
-            {tab === id && <span className="nav-active-line" />}
+            {badge && badge > 0 ? <span className="nav-badge">{badge}</span> : null}
+            {(tab === id || (id === 'settings' && ['packing','stats','settings'].includes(tab))) && <span className="nav-active-line" />}
           </button>
         ))}
       </nav>
