@@ -103,6 +103,7 @@ export interface SchoolEvent {
   recurrence?: EventRecurrence
   recurrenceUntil?: string
   recurrenceWeekdays?: number[]
+  cancelledDates?: string[]
   recurrenceGroupId?: string
   createdAt: Date
   updatedAt?: Date
