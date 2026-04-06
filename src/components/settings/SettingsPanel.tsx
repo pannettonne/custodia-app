@@ -2,13 +2,12 @@
 import { useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
-import { createChild, createInvitation, acceptInvitation, setPattern } from '@/lib/db'
+import { createChild, createInvitation, acceptInvitation, setPattern, forgetChild } from '@/lib/db'
 import { PARENT_COLORS, PATTERN_LABELS } from '@/lib/utils'
 import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManager'
 import type { Child } from '@/types'
 
 export function SettingsPanel() {
-  const { user } = useAuth()
   const { children, selectedChildId, invitations } = useAppStore()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
 
@@ -20,6 +19,7 @@ export function SettingsPanel() {
       {child && <SpecialPeriodsManager />}
       {child && child.parents.length < 2 && <InviteSection child={child} />}
       {child && child.parents.length >= 2 && <ParentsInfo child={child} />}
+      {child && <DangerZone child={child} />}
     </div>
   )
 }
@@ -27,12 +27,21 @@ export function SettingsPanel() {
 function PendingInvitations({ invitations }: { invitations: any[] }) {
   const { user } = useAuth()
   const [loading, setLoading] = useState<string | null>(null)
+  const [error, setError] = useState('')
+
   const handleAccept = async (inv: any) => {
     if (!user) return
     setLoading(inv.id)
-    try { await acceptInvitation(inv, user.uid, user.displayName ?? user.email ?? 'Progenitor') }
-    finally { setLoading(null) }
+    setError('')
+    try {
+      await acceptInvitation(inv, user.uid, user.displayName ?? user.email ?? 'Progenitor')
+    } catch (e: any) {
+      setError(e?.message || 'No se pudo aceptar la invitación')
+    } finally {
+      setLoading(null)
+    }
   }
+
   return (
     <div className="invite-pending">
       <div className="invite-pending-title">📨 Invitaciones recibidas</div>
@@ -47,6 +56,7 @@ function PendingInvitations({ invitations }: { invitations: any[] }) {
           </button>
         </div>
       ))}
+      {error && <div style={{ marginTop: 10, color: '#fca5a5', fontSize: 12 }}>{error}</div>}
     </div>
   )
 }
@@ -201,6 +211,44 @@ function ParentsInfo({ child }: { child: Child }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function DangerZone({ child }: { child: Child }) {
+  const { user } = useAuth()
+  const { setSelectedChildId } = useAppStore()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const canForget = !!user && child.parents.includes(user.uid) && child.parents.length > 1
+
+  const handleForget = async () => {
+    if (!user || !canForget) return
+    const ok = window.confirm(`¿Seguro que quieres olvidar a ${child.name}? Dejarás de verlo en tu cuenta.`)
+    if (!ok) return
+    setLoading(true)
+    setError('')
+    try {
+      await forgetChild(child.id, user.uid)
+      setSelectedChildId(null)
+    } catch (e: any) {
+      setError(e?.message || 'No se pudo olvidar este menor')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!canForget) return null
+
+  return (
+    <div className="card" style={{ borderColor: 'rgba(239,68,68,0.25)' }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#fca5a5', marginBottom: 10 }}>⚠️ Zona sensible</div>
+      <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12 }}>Puedes quitar este menor de tu cuenta sin borrar sus datos del otro progenitor.</div>
+      <button onClick={handleForget} disabled={loading} style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:loading?'rgba(255,255,255,0.08)':'#ef4444', color:loading?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:loading?'not-allowed':'pointer' }}>
+        {loading ? 'Quitando...' : 'Olvidar este menor'}
+      </button>
+      {error && <div style={{ marginTop: 10, color: '#fca5a5', fontSize: 12 }}>{error}</div>}
     </div>
   )
 }

@@ -30,6 +30,29 @@ export async function updateChild(id: string, data: Partial<Child>): Promise<voi
   await updateDoc(doc(db, 'children', id), data)
 }
 
+export async function forgetChild(childId: string, uid: string): Promise<void> {
+  const childRef = doc(db, 'children', childId)
+  const childSnap = await getDoc(childRef)
+  if (!childSnap.exists()) throw new Error('Menor no encontrado')
+
+  const child = childSnap.data() as Child
+  const currentParents = child.parents || []
+  if (!currentParents.includes(uid)) throw new Error('No tienes acceso a este menor')
+  if (currentParents.length <= 1) throw new Error('No puedes olvidar el único progenitor del menor')
+
+  const index = currentParents.indexOf(uid)
+  const parents = currentParents.filter(p => p !== uid)
+  const parentEmails = [...(child.parentEmails || [])]
+  if (index >= 0 && index < parentEmails.length) parentEmails.splice(index, 1)
+
+  const parentNames = { ...(child.parentNames || {}) }
+  delete parentNames[uid]
+  const parentColors = { ...(child.parentColors || {}) }
+  delete parentColors[uid]
+
+  await updateDoc(childRef, { parents, parentEmails, parentNames, parentColors })
+}
+
 export function subscribeToPattern(childId: string, cb: (pattern: CustodyPattern | null) => void): Unsubscribe {
   const q = query(collection(db, 'custodyPatterns'), where('childId', '==', childId))
   return onSnapshot(q, snap => {
@@ -109,22 +132,26 @@ export async function createInvitation(data: Omit<Invitation, 'id' | 'createdAt'
 }
 
 export async function acceptInvitation(inv: Invitation, uid: string, displayName: string): Promise<void> {
-  await updateDoc(doc(db, 'invitations', inv.id), { status: 'accepted' })
-
   const childRef = doc(db, 'children', inv.childId)
   const childSnap = await getDoc(childRef)
   if (!childSnap.exists()) throw new Error('Menor no encontrado')
 
   const childData = childSnap.data() as Child
+  const parentEmails = Array.isArray(childData.parentEmails) ? [...childData.parentEmails] : []
+  if (!parentEmails.includes(inv.toEmail)) {
+    throw new Error('Esta invitación es antigua o incompleta. Reenvíala desde ajustes y acepta la nueva.')
+  }
+
   const parents = Array.from(new Set([...(childData.parents || []), uid]))
-  const parentEmails = Array.from(new Set([...(childData.parentEmails || []), inv.toEmail]))
+  const mergedParentEmails = Array.from(new Set([...(childData.parentEmails || []), inv.toEmail]))
   const parentNames = { ...(childData.parentNames || {}), [uid]: displayName }
   const parentColors = { ...(childData.parentColors || {}) }
   const usedColors = Object.values(parentColors)
   const availableColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
   parentColors[uid] = parentColors[uid] || availableColors.find(c => !usedColors.includes(c)) || '#6B7280'
 
-  await updateDoc(childRef, { parents, parentEmails, parentNames, parentColors })
+  await updateDoc(childRef, { parents, parentEmails: mergedParentEmails, parentNames, parentColors })
+  await updateDoc(doc(db, 'invitations', inv.id), { status: 'accepted' })
 }
 
 export function subscribeToNotes(childId: string, cb: (notes: Note[]) => void): Unsubscribe {
