@@ -22,14 +22,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-function isSafariOrIOS(): boolean {
-  if (typeof window === 'undefined') return false
-  const ua = navigator.userAgent
-  const isIOS = /iPhone|iPad|iPod/i.test(ua)
-  const isSafari = /^((?!chrome|android).)*safari/i.test(ua)
-  return isIOS || isSafari
-}
-
 function isIOSStandalone(): boolean {
   if (typeof window === 'undefined') return false
   const ua = navigator.userAgent
@@ -85,19 +77,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Continue even if Safari/iOS limits persistence setup
     }
 
-    if (isSafariOrIOS()) {
-      await signInWithRedirect(auth, googleProvider)
-      return
-    }
-
     try {
       await signInWithPopup(auth, googleProvider)
+      return
     } catch (err: any) {
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+      if (
+        err.code === 'auth/popup-blocked' ||
+        err.code === 'auth/popup-closed-by-user' ||
+        err.code === 'auth/cancelled-popup-request'
+      ) {
         await signInWithRedirect(auth, googleProvider)
-      } else {
-        throw err
+        return
       }
+
+      throw err
     }
   }
 
