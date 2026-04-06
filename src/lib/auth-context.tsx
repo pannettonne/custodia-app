@@ -20,11 +20,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-// Detect if running in Safari / WebKit (iOS, iPadOS, macOS Safari)
-function isSafari(): boolean {
+function isSafariOrIOS(): boolean {
   if (typeof window === 'undefined') return false
   const ua = navigator.userAgent
-  return /^((?!chrome|android).)*safari/i.test(ua) || /iPhone|iPad|iPod/i.test(ua)
+  const isIOS = /iPhone|iPad|iPod/i.test(ua)
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua)
+  return isIOS || isSafari
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -32,40 +33,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null
+    // onAuthStateChanged is the single source of truth.
+    // It fires automatically after getRedirectResult resolves internally.
+    // We just need to call getRedirectResult to "consume" the redirect —
+    // the actual user state will arrive via onAuthStateChanged.
+    getRedirectResult(auth).catch(() => {
+      // No pending redirect — completely normal
+    })
 
-    async function init() {
-      try {
-        // Check for pending redirect result (after iOS/Safari redirect flow)
-        const result = await getRedirectResult(auth)
-        if (result?.user) {
-          setUser(result.user)
-          setLoading(false)
-        }
-      } catch {
-        // No pending redirect - this is normal
-      }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser)
+      setLoading(false)
+    })
 
-      // Always set up the auth state listener
-      unsubscribe = onAuthStateChanged(auth, (u) => {
-        setUser(u)
-        setLoading(false)
-      })
-    }
-
-    init()
-    return () => { if (unsubscribe) unsubscribe() }
+    return unsubscribe
   }, [])
 
   const signInWithGoogle = async () => {
-    if (isSafari()) {
-      // Safari blocks popups → use redirect
+    if (isSafariOrIOS()) {
       await signInWithRedirect(auth, googleProvider)
     } else {
       try {
         await signInWithPopup(auth, googleProvider)
       } catch (err: any) {
-        // Fallback to redirect if popup fails for any reason
         if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
           await signInWithRedirect(auth, googleProvider)
         } else {
@@ -75,7 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const signOut = async () => { await firebaseSignOut(auth) }
+  const signOut = async () => {
+    await firebaseSignOut(auth)
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
