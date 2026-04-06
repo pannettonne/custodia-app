@@ -1,46 +1,9 @@
 "use client"
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, serverTimestamp, writeBatch, type Unsubscribe } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, serverTimestamp, type Unsubscribe } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, EventRecurrence } from '@/types'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod } from '@/types'
 
 function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> { return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T> }
-function isoToDate(dateStr: string): Date { return new Date(dateStr + 'T12:00:00') }
-function toISODate(date: Date): string { return date.toISOString().slice(0, 10) }
-function startOfWeekMonday(date: Date): Date { const d = new Date(date); const day = d.getDay(); const diff = day === 0 ? -6 : 1 - day; d.setDate(d.getDate() + diff); d.setHours(12,0,0,0); return d }
-
-function buildRecurringEventOccurrences(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Omit<SchoolEvent, 'id' | 'createdAt'>[] {
-  const recurrence = data.recurrence ?? 'none'
-  if (recurrence === 'none' || !data.recurrenceUntil) return [data]
-  const start = isoToDate(data.date)
-  const until = isoToDate(data.recurrenceUntil)
-  const result: Omit<SchoolEvent, 'id' | 'createdAt'>[] = []
-  const recurrenceGroupId = `${data.childId}_${data.createdBy}_${Date.now()}`
-  if (recurrence === 'weekly') {
-    const weekdays = (data.recurrenceWeekdays && data.recurrenceWeekdays.length > 0) ? [...new Set(data.recurrenceWeekdays)].sort((a, b) => a - b) : [((start.getDay() + 6) % 7) + 1]
-    let cursor = startOfWeekMonday(start)
-    while (cursor <= until) {
-      for (const weekday of weekdays) {
-        const occurrence = new Date(cursor)
-        occurrence.setDate(cursor.getDate() + (weekday - 1))
-        if (occurrence < start || occurrence > until) continue
-        result.push({ ...data, date: toISODate(occurrence), recurrence, recurrenceWeekdays: weekdays, recurrenceGroupId })
-      }
-      cursor.setDate(cursor.getDate() + 7)
-    }
-    return result
-  }
-  if (recurrence === 'monthly') {
-    const dayOfMonth = start.getDate()
-    let cursor = new Date(start)
-    while (cursor <= until) {
-      const occurrence = new Date(cursor.getFullYear(), cursor.getMonth(), dayOfMonth, 12, 0, 0, 0)
-      if (occurrence.getMonth() === cursor.getMonth() && occurrence >= start && occurrence <= until) result.push({ ...data, date: toISODate(occurrence), recurrence, recurrenceGroupId })
-      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1, 12, 0, 0, 0)
-    }
-    return result
-  }
-  return [data]
-}
 
 export function subscribeToChildren(uid: string, cb: (children: Child[]) => void): Unsubscribe { const q = query(collection(db, 'children'), where('parents', 'array-contains', uid)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as Child)))) }
 export async function createChild(data: Omit<Child, 'id' | 'createdAt'>): Promise<string> { const ref = await addDoc(collection(db, 'children'), { ...data, createdAt: serverTimestamp() }); return ref.id }
@@ -69,7 +32,7 @@ export async function deleteNote(id: string): Promise<void> { await deleteDoc(do
 export async function markNoteRead(id: string): Promise<void> { await updateDoc(doc(db, 'notes', id), { read: true }) }
 
 export function subscribeToEvents(childId: string, cb: (events: SchoolEvent[]) => void): Unsubscribe { const q = query(collection(db, 'schoolEvents'), where('childId', '==', childId)); return onSnapshot(q, snap => { const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as SchoolEvent)); cb(items.sort((a, b) => a.date.localeCompare(b.date) || ((a.time || '').localeCompare(b.time || '')))) }) }
-export async function createEvent(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Promise<string> { const occurrences = buildRecurringEventOccurrences(data); const batch = writeBatch(db); const firstRef = doc(collection(db, 'schoolEvents')); occurrences.forEach((item, index) => { const ref = index === 0 ? firstRef : doc(collection(db, 'schoolEvents')); batch.set(ref, compactUndefined({ ...item, time: item.allDay ? undefined : (item.time || undefined), endDate: item.endDate || undefined, notes: item.notes || undefined, customCategory: item.category === 'otro' ? (item.customCategory || undefined) : undefined, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })) }); await batch.commit(); return firstRef.id }
+export async function createEvent(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Promise<string> { const ref = await addDoc(collection(db, 'schoolEvents'), compactUndefined({ ...data, time: data.allDay ? undefined : (data.time || undefined), endDate: data.endDate || undefined, notes: data.notes || undefined, customCategory: data.category === 'otro' ? (data.customCategory || undefined) : undefined, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })); return ref.id }
 export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), compactUndefined({ ...data, customCategory: data.category === 'otro' ? data.customCategory : (data.customCategory || undefined), updatedAt: serverTimestamp() })) }
 export async function deleteEvent(id: string): Promise<void> { await deleteDoc(doc(db, 'schoolEvents', id)) }
 
