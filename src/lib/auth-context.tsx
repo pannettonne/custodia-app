@@ -20,37 +20,58 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+// Detect if running in Safari / WebKit (iOS, iPadOS, macOS Safari)
+function isSafari(): boolean {
+  if (typeof window === 'undefined') return false
+  const ua = navigator.userAgent
+  return /^((?!chrome|android).)*safari/i.test(ua) || /iPhone|iPad|iPod/i.test(ua)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Handle redirect result first (iOS after redirect back)
-    getRedirectResult(auth)
-      .then(result => { if (result?.user) setUser(result.user) })
-      .catch(() => {}) // normal when no pending redirect
-      .finally(() => {
-        // Then start listening to auth state
-        const unsub = onAuthStateChanged(auth, u => {
-          setUser(u)
-          setLoading(false)
-        })
-        // Store unsub for cleanup
-        ;(window as any).__authUnsub = unsub
-      })
+    let unsubscribe: (() => void) | null = null
 
-    return () => {
-      const unsub = (window as any).__authUnsub
-      if (unsub) unsub()
+    async function init() {
+      try {
+        // Check for pending redirect result (after iOS/Safari redirect flow)
+        const result = await getRedirectResult(auth)
+        if (result?.user) {
+          setUser(result.user)
+          setLoading(false)
+        }
+      } catch {
+        // No pending redirect - this is normal
+      }
+
+      // Always set up the auth state listener
+      unsubscribe = onAuthStateChanged(auth, (u) => {
+        setUser(u)
+        setLoading(false)
+      })
     }
+
+    init()
+    return () => { if (unsubscribe) unsubscribe() }
   }, [])
 
   const signInWithGoogle = async () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    if (isMobile) {
+    if (isSafari()) {
+      // Safari blocks popups → use redirect
       await signInWithRedirect(auth, googleProvider)
     } else {
-      await signInWithPopup(auth, googleProvider)
+      try {
+        await signInWithPopup(auth, googleProvider)
+      } catch (err: any) {
+        // Fallback to redirect if popup fails for any reason
+        if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+          await signInWithRedirect(auth, googleProvider)
+        } else {
+          throw err
+        }
+      }
     }
   }
 
