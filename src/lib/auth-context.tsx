@@ -30,6 +30,16 @@ function isSafariOrIOS(): boolean {
   return isIOS || isSafari
 }
 
+function isIOSStandalone(): boolean {
+  if (typeof window === 'undefined') return false
+  const ua = navigator.userAgent
+  const isIOS = /iPhone|iPad|iPod/i.test(ua)
+  const isStandalone =
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  return isIOS && isStandalone
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,6 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signInWithGoogle = async () => {
+    if (isIOSStandalone()) {
+      window.alert('En iPhone, el login con Google no funciona bien dentro de la app instalada. Abre CustodiaApp en Safari e inicia sesión desde allí.')
+      return
+    }
+
     try {
       await setPersistence(auth, browserLocalPersistence)
     } catch {
