@@ -3,14 +3,10 @@ import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 
 export const metadata: Metadata = {
-  title: 'CustodiaApp – Gestión de custodia compartida',
-  description: 'Aplicación para gestionar el régimen de custodia de menores entre progenitores',
+  title: 'CustodiaApp',
+  description: 'Gestión de custodia compartida de menores',
   manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'CustodiaApp',
-  },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'CustodiaApp' },
 }
 
 export const viewport: Viewport = {
@@ -24,11 +20,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }} className="bg-[#0d1117] antialiased">
+      <body style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: '#0d1117', margin: 0 }}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
