@@ -24,6 +24,13 @@ const WEEKDAYS = [
   { value: 7, label: 'D' },
 ]
 
+function buildMonthlyDate(baseDate: string, dayOfMonth: number): string {
+  if (!baseDate) return ''
+  const [year, month] = baseDate.split('-')
+  const safeDay = String(Math.max(1, Math.min(31, dayOfMonth))).padStart(2, '0')
+  return `${year}-${month}-${safeDay}`
+}
+
 export function EventsPanel() {
   const { events } = useAppStore()
   const [showForm, setShowForm] = useState(false)
@@ -117,24 +124,27 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
   const [recurrence, setRecurrence] = useState<EventRecurrence>(event?.recurrence ?? 'none')
   const [recurrenceUntil, setRecurrenceUntil] = useState(event?.recurrenceUntil ?? '')
   const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>(event?.recurrenceWeekdays ?? [])
+  const [monthlyDay, setMonthlyDay] = useState<number>(event ? Number((event.date || '').slice(8, 10)) || 1 : 1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const isValid = !!user && !!child && !!title.trim() && !!date && (category !== 'otro' || !!customCategory.trim()) && (recurrence === 'none' || !!recurrenceUntil)
+  const isValid = !!user && !!child && !!title.trim() && !!date && (category !== 'otro' || !!customCategory.trim()) && (recurrence === 'none' || !!recurrenceUntil) && (recurrence !== 'weekly' || recurrenceWeekdays.length > 0) && (recurrence !== 'monthly' || (monthlyDay >= 1 && monthlyDay <= 31))
 
   const toggleWeekday = (day: number) => setRecurrenceWeekdays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort((a,b) => a-b))
 
   const handleSubmit = async () => {
     if (!user || !child || !isValid) return
-    setLoading(true); setError('')
+    setLoading(true)
+    setError('')
     try {
+      const finalDate = recurrence === 'monthly' ? buildMonthlyDate(date, monthlyDay) : date
       const payload = {
         childId: child.id,
         createdBy: event?.createdBy ?? user.uid,
         title: title.trim(),
         category,
         customCategory: category === 'otro' ? customCategory.trim() : undefined,
-        date,
+        date: finalDate,
         endDate: endDate || undefined,
         allDay,
         time: allDay ? undefined : (time || undefined),
@@ -148,13 +158,20 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
       onClose()
     } catch (e: any) {
       setError(e?.message || 'No se pudo guardar el evento')
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="card" style={{ marginBottom: 14, borderColor: 'rgba(16,185,129,0.3)' }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>{event ? '✏️ Editar evento' : '🎓 Nuevo evento'}</div>
-      <div style={{ marginBottom: 10 }}><div className="settings-label">Título</div><input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Reunión trimestral" className="settings-input" /></div>
+
+      <div style={{ marginBottom: 10 }}>
+        <div className="settings-label">Título</div>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Reunión trimestral" className="settings-input" />
+      </div>
+
       <div style={{ marginBottom: 10 }}>
         <div className="settings-label">Categoría</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
@@ -164,25 +181,76 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
         </div>
         {category === 'otro' && <input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Nombre de la categoría" className="settings-input" style={{ marginTop: 8 }} />}
       </div>
-      <div style={{ marginBottom: 10 }}><div className="date-pair"><div><div className="date-pair-label">Fecha</div><input type="date" value={date} onChange={e => setDate(e.target.value)} className="settings-input" /></div><div><div className="date-pair-label">Hasta (opcional)</div><input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" /></div></div></div>
-      <div style={{ marginBottom: 10 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#cbd5e1', fontSize: 13, fontWeight: 600 }}><input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) setTime('') }} />Evento de todo el día</label></div>
-      {!allDay && <div style={{ marginBottom: 10 }}><div className="settings-label">Hora (opcional)</div><input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" /></div>}
+
+      <div style={{ marginBottom: 10 }}>
+        <div className="date-pair">
+          <div>
+            <div className="date-pair-label">{recurrence === 'none' ? 'Fecha' : 'Empieza el'}</div>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="settings-input" />
+          </div>
+          <div>
+            <div className="date-pair-label">Hasta (opcional)</div>
+            <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#cbd5e1', fontSize: 13, fontWeight: 600 }}>
+          <input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) setTime('') }} />
+          Evento de todo el día
+        </label>
+      </div>
+
+      {!allDay && (
+        <div style={{ marginBottom: 10 }}>
+          <div className="settings-label">Hora (opcional)</div>
+          <input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" />
+        </div>
+      )}
+
       {!event && (
         <div style={{ marginBottom: 10 }}>
           <div className="settings-label">Repetición</div>
           <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-            {(['none','weekly','monthly'] as EventRecurrence[]).map(r => <button key={r} onClick={() => setRecurrence(r)} style={{ flex:1, padding:'8px 6px', borderRadius:10, border:`1px solid ${recurrence===r ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, background:recurrence===r ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.04)', color:recurrence===r ? '#a78bfa' : '#9ca3af', fontSize:11, fontWeight:700, cursor:'pointer' }}>{r === 'none' ? 'Una vez' : r === 'weekly' ? 'Semanal' : 'Una vez al mes'}</button>)}
+            {(['none','weekly','monthly'] as EventRecurrence[]).map(r => (
+              <button key={r} onClick={() => setRecurrence(r)} style={{ flex:1, padding:'8px 6px', borderRadius:10, border:`1px solid ${recurrence===r ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, background:recurrence===r ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.04)', color:recurrence===r ? '#a78bfa' : '#9ca3af', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                {r === 'none' ? 'Una vez' : r === 'weekly' ? 'Semanal' : 'Una vez al mes'}
+              </button>
+            ))}
           </div>
-          {recurrence !== 'none' && <input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" />}
+
           {recurrence === 'weekly' && (
-            <div style={{ display:'flex', gap:6, marginTop:8, flexWrap:'wrap' }}>
-              {WEEKDAYS.map(day => <button key={day.value} onClick={() => toggleWeekday(day.value)} style={{ width:34, height:34, borderRadius:17, border:`1px solid ${recurrenceWeekdays.includes(day.value) ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, background:recurrenceWeekdays.includes(day.value) ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.04)', color:recurrenceWeekdays.includes(day.value) ? '#a78bfa' : '#9ca3af', fontSize:12, fontWeight:700, cursor:'pointer' }}>{day.label}</button>)}
-            </div>
+            <>
+              <div className="settings-label" style={{ marginBottom: 6 }}>Días de la semana</div>
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>
+                {WEEKDAYS.map(day => (
+                  <button key={day.value} onClick={() => toggleWeekday(day.value)} style={{ width:34, height:34, borderRadius:17, border:`1px solid ${recurrenceWeekdays.includes(day.value) ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, background:recurrenceWeekdays.includes(day.value) ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.04)', color:recurrenceWeekdays.includes(day.value) ? '#a78bfa' : '#9ca3af', fontSize:12, fontWeight:700, cursor:'pointer' }}>{day.label}</button>
+                ))}
+              </div>
+              <div className="settings-label" style={{ marginBottom: 6 }}>Repetir hasta</div>
+              <input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" />
+            </>
+          )}
+
+          {recurrence === 'monthly' && (
+            <>
+              <div className="settings-label" style={{ marginBottom: 6 }}>Día del mes</div>
+              <input type="number" min="1" max="31" value={monthlyDay} onChange={e => setMonthlyDay(Number(e.target.value || 1))} className="settings-input" />
+              <div className="settings-label" style={{ marginTop: 8, marginBottom: 6 }}>Repetir hasta</div>
+              <input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" />
+            </>
           )}
         </div>
       )}
-      <div style={{ marginBottom: 14 }}><div className="settings-label">Observaciones (opcional)</div><textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={2} className="settings-textarea" /></div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div className="settings-label">Observaciones (opcional)</div>
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={2} className="settings-textarea" />
+      </div>
+
       {error && <div style={{ marginBottom:10, padding:'8px 10px', borderRadius:10, background:'rgba(239,68,68,0.12)', color:'#fca5a5', fontSize:12 }}>{error}</div>}
+
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={onClose}>Cancelar</button>
         <button style={{ flex:1, padding:11, borderRadius:12, border:'none', background: isValid && !loading ? '#10b981' : 'rgba(255,255,255,0.08)', color: isValid && !loading ? '#fff' : '#6b7280', fontSize:13, fontWeight:700, cursor:isValid && !loading ? 'pointer' : 'not-allowed' }} onClick={handleSubmit} disabled={!isValid || loading}>{loading ? 'Guardando...' : (event ? 'Guardar cambios' : 'Guardar evento')}</button>
