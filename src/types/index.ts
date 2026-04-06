@@ -9,11 +9,11 @@ export interface Child {
   id: string
   name: string
   birthDate: string
-  createdBy: string // uid del creador
-  parents: string[] // array de uids de ambos progenitores
-  parentEmails: string[] // emails para invitación
-  parentNames: Record<string, string> // uid -> nombre
-  parentColors: Record<string, string> // uid -> color '#hex'
+  createdBy: string
+  parents: string[]
+  parentEmails: string[]
+  parentNames: Record<string, string>
+  parentColors: Record<string, string>
   createdAt: Date
 }
 
@@ -21,8 +21,8 @@ export interface CustodyPattern {
   id: string
   childId: string
   type: 'alternating_weekly' | 'alternating_biweekly' | '2-2-3' | 'custom'
-  startDate: string // ISO date string
-  startParentId: string // quién empieza
+  startDate: string
+  startParentId: string
   createdBy: string
   createdAt: Date
 }
@@ -30,8 +30,8 @@ export interface CustodyPattern {
 export interface CustodyOverride {
   id: string
   childId: string
-  date: string // YYYY-MM-DD
-  parentId: string // a quién corresponde ese día
+  date: string
+  parentId: string
   reason?: string
   createdBy: string
   createdAt: Date
@@ -46,9 +46,9 @@ export interface ChangeRequest {
   fromParentName: string
   toParentId: string
   type: 'single' | 'range'
-  date?: string // para tipo single
-  startDate?: string // para tipo range
-  endDate?: string // para tipo range
+  date?: string
+  startDate?: string
+  endDate?: string
   reason: string
   status: RequestStatus
   createdAt: Date
@@ -62,11 +62,10 @@ export interface Invitation {
   fromEmail: string
   fromName: string
   toEmail: string
-  status: 'pending' | 'accepted' | 'rejected'
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
   createdAt: Date
 }
 
-// ─── Notas ────────────────────────────────────────────────────────────────────
 export type NoteTag = 'info' | 'importante' | 'urgente'
 
 export interface Note {
@@ -75,18 +74,19 @@ export interface Note {
   createdBy: string
   createdByName: string
   type: 'single' | 'range'
-  date?: string        // YYYY-MM-DD (tipo single)
-  startDate?: string   // tipo range
-  endDate?: string     // tipo range
+  date?: string
+  startDate?: string
+  endDate?: string
   text: string
   tag: NoteTag
-  mentionOther: boolean // true = notifica al otro progenitor
-  read: boolean         // leída por el destinatario
+  mentionOther: boolean
+  read: boolean
   createdAt: Date
+  updatedAt?: Date
 }
 
-// ─── Eventos escolares ────────────────────────────────────────────────────────
 export type EventCategory = 'reunion' | 'excursion' | 'examen' | 'extraescolar' | 'festivo' | 'otro'
+export type EventRecurrence = 'none' | 'weekly' | 'monthly'
 
 export interface SchoolEvent {
   id: string
@@ -94,15 +94,20 @@ export interface SchoolEvent {
   createdBy: string
   title: string
   category: EventCategory
-  date: string       // YYYY-MM-DD
-  endDate?: string   // si dura varios días
+  customCategory?: string
+  date: string
+  endDate?: string
   allDay: boolean
-  time?: string      // HH:mm si no es allDay
+  time?: string
   notes?: string
+  recurrence?: EventRecurrence
+  recurrenceUntil?: string
+  recurrenceWeekdays?: number[]
+  recurrenceGroupId?: string
   createdAt: Date
+  updatedAt?: Date
 }
 
-// ─── Lista de equipaje ────────────────────────────────────────────────────────
 export type ItemLocation = 'casa1' | 'casa2' | 'desconocido'
 
 export interface PackingItem {
@@ -111,23 +116,22 @@ export interface PackingItem {
   name: string
   category: 'ropa' | 'escolar' | 'ocio' | 'salud' | 'otro'
   location: ItemLocation
-  isRecurring: boolean  // viaja siempre en los cambios
+  isRecurring: boolean
   notes?: string
   createdBy: string
   updatedAt: Date
 }
 
-// ─── Periodos especiales ──────────────────────────────────────────────────────
 export type SpecialPeriodLabel = 'verano' | 'navidad' | 'semana_santa' | 'pascua' | 'otro'
 
 export interface SpecialPeriod {
   id: string
   childId: string
   label: SpecialPeriodLabel
-  customLabel?: string      // si label === 'otro'
-  startDate: string         // YYYY-MM-DD
-  endDate: string           // YYYY-MM-DD
-  parentId: string          // quién tiene al menor ese período
+  customLabel?: string
+  startDate: string
+  endDate: string
+  parentId: string
   notes?: string
   createdBy: string
   createdAt: Date

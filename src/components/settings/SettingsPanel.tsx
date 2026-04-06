@@ -2,58 +2,49 @@
 import { useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
-import { createChild, createInvitation, acceptInvitation, setPattern, forgetChild } from '@/lib/db'
+import { createChild, createInvitation, acceptInvitation, setPattern, forgetChild, resendInvitation, cancelInvitation } from '@/lib/db'
 import { PARENT_COLORS, PATTERN_LABELS } from '@/lib/utils'
 import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManager'
-import type { Child } from '@/types'
+import type { Child, Invitation } from '@/types'
 
 export function SettingsPanel() {
-  const { children, selectedChildId, invitations } = useAppStore()
+  const { invitations, children, selectedChildId } = useAppStore()
+  const { user } = useAuth()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
+  const receivedInvitations = useMemo(() => invitations.filter(i => i.toEmail === (user?.email ?? '').toLowerCase() && i.status === 'pending'), [invitations, user?.email])
+  const sentInvitations = useMemo(() => child ? invitations.filter(i => i.childId === child.id && i.fromEmail === (user?.email ?? '').toLowerCase()) : [], [invitations, child, user?.email])
 
   return (
     <div>
-      {invitations.length > 0 && <PendingInvitations invitations={invitations} />}
+      {receivedInvitations.length > 0 && <PendingInvitations invitations={receivedInvitations} />}
       <ChildSection child={child} />
       {child && <PatternSection child={child} />}
       {child && <SpecialPeriodsManager />}
-      {child && child.parents.length < 2 && <InviteSection child={child} />}
+      {child && child.parents.length < 2 && <InviteSection child={child} sentInvitations={sentInvitations} />}
       {child && child.parents.length >= 2 && <ParentsInfo child={child} />}
       {child && <DangerZone child={child} />}
     </div>
   )
 }
 
-function PendingInvitations({ invitations }: { invitations: any[] }) {
+function PendingInvitations({ invitations }: { invitations: Invitation[] }) {
   const { user } = useAuth()
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
-
-  const handleAccept = async (inv: any) => {
+  const handleAccept = async (inv: Invitation) => {
     if (!user) return
-    setLoading(inv.id)
-    setError('')
-    try {
-      await acceptInvitation(inv, user.uid, user.displayName ?? user.email ?? 'Progenitor')
-    } catch (e: any) {
-      setError(e?.message || 'No se pudo aceptar la invitación')
-    } finally {
-      setLoading(null)
-    }
+    setLoading(inv.id); setError('')
+    try { await acceptInvitation(inv, user.uid, user.displayName ?? user.email ?? 'Progenitor') }
+    catch (e: any) { setError(e?.message || 'No se pudo aceptar la invitación') }
+    finally { setLoading(null) }
   }
-
   return (
     <div className="invite-pending">
       <div className="invite-pending-title">📨 Invitaciones recibidas</div>
       {invitations.map(inv => (
         <div key={inv.id} className="invite-pending-row">
-          <div>
-            <div className="invite-pending-text">{inv.fromName} te invita a gestionar a <strong>{inv.childName}</strong></div>
-            <div className="invite-pending-sub">{inv.fromEmail}</div>
-          </div>
-          <button className="btn-accept-invite" disabled={loading === inv.id} onClick={() => handleAccept(inv)}>
-            {loading === inv.id ? '...' : 'Aceptar'}
-          </button>
+          <div><div className="invite-pending-text">{inv.fromName} te invita a gestionar a <strong>{inv.childName}</strong></div><div className="invite-pending-sub">{inv.fromEmail}</div></div>
+          <button className="btn-accept-invite" disabled={loading === inv.id} onClick={() => handleAccept(inv)}>{loading === inv.id ? '...' : 'Aceptar'}</button>
         </div>
       ))}
       {error && <div style={{ marginTop: 10, color: '#fca5a5', fontSize: 12 }}>{error}</div>}
@@ -69,47 +60,19 @@ function ChildSection({ child }: { child: Child | null }) {
   const [birthDate, setBirthDate] = useState('')
   const [color, setColor] = useState(PARENT_COLORS[0])
   const [loading, setLoading] = useState(false)
-
   const handleCreate = async () => {
     if (!user || !name.trim()) return
     setLoading(true)
     try {
-      const id = await createChild({
-        name: name.trim(), birthDate, createdBy: user.uid,
-        parents: [user.uid], parentEmails: [user.email ?? ''],
-        parentNames: { [user.uid]: user.displayName ?? user.email ?? 'Yo' },
-        parentColors: { [user.uid]: color },
-      })
+      const id = await createChild({ name: name.trim(), birthDate, createdBy: user.uid, parents: [user.uid], parentEmails: [user.email?.toLowerCase() ?? ''], parentNames: { [user.uid]: user.displayName ?? user.email ?? 'Yo' }, parentColors: { [user.uid]: color } })
       setSelectedChildId(id); setShow(false); setName('')
     } finally { setLoading(false) }
   }
-
   return (
     <div className="card">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af' }}>👶 Menor</div>
-        {!show && <button onClick={() => setShow(true)} style={{ fontSize: 12, color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Añadir menor</button>}
-      </div>
-      {children.map(c => (
-        <button key={c.id} className={`child-item ${selectedChildId === c.id ? 'selected' : ''}`} onClick={() => setSelectedChildId(c.id)}>
-          <div className="child-item-avatar">{c.name[0]}</div>
-          <div><div className="child-item-name">{c.name}</div><div className="child-item-sub">{c.parents.length} progenitor(es)</div></div>
-        </button>
-      ))}
-      {show && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ marginBottom: 10 }}><div className="settings-label">Nombre del menor</div><input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" className="settings-input" /></div>
-          <div style={{ marginBottom: 10 }}><div className="settings-label">Fecha de nacimiento (opcional)</div><input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="settings-input" /></div>
-          <div style={{ marginBottom: 12 }}>
-            <div className="settings-label">Tu color en el calendario</div>
-            <div className="color-swatches">{PARENT_COLORS.map(c => <div key={c} className={`color-swatch ${color === c ? 'selected' : ''}`} style={{ background: c }} onClick={() => setColor(c)} />)}</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancelar</button>
-            <button style={{ flex:1, padding:'10px', borderRadius:12, border:'none', background:(!name.trim()||loading)?'rgba(255,255,255,0.08)':'#EC4899', color:(!name.trim()||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!name.trim()||loading)?'not-allowed':'pointer' }} onClick={handleCreate} disabled={!name.trim()||loading}>{loading ? '...' : 'Crear'}</button>
-          </div>
-        </div>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}><div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af' }}>👶 Menor</div>{!show && <button onClick={() => setShow(true)} style={{ fontSize: 12, color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Añadir menor</button>}</div>
+      {children.map(c => <button key={c.id} className={`child-item ${selectedChildId === c.id ? 'selected' : ''}`} onClick={() => setSelectedChildId(c.id)}><div className="child-item-avatar">{c.name[0]}</div><div><div className="child-item-name">{c.name}</div><div className="child-item-sub">{c.parents.length} progenitor(es)</div></div></button>)}
+      {show && <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}><div style={{ marginBottom: 10 }}><div className="settings-label">Nombre del menor</div><input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" className="settings-input" /></div><div style={{ marginBottom: 10 }}><div className="settings-label">Fecha de nacimiento (opcional)</div><input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="settings-input" /></div><div style={{ marginBottom: 12 }}><div className="settings-label">Tu color en el calendario</div><div className="color-swatches">{PARENT_COLORS.map(c => <div key={c} className={`color-swatch ${color === c ? 'selected' : ''}`} style={{ background: c }} onClick={() => setColor(c)} />)}</div></div><div style={{ display: 'flex', gap: 8 }}><button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancelar</button><button style={{ flex:1, padding:'10px', borderRadius:12, border:'none', background:(!name.trim()||loading)?'rgba(255,255,255,0.08)':'#EC4899', color:(!name.trim()||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!name.trim()||loading)?'not-allowed':'pointer' }} onClick={handleCreate} disabled={!name.trim()||loading}>{loading ? '...' : 'Crear'}</button></div></div>}
     </div>
   )
 }
@@ -122,97 +85,39 @@ function PatternSection({ child }: { child: Child }) {
   const [startParentId, setStartParentId] = useState(pattern?.startParentId ?? child.parents[0])
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
-
-  const handleSave = async () => {
-    if (!user || !startDate) return
-    setLoading(true)
-    try {
-      await setPattern({ childId: child.id, type: patternType as any, startDate, startParentId, createdBy: user.uid })
-      setSaved(true); setTimeout(() => setSaved(false), 2000)
-    } finally { setLoading(false) }
-  }
-
-  return (
-    <div className="card">
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>📅 Patrón de custodia</div>
-      <div style={{ marginBottom: 10 }}><div className="settings-label">Tipo de régimen</div>
-        <select value={patternType} onChange={e => setPatternType(e.target.value as any)} className="settings-select">
-          {Object.entries(PATTERN_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-      </div>
-      <div style={{ marginBottom: 10 }}><div className="settings-label">Fecha de inicio del patrón</div><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="settings-input" /></div>
-      {child.parents.length >= 2 && (
-        <div style={{ marginBottom: 12 }}>
-          <div className="settings-label">¿Quién empieza?</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {child.parents.map(pid => (
-              <div key={pid} className={`parent-chip ${startParentId === pid ? 'selected' : ''}`} onClick={() => setStartParentId(pid)}>
-                <div className="parent-chip-dot" style={{ background: child.parentColors?.[pid] ?? '#6B7280' }} />
-                <div className="parent-chip-name">{child.parentNames?.[pid]?.split(' ')[0] ?? 'Progenitor'}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <button style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:(!startDate||loading)?'rgba(255,255,255,0.08)':saved?'#10b981':'#8B5CF6', color:(!startDate||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!startDate||loading)?'not-allowed':'pointer' }} onClick={handleSave} disabled={!startDate||loading}>
-        {loading ? 'Guardando...' : saved ? '✓ Guardado' : 'Guardar patrón'}
-      </button>
-    </div>
-  )
+  const handleSave = async () => { if (!user || !startDate) return; setLoading(true); try { await setPattern({ childId: child.id, type: patternType as any, startDate, startParentId, createdBy: user.uid }); setSaved(true); setTimeout(() => setSaved(false), 2000) } finally { setLoading(false) } }
+  return <div className="card"><div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>📅 Patrón de custodia</div><div style={{ marginBottom: 10 }}><div className="settings-label">Tipo de régimen</div><select value={patternType} onChange={e => setPatternType(e.target.value as any)} className="settings-select">{Object.entries(PATTERN_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={{ marginBottom: 10 }}><div className="settings-label">Fecha de inicio del patrón</div><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="settings-input" /></div>{child.parents.length >= 2 && <div style={{ marginBottom: 12 }}><div className="settings-label">¿Quién empieza?</div><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>{child.parents.map(pid => <div key={pid} className={`parent-chip ${startParentId === pid ? 'selected' : ''}`} onClick={() => setStartParentId(pid)}><div className="parent-chip-dot" style={{ background: child.parentColors?.[pid] ?? '#6B7280' }} /><div className="parent-chip-name">{child.parentNames?.[pid]?.split(' ')[0] ?? 'Progenitor'}</div></div>)}</div></div>}<button style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:(!startDate||loading)?'rgba(255,255,255,0.08)':saved?'#10b981':'#8B5CF6', color:(!startDate||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!startDate||loading)?'not-allowed':'pointer' }} onClick={handleSave} disabled={!startDate||loading}>{loading ? 'Guardando...' : saved ? '✓ Guardado' : 'Guardar patrón'}</button></div>
 }
 
-function InviteSection({ child }: { child: Child }) {
+function InviteSection({ child, sentInvitations }: { child: Child; sentInvitations: Invitation[] }) {
   const { user } = useAuth()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
-
+  const [error, setError] = useState('')
   const handleInvite = async () => {
     if (!user || !email.trim()) return
-    setLoading(true)
+    setLoading(true); setError('')
     try {
-      await createInvitation({ childId: child.id, childName: child.name, fromEmail: user.email ?? '', fromName: user.displayName ?? user.email ?? 'Progenitor', toEmail: email.trim().toLowerCase() })
-      setSent(true); setEmail('')
-    } finally { setLoading(false) }
+      await createInvitation({ childId: child.id, childName: child.name, fromEmail: user.email?.toLowerCase() ?? '', fromName: user.displayName ?? user.email ?? 'Progenitor', toEmail: email.trim().toLowerCase() })
+      setEmail('')
+    } catch (e: any) { setError(e?.message || 'No se pudo enviar la invitación') }
+    finally { setLoading(false) }
   }
-
   return (
     <div className="card">
       <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>👤 Invitar al otro progenitor</div>
-      {sent ? (
-        <div className="invite-success">
-          <div className="invite-success-icon">📨</div>
-          <div className="invite-success-title">Invitación enviada</div>
-          <div className="invite-success-sub">Cuando acepte, verá el mismo calendario</div>
-          <button onClick={() => setSent(false)} style={{ marginTop: 12, fontSize: 12, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>Invitar a otro</button>
-        </div>
-      ) : (
-        <>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>Introduce el email de Google del otro progenitor.</div>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@ejemplo.com" className="settings-input" style={{ marginBottom: 10 }} />
-          <button style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:(!email.includes('@')||loading)?'rgba(255,255,255,0.08)':'#10b981', color:(!email.includes('@')||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!email.includes('@')||loading)?'not-allowed':'pointer' }} onClick={handleInvite} disabled={!email.includes('@')||loading}>{loading ? 'Enviando...' : 'Enviar invitación'}</button>
-        </>
-      )}
+      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>Introduce el email de Google del otro progenitor.</div>
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@ejemplo.com" className="settings-input" style={{ marginBottom: 10 }} />
+      <button style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:(!email.includes('@')||loading)?'rgba(255,255,255,0.08)':'#10b981', color:(!email.includes('@')||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!email.includes('@')||loading)?'not-allowed':'pointer' }} onClick={handleInvite} disabled={!email.includes('@')||loading}>{loading ? 'Enviando...' : 'Enviar invitación'}</button>
+      {error && <div style={{ marginTop:10, color:'#fca5a5', fontSize:12 }}>{error}</div>}
+      {sentInvitations.length > 0 && <div style={{ marginTop:14 }}><div style={{ fontSize:12, fontWeight:700, color:'#9ca3af', marginBottom:8 }}>Invitaciones enviadas</div><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{sentInvitations.map(inv => <div key={inv.id} style={{ padding:'10px 12px', borderRadius:12, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)' }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}><div><div style={{ color:'#e5e7eb', fontSize:12 }}>{inv.toEmail}</div><div style={{ color: inv.status === 'pending' ? '#fbbf24' : inv.status === 'accepted' ? '#10b981' : inv.status === 'cancelled' ? '#9ca3af' : '#f87171', fontSize:11, fontWeight:700 }}>{inv.status.toUpperCase()}</div></div><div style={{ display:'flex', gap:8 }}>{inv.status !== 'accepted' && <button onClick={() => resendInvitation(inv.id)} style={{ background:'none', border:'none', color:'#60a5fa', fontSize:12, fontWeight:700, cursor:'pointer' }}>Reenviar</button>}{inv.status === 'pending' && <button onClick={() => cancelInvitation(inv.id)} style={{ background:'none', border:'none', color:'#f87171', fontSize:12, fontWeight:700, cursor:'pointer' }}>Cancelar</button>}</div></div></div>)}</div></div>}
     </div>
   )
 }
 
 function ParentsInfo({ child }: { child: Child }) {
   const { user } = useAuth()
-  return (
-    <div className="card">
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>👥 Progenitores</div>
-      {child.parents.map(pid => (
-        <div key={pid} className="parent-item">
-          <div className="parent-avatar" style={{ background: child.parentColors?.[pid] ?? '#6B7280' }}>{(child.parentNames?.[pid] ?? '?')[0]?.toUpperCase()}</div>
-          <div>
-            <div className="parent-name">{child.parentNames?.[pid] ?? 'Progenitor'}{pid === user?.uid && <span style={{ marginLeft: 6, fontSize: 11, color: '#6b7280' }}>(tú)</span>}</div>
-            <div className="parent-email">{child.parentEmails?.[child.parents.indexOf(pid)]}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+  return <div className="card"><div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>👥 Progenitores</div>{child.parents.map(pid => <div key={pid} className="parent-item"><div className="parent-avatar" style={{ background: child.parentColors?.[pid] ?? '#6B7280' }}>{(child.parentNames?.[pid] ?? '?')[0]?.toUpperCase()}</div><div><div className="parent-name">{child.parentNames?.[pid] ?? 'Progenitor'}{pid === user?.uid && <span style={{ marginLeft: 6, fontSize: 11, color: '#6b7280' }}>(tú)</span>}</div><div className="parent-email">{child.parentEmails?.[child.parents.indexOf(pid)]}</div></div></div>)}</div>
 }
 
 function DangerZone({ child }: { child: Child }) {
@@ -220,35 +125,13 @@ function DangerZone({ child }: { child: Child }) {
   const { setSelectedChildId } = useAppStore()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
   const canForget = !!user && child.parents.includes(user.uid) && child.parents.length > 1
-
   const handleForget = async () => {
     if (!user || !canForget) return
-    const ok = window.confirm(`¿Seguro que quieres olvidar a ${child.name}? Dejarás de verlo en tu cuenta.`)
-    if (!ok) return
-    setLoading(true)
-    setError('')
-    try {
-      await forgetChild(child.id, user.uid)
-      setSelectedChildId(null)
-    } catch (e: any) {
-      setError(e?.message || 'No se pudo olvidar este menor')
-    } finally {
-      setLoading(false)
-    }
+    if (!window.confirm(`¿Seguro que quieres olvidar a ${child.name}? Dejarás de verlo en tu cuenta.`)) return
+    setLoading(true); setError('')
+    try { await forgetChild(child.id, user.uid); setSelectedChildId(null) } catch (e: any) { setError(e?.message || 'No se pudo olvidar este menor') } finally { setLoading(false) }
   }
-
   if (!canForget) return null
-
-  return (
-    <div className="card" style={{ borderColor: 'rgba(239,68,68,0.25)' }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#fca5a5', marginBottom: 10 }}>⚠️ Zona sensible</div>
-      <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12 }}>Puedes quitar este menor de tu cuenta sin borrar sus datos del otro progenitor.</div>
-      <button onClick={handleForget} disabled={loading} style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:loading?'rgba(255,255,255,0.08)':'#ef4444', color:loading?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:loading?'not-allowed':'pointer' }}>
-        {loading ? 'Quitando...' : 'Olvidar este menor'}
-      </button>
-      {error && <div style={{ marginTop: 10, color: '#fca5a5', fontSize: 12 }}>{error}</div>}
-    </div>
-  )
+  return <div className="card" style={{ borderColor: 'rgba(239,68,68,0.25)' }}><div style={{ fontSize: 13, fontWeight: 700, color: '#fca5a5', marginBottom: 10 }}>⚠️ Zona sensible</div><div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12 }}>Puedes quitar este menor de tu cuenta sin borrar sus datos del otro progenitor.</div><button onClick={handleForget} disabled={loading} style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:loading?'rgba(255,255,255,0.08)':'#ef4444', color:loading?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:loading?'not-allowed':'pointer' }}>{loading ? 'Quitando...' : 'Olvidar este menor'}</button>{error && <div style={{ marginTop: 10, color: '#fca5a5', fontSize: 12 }}>{error}</div>}</div>
 }
