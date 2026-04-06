@@ -66,10 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signInWithGoogle = async () => {
-    if (isIOSStandalone()) {
-      window.alert('En iPhone, el login con Google no funciona bien dentro de la app instalada. Abre CustodiaApp en Safari e inicia sesión desde allí.')
-      return
-    }
+    const iosStandalone = isIOSStandalone()
 
     try {
       await setPersistence(auth, browserLocalPersistence)
@@ -86,6 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         err.code === 'auth/popup-closed-by-user' ||
         err.code === 'auth/cancelled-popup-request'
       ) {
+        if (iosStandalone) {
+          window.alert('No se pudo abrir la ventana de Google dentro de la app instalada. Prueba otra vez o entra desde Safari normal.')
+          return
+        }
+
         await signInWithRedirect(auth, googleProvider)
         return
       }
