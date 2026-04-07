@@ -18,6 +18,8 @@ export function AppShell() {
   const { user, signOut } = useAuth()
   const { children, selectedChildId, setSelectedChildId, requests, invitations, notes } = useAppStore()
   const [tab, setTab] = useState<Tab>('calendar')
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   useDataSubscriptions()
 
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
@@ -37,16 +39,19 @@ export function AppShell() {
     { id: 'settings' as Tab, label: 'Más', emoji: '⋯', badge: pendingInvitations },
   ]
 
-  const [moreOpen, setMoreOpen] = useState(false)
-
   const handleTabClick = (id: Tab) => {
-    if (id === 'settings') { setMoreOpen(!moreOpen); return }
+    setUserMenuOpen(false)
+    if (id === 'settings') {
+      setMoreOpen(v => !v)
+      return
+    }
     setMoreOpen(false)
     setTab(id)
   }
 
   const handleBellClick = () => {
     setMoreOpen(false)
+    setUserMenuOpen(false)
     if (unreadNotes > 0) {
       setTab('notes')
       return
@@ -60,9 +65,11 @@ export function AppShell() {
     }
   }
 
+  const activeMore = ['packing', 'stats', 'settings'].includes(tab)
+
   return (
-    <div className="app-shell">
-      <header className="app-header">
+    <div className="app-shell" onClick={() => { if (moreOpen) setMoreOpen(false); if (userMenuOpen) setUserMenuOpen(false) }}>
+      <header className="app-header" onClick={e => e.stopPropagation()}>
         <div className="app-header-left">
           <div className="app-logo">👨‍👩‍👦</div>
           <div>
@@ -70,7 +77,7 @@ export function AppShell() {
             {child && <div className="app-subtitle">{child.name}</div>}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
           {children.length > 1 && (
             <select value={selectedChildId ?? ''} onChange={e => setSelectedChildId(e.target.value)}
               style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '5px 10px', color: '#fff', fontSize: 12, outline: 'none' }}>
@@ -82,28 +89,21 @@ export function AppShell() {
               🔔<span className="notif-count">{totalBadge}</span>
             </button>
           )}
-          <button className="user-avatar" onClick={signOut} title="Cerrar sesión">
-            {user?.photoURL ? <img src={user.photoURL} alt="" /> : (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase()}
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button className="user-avatar" onClick={() => { setMoreOpen(false); setUserMenuOpen(v => !v) }} title="Usuario">
+              {user?.photoURL ? <img src={user.photoURL} alt="" /> : (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase()}
+            </button>
+            {userMenuOpen && (
+              <div className="header-popup-menu user-popup-menu">
+                <div className="popup-menu-label">{user?.displayName ?? user?.email}</div>
+                <button className="popup-menu-item danger" onClick={signOut}>Cerrar sesión</button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      {moreOpen && (
-        <div style={{ background: '#161b22', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '8px 12px', display: 'flex', gap: 6 }}>
-          {[
-            { id: 'packing' as Tab, label: '🧳 Equipaje' },
-            { id: 'stats' as Tab, label: '📊 Estadísticas' },
-            { id: 'settings' as Tab, label: '⚙️ Ajustes' },
-          ].map(({ id, label }) => (
-            <button key={id} onClick={() => { setTab(id); setMoreOpen(false) }}
-              style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: `1px solid ${tab===id ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)'}`, background: tab===id ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)', color: tab===id ? '#fff' : '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <main className="app-main">
+      <main className="app-main" onClick={e => e.stopPropagation()}>
         {tab === 'calendar'  && <><CustodyCalendar /><QuickDateQuery /></>}
         {tab === 'requests'  && <RequestsList />}
         {tab === 'notes'     && <NotesPanel />}
@@ -113,14 +113,28 @@ export function AppShell() {
         {tab === 'settings'  && <><div className="page-title">Configuración</div><SettingsPanel /></>}
       </main>
 
-      <nav className="bottom-nav">
+      {moreOpen && (
+        <div className="floating-more-menu" onClick={e => e.stopPropagation()}>
+          {[
+            { id: 'packing' as Tab, label: '🧳 Equipaje' },
+            { id: 'stats' as Tab, label: '📊 Estadísticas' },
+            { id: 'settings' as Tab, label: '⚙️ Ajustes' },
+          ].map(({ id, label }) => (
+            <button key={id} className={`floating-more-item ${tab===id ? 'active' : ''}`} onClick={() => { setTab(id); setMoreOpen(false) }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <nav className="bottom-nav" onClick={e => e.stopPropagation()}>
         {mainTabs.map(({ id, label, emoji, badge }) => (
-          <button key={id} className={`nav-btn ${(tab === id || (id === 'settings' && ['packing','stats','settings'].includes(tab))) ? 'active' : ''}`}
+          <button key={id} className={`nav-btn ${(tab === id || (id === 'settings' && activeMore)) ? 'active' : ''}`}
             onClick={() => handleTabClick(id)}>
             <span style={{ fontSize: 20, lineHeight: 1 }}>{emoji}</span>
             <span>{label}</span>
             {badge && badge > 0 ? <span className="nav-badge">{badge}</span> : null}
-            {(tab === id || (id === 'settings' && ['packing','stats','settings'].includes(tab))) && <span className="nav-active-line" />}
+            {(tab === id || (id === 'settings' && activeMore)) && <span className="nav-active-line" />}
           </button>
         ))}
       </nav>
