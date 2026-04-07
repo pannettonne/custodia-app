@@ -1,7 +1,7 @@
 "use client"
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, type Unsubscribe } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification } from '@/types'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, RequestStatus } from '@/types'
 
 function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> { return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T> }
 
@@ -17,7 +17,8 @@ export async function setOverride(data: Omit<CustodyOverride, 'id' | 'createdAt'
 
 export function subscribeToRequests(childId: string, cb: (requests: ChangeRequest[]) => void): Unsubscribe { const q = query(collection(db, 'changeRequests'), where('childId', '==', childId)); return onSnapshot(q, snap => { const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as ChangeRequest)); cb(items.sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))) }) }
 export async function createChangeRequest(data: Omit<ChangeRequest, 'id' | 'createdAt' | 'status'>): Promise<string> { const ref = await addDoc(collection(db, 'changeRequests'), compactUndefined({ ...data, status: 'pending', createdAt: serverTimestamp() })); return ref.id }
-export async function respondToRequest(id: string, status: 'accepted' | 'rejected'): Promise<void> { await updateDoc(doc(db, 'changeRequests', id), { status, respondedAt: serverTimestamp() }) }
+export async function respondToRequest(id: string, status: RequestStatus): Promise<void> { await updateDoc(doc(db, 'changeRequests', id), { status, respondedAt: serverTimestamp() }) }
+export async function cancelRequest(id: string): Promise<void> { await updateDoc(doc(db, 'changeRequests', id), { status: 'cancelled', respondedAt: serverTimestamp() }) }
 
 export function subscribeToInvitations(email: string, cb: (invitations: Invitation[]) => void): Unsubscribe { const normalized = email.trim().toLowerCase(); let received: Invitation[] = []; let sent: Invitation[] = []; const emit = () => { const merged = [...received, ...sent]; const unique = Array.from(new Map(merged.map(i => [i.id, i])).values()); unique.sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0)); cb(unique) }; const q1 = query(collection(db, 'invitations'), where('toEmail', '==', normalized)); const q2 = query(collection(db, 'invitations'), where('fromEmail', '==', normalized)); const u1 = onSnapshot(q1, snap => { received = snap.docs.map(d => ({ id: d.id, ...d.data() } as Invitation)); emit() }); const u2 = onSnapshot(q2, snap => { sent = snap.docs.map(d => ({ id: d.id, ...d.data() } as Invitation)); emit() }); return () => { u1(); u2() } }
 export async function createInvitation(data: Omit<Invitation, 'id' | 'createdAt' | 'status'>): Promise<string> { const childRef = doc(db, 'children', data.childId); const childSnap = await getDoc(childRef); if (!childSnap.exists()) throw new Error('Menor no encontrado'); const childData = childSnap.data() as Child; const normalizedEmail = data.toEmail.trim().toLowerCase(); const parentEmails = Array.isArray(childData.parentEmails) ? [...childData.parentEmails] : []; if (!parentEmails.includes(normalizedEmail)) { parentEmails.push(normalizedEmail); await updateDoc(childRef, { parentEmails }) } const ref = await addDoc(collection(db, 'invitations'), { ...data, fromEmail: data.fromEmail.trim().toLowerCase(), toEmail: normalizedEmail, status: 'pending', createdAt: serverTimestamp() }); return ref.id }
@@ -38,10 +39,7 @@ export async function cancelEventOccurrence(id: string, date: string): Promise<v
 export async function restoreEventOccurrence(id: string, date: string): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), { cancelledDates: arrayRemove(date), updatedAt: serverTimestamp() }) }
 export async function deleteEvent(id: string): Promise<void> { await deleteDoc(doc(db, 'schoolEvents', id)) }
 
-export function subscribeToNotifications(uid: string, cb: (notifications: AppNotification[]) => void): Unsubscribe {
-  const q = query(collection(db, 'notifications'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(20))
-  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification))))
-}
+export function subscribeToNotifications(uid: string, cb: (notifications: AppNotification[]) => void): Unsubscribe { const q = query(collection(db, 'notifications'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(20)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification)))) }
 export async function markNotificationRead(id: string): Promise<void> { await updateDoc(doc(db, 'notifications', id), { read: true }) }
 
 export function subscribeToPackingItems(childId: string, cb: (items: PackingItem[]) => void): Unsubscribe { const q = query(collection(db, 'packingItems'), where('childId', '==', childId)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as PackingItem)))) }

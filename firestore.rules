@@ -17,7 +17,11 @@ service cloud.firestore {
     match /changeRequests/{requestId} {
       allow read: if request.auth != null && (request.auth.uid == resource.data.fromParentId || request.auth.uid == resource.data.toParentId);
       allow create: if request.auth != null && request.auth.uid == request.resource.data.fromParentId;
-      allow update: if request.auth != null && request.auth.uid == resource.data.toParentId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']);
+      allow update: if request.auth != null && (
+        (request.auth.uid == resource.data.toParentId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']))
+        ||
+        (request.auth.uid == resource.data.fromParentId && resource.data.status == 'pending' && request.resource.data.status == 'cancelled' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']))
+      );
     }
     match /invitations/{invitationId} {
       allow read: if request.auth != null && (request.auth.token.email == resource.data.toEmail || request.auth.token.email == resource.data.fromEmail);

@@ -37,7 +37,7 @@ export interface CustodyOverride {
   createdAt: Date
 }
 
-export type RequestStatus = 'pending' | 'accepted' | 'rejected'
+export type RequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
 
 export interface ChangeRequest {
   id: string
