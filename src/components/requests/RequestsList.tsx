@@ -1,5 +1,5 @@
 'use client'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
@@ -11,9 +11,16 @@ export function RequestsList() {
   const { user } = useAuth()
   const { requests, children, selectedChildId, pattern, overrides, specialPeriods } = useAppStore()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
-  const { incoming, outgoing } = useMemo(() => !user ? { incoming:[], outgoing:[] } : {
-    incoming: requests.filter(r => r.toParentId === user.uid),
-    outgoing: requests.filter(r => r.fromParentId === user.uid),
+  const [showResolved, setShowResolved] = useState(false)
+  const [showCancelled, setShowCancelled] = useState(false)
+
+  const grouped = useMemo(() => {
+    if (!user) return { incomingPending:[], outgoingPending:[], resolved:[], cancelled:[] }
+    const incomingPending = requests.filter(r => r.toParentId === user.uid && r.status === 'pending')
+    const outgoingPending = requests.filter(r => r.fromParentId === user.uid && r.status === 'pending')
+    const resolved = requests.filter(r => ['accepted','rejected'].includes(r.status))
+    const cancelled = requests.filter(r => r.status === 'cancelled')
+    return { incomingPending, outgoingPending, resolved, cancelled }
   }, [requests, user?.uid])
 
   const handleAccept = async (req: ChangeRequest) => {
@@ -91,10 +98,17 @@ export function RequestsList() {
     )
   }
 
+  const Section = ({ title, count, children, collapsible, open, onToggle }: any) => {
+    if (count === 0) return null
+    return <div style={{ marginBottom: 14 }}><button onClick={collapsible ? onToggle : undefined} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', background:'none', border:'none', padding:'0 0 8px 0', cursor: collapsible ? 'pointer' : 'default' }}><div className="section-title" style={{ margin:0 }}>{title} ({count})</div>{collapsible && <span style={{ color:'var(--text-muted)', fontSize:12 }}>{open ? 'Ocultar' : 'Mostrar'}</span>}</button>{(!collapsible || open) && children}</div>
+  }
+
   return (
     <div>
-      {incoming.length > 0 && <><div className="section-title">Recibidas ({incoming.length})</div>{incoming.map(r => <Card key={r.id} req={r} isIncoming />)}</>}
-      {outgoing.length > 0 && <><div className="section-title" style={{marginTop:16}}>Enviadas ({outgoing.length})</div>{outgoing.map(r => <Card key={r.id} req={r} isIncoming={false} />)}</>}
+      <Section title="Pendientes recibidas" count={grouped.incomingPending.length}>{grouped.incomingPending.map(r => <Card key={r.id} req={r} isIncoming />)}</Section>
+      <Section title="Pendientes enviadas" count={grouped.outgoingPending.length}>{grouped.outgoingPending.map(r => <Card key={r.id} req={r} isIncoming={false} />)}</Section>
+      <Section title="Resueltas" count={grouped.resolved.length} collapsible open={showResolved} onToggle={() => setShowResolved(v => !v)}>{grouped.resolved.map(r => <Card key={r.id} req={r} isIncoming={r.toParentId === user?.uid} />)}</Section>
+      <Section title="Canceladas" count={grouped.cancelled.length} collapsible open={showCancelled} onToggle={() => setShowCancelled(v => !v)}>{grouped.cancelled.map(r => <Card key={r.id} req={r} isIncoming={r.toParentId === user?.uid} />)}</Section>
     </div>
   )
 }
