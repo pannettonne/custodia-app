@@ -104,7 +104,7 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
   const requestAssignment = async (targetParentId: string) => {
     if (!user || !child) return
     const otherParentId = child.parents.find(pid => pid !== user.uid)
-    if (!otherParentId || targetParentId === user.uid && child.parents.length < 2) return
+    if (!otherParentId) return
     await updateEvent(event.id, {
       assignedParentId: targetParentId,
       assignmentStatus: 'pending',
@@ -195,6 +195,7 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
   const [recurrenceUntil, setRecurrenceUntil] = useState(event?.recurrenceUntil ?? '')
   const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>(event?.recurrenceWeekdays ?? [])
   const [monthlyDay, setMonthlyDay] = useState<number>(event ? Number((event.date || '').slice(8, 10)) || 1 : 1)
+  const [assignedParentId, setAssignedParentId] = useState(event?.assignedParentId ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -208,6 +209,8 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
     setError('')
     try {
       const finalDate = recurrence === 'monthly' ? buildMonthlyDate(date, monthlyDay) : date
+      const otherParentId = child.parents.find(pid => pid !== user.uid)
+      const wantsAssignment = !!assignedParentId && !!otherParentId
       const payload = {
         childId: child.id,
         createdBy: event?.createdBy ?? user.uid,
@@ -222,6 +225,11 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
         recurrence,
         recurrenceUntil: recurrence === 'none' ? undefined : recurrenceUntil,
         recurrenceWeekdays: recurrence === 'weekly' ? recurrenceWeekdays : undefined,
+        assignedParentId: wantsAssignment ? assignedParentId : undefined,
+        assignmentStatus: wantsAssignment ? 'pending' : undefined,
+        assignmentRequestedBy: wantsAssignment ? user.uid : undefined,
+        assignmentRequestedByName: wantsAssignment ? (user.displayName || user.email || 'Progenitor') : undefined,
+        assignmentRequestToParentId: wantsAssignment ? otherParentId : undefined,
       }
       if (event) await updateEvent(event.id, payload)
       else await createEvent(payload as any)
@@ -255,6 +263,20 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
           <div style={{ display:'flex', gap:8, marginBottom:8 }}>{(['none','weekly','monthly'] as EventRecurrence[]).map(r => <button key={r} onClick={() => setRecurrence(r)} style={{ flex:1, padding:'8px 6px', borderRadius:10, border:`1px solid ${recurrence===r ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, background:recurrence===r ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.04)', color:recurrence===r ? '#a78bfa' : '#9ca3af', fontSize:11, fontWeight:700, cursor:'pointer' }}>{r === 'none' ? 'Una vez' : r === 'weekly' ? 'Semanal' : 'Una vez al mes'}</button>)}</div>
           {recurrence === 'weekly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Días de la semana</div><div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>{WEEKDAYS.map(day => <button key={day.value} onClick={() => toggleWeekday(day.value)} style={{ width:34, height:34, borderRadius:17, border:`1px solid ${recurrenceWeekdays.includes(day.value) ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, background:recurrenceWeekdays.includes(day.value) ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.04)', color:recurrenceWeekdays.includes(day.value) ? '#a78bfa' : '#9ca3af', fontSize:12, fontWeight:700, cursor:'pointer' }}>{day.label}</button>)}</div><div className="settings-label" style={{ marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}
           {recurrence === 'monthly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Día del mes</div><input type="number" min="1" max="31" value={monthlyDay} onChange={e => setMonthlyDay(Number(e.target.value || 1))} className="settings-input" /><div className="settings-label" style={{ marginTop: 8, marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}
+        </div>
+      )}
+      {child && child.parents.length > 1 && (
+        <div style={{ marginBottom: 14 }}>
+          <div className="settings-label">Solicitar asignación a progenitor (opcional)</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:8 }}>
+            {child.parents.map(pid => {
+              const selected = assignedParentId === pid
+              return <button key={pid} onClick={() => setAssignedParentId(selected ? '' : pid)} style={{ padding:'10px 8px', borderRadius:12, border:`1px solid ${selected ? (child.parentColors?.[pid] ?? '#3b82f6') : 'rgba(255,255,255,0.1)'}`, background:selected ? ((child.parentColors?.[pid] ?? '#3b82f6') + '22') : 'rgba(255,255,255,0.04)', color:selected ? (child.parentColors?.[pid] ?? '#93c5fd') : '#cbd5e1', fontSize:12, fontWeight:700, cursor:'pointer' }}>{child.parentNames?.[pid] ?? 'Progenitor'}</button>
+            })}
+          </div>
+          <div style={{ fontSize:11, color:'#9ca3af', marginTop:6 }}>
+            Si el otro progenitor acepta: en eventos de día completo se cambiará la custodia de esos días; en eventos con hora solo quedará reflejada la asignación del evento.
+          </div>
         </div>
       )}
       <div style={{ marginBottom: 14 }}><div className="settings-label">Observaciones (opcional)</div><textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={2} className="settings-textarea" /></div>
