@@ -22,6 +22,7 @@ export function AppShell() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [queryOpen, setQueryOpen] = useState(false)
   useDataSubscriptions()
 
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
@@ -45,6 +46,7 @@ export function AppShell() {
   const handleTabClick = (id: Tab) => {
     setUserMenuOpen(false)
     setNotifOpen(false)
+    setQueryOpen(false)
     if (id === 'settings') {
       setMoreOpen(v => !v)
       return
@@ -56,13 +58,23 @@ export function AppShell() {
   const activeMore = ['packing', 'stats', 'settings'].includes(tab)
 
   return (
-    <div className="app-shell" onClick={() => { if (moreOpen) setMoreOpen(false); if (userMenuOpen) setUserMenuOpen(false); if (notifOpen) setNotifOpen(false) }}>
+    <div className="app-shell" onClick={() => { if (moreOpen) setMoreOpen(false); if (userMenuOpen) setUserMenuOpen(false); if (notifOpen) setNotifOpen(false); if (queryOpen) setQueryOpen(false) }}>
       <header className="app-header" onClick={e => e.stopPropagation()}>
         <div className="app-header-left">
           <div className="app-logo">👨‍👩‍👦</div>
           <div>
             <div className="app-title">CustodiaApp</div>
-            {child && <div className="app-subtitle">{child.name}</div>}
+            <div style={{ display:'flex', alignItems:'center', gap:8, position:'relative' }}>
+              {child && <div className="app-subtitle">{child.name}</div>}
+              <div style={{ position:'relative' }}>
+                <button onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(v => !v) }} title="Consulta rápida" style={{ width:20, height:20, borderRadius:'50%', border:'1px solid rgba(255,255,255,0.16)', background:'rgba(255,255,255,0.06)', color:'#cbd5e1', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>?</button>
+                {queryOpen && (
+                  <div className="header-popup-menu" style={{ left:0, right:'auto', minWidth:300, padding:0, overflow:'hidden' }}>
+                    <QuickDateQuery />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
@@ -74,7 +86,7 @@ export function AppShell() {
           )}
           <div style={{ position: 'relative' }}>
             {totalBadge > 0 && (
-              <button className="notif-btn" onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(v => !v) }}>
+              <button className="notif-btn" onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setQueryOpen(false); setNotifOpen(v => !v) }}>
                 🔔<span className="notif-count">{totalBadge}</span>
               </button>
             )}
@@ -99,7 +111,7 @@ export function AppShell() {
             )}
           </div>
           <div style={{ position: 'relative' }}>
-            <button className="user-avatar" onClick={() => { setMoreOpen(false); setNotifOpen(false); setUserMenuOpen(v => !v) }} title="Usuario">
+            <button className="user-avatar" onClick={() => { setMoreOpen(false); setNotifOpen(false); setQueryOpen(false); setUserMenuOpen(v => !v) }} title="Usuario">
               {user?.photoURL ? <img src={user.photoURL} alt="" /> : (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase()}
             </button>
             {userMenuOpen && (
@@ -113,7 +125,7 @@ export function AppShell() {
       </header>
 
       <main className="app-main" onClick={e => e.stopPropagation()}>
-        {tab === 'calendar'  && <><CustodyCalendar /><QuickDateQuery /></>}
+        {tab === 'calendar'  && <CustodyCalendar />}
         {tab === 'requests'  && <RequestsList />}
         {tab === 'notes'     && <NotesPanel />}
         {tab === 'events'    && <EventsPanel />}
