@@ -67,7 +67,7 @@ export function AppShell() {
             <div style={{ display:'flex', alignItems:'center', gap:8, position:'relative' }}>
               {child && <div className="app-subtitle">{child.name}</div>}
               <div style={{ position:'relative' }}>
-                <button onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(v => !v) }} title="Consulta rápida" style={{ width:20, height:20, borderRadius:'50%', border:'1px solid rgba(255,255,255,0.16)', background:'rgba(255,255,255,0.06)', color:'#cbd5e1', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>?</button>
+                <button onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(v => !v) }} title="Consulta rápida" style={{ width:20, height:20, borderRadius:'50%', border:'1px solid var(--border-hover)', background:'var(--bg-soft)', color:'var(--text-secondary)', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>?</button>
                 {queryOpen && (
                   <div className="header-popup-menu" style={{ left:0, right:'auto', minWidth:300, padding:0, overflow:'hidden' }}>
                     <QuickDateQuery />
@@ -80,7 +80,7 @@ export function AppShell() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
           {children.length > 1 && (
             <select value={selectedChildId ?? ''} onChange={e => setSelectedChildId(e.target.value)}
-              style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '5px 10px', color: '#fff', fontSize: 12, outline: 'none' }}>
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-hover)', borderRadius: 12, padding: '7px 12px', color: 'var(--text-strong)', fontSize: 12, outline: 'none', boxShadow: 'var(--card-shadow)' }}>
               {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
