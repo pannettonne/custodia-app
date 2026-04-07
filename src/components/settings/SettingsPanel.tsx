@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
+import { useTheme, type ThemeMode } from '@/lib/theme-context'
 import { createChild, createInvitation, acceptInvitation, setPattern, forgetChild, resendInvitation, cancelInvitation } from '@/lib/db'
 import { PARENT_COLORS, PATTERN_LABELS } from '@/lib/utils'
 import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManager'
@@ -16,6 +17,7 @@ export function SettingsPanel() {
 
   return (
     <div>
+      <ThemeSection />
       {receivedInvitations.length > 0 && <PendingInvitations invitations={receivedInvitations} />}
       <ChildSection child={child} />
       {child && <PatternSection child={child} />}
@@ -23,6 +25,31 @@ export function SettingsPanel() {
       {child && child.parents.length < 2 && <InviteSection child={child} sentInvitations={sentInvitations} />}
       {child && child.parents.length >= 2 && <ParentsInfo child={child} />}
       {child && <DangerZone child={child} />}
+    </div>
+  )
+}
+
+function ThemeSection() {
+  const { mode, resolvedTheme, setMode } = useTheme()
+  const options: { value: ThemeMode; label: string }[] = [
+    { value: 'light', label: 'Claro' },
+    { value: 'dark', label: 'Oscuro' },
+    { value: 'system', label: 'Auto' },
+  ]
+
+  return (
+    <div className="card">
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>🎨 Apariencia</div>
+      <div className="theme-segment">
+        {options.map(option => (
+          <button key={option.value} className={mode === option.value ? 'active' : ''} onClick={() => setMode(option.value)}>
+            {option.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 8 }}>
+        Modo actual: <strong style={{ color: 'var(--text-secondary)' }}>{resolvedTheme === 'dark' ? 'Oscuro' : 'Claro'}</strong>
+      </div>
     </div>
   )
 }
@@ -72,7 +99,7 @@ function ChildSection({ child }: { child: Child | null }) {
     <div className="card">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}><div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af' }}>👶 Menor</div>{!show && <button onClick={() => setShow(true)} style={{ fontSize: 12, color: '#3B82F6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Añadir menor</button>}</div>
       {children.map(c => <button key={c.id} className={`child-item ${selectedChildId === c.id ? 'selected' : ''}`} onClick={() => setSelectedChildId(c.id)}><div className="child-item-avatar">{c.name[0]}</div><div><div className="child-item-name">{c.name}</div><div className="child-item-sub">{c.parents.length} progenitor(es)</div></div></button>)}
-      {show && <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}><div style={{ marginBottom: 10 }}><div className="settings-label">Nombre del menor</div><input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" className="settings-input" /></div><div style={{ marginBottom: 10 }}><div className="settings-label">Fecha de nacimiento (opcional)</div><input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="settings-input" /></div><div style={{ marginBottom: 12 }}><div className="settings-label">Tu color en el calendario</div><div className="color-swatches">{PARENT_COLORS.map(c => <div key={c} className={`color-swatch ${color === c ? 'selected' : ''}`} style={{ background: c }} onClick={() => setColor(c)} />)}</div></div><div style={{ display: 'flex', gap: 8 }}><button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancelar</button><button style={{ flex:1, padding:'10px', borderRadius:12, border:'none', background:(!name.trim()||loading)?'rgba(255,255,255,0.08)':'#EC4899', color:(!name.trim()||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!name.trim()||loading)?'not-allowed':'pointer' }} onClick={handleCreate} disabled={!name.trim()||loading}>{loading ? '...' : 'Crear'}</button></div></div>}
+      {show && <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}><div style={{ marginBottom: 10 }}><div className="settings-label">Nombre del menor</div><input value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" className="settings-input" /></div><div style={{ marginBottom: 10 }}><div className="settings-label">Fecha de nacimiento (opcional)</div><input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} className="settings-input" /></div><div style={{ marginBottom: 12 }}><div className="settings-label">Tu color en el calendario</div><div className="color-swatches">{PARENT_COLORS.map(c => <div key={c} className={`color-swatch ${color === c ? 'selected' : ''}`} style={{ background: c }} onClick={() => setColor(c)} />)}</div></div><div style={{ display: 'flex', gap: 8 }}><button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancelar</button><button style={{ flex:1, padding:'10px', borderRadius:12, border:'none', background:(!name.trim()||loading)?'rgba(255,255,255,0.08)':'#EC4899', color:(!name.trim()||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!name.trim()||loading)?'not-allowed':'pointer' }} onClick={handleCreate} disabled={!name.trim()||loading}>{loading ? '...' : 'Crear'}</button></div></div>}
     </div>
   )
 }
@@ -110,7 +137,7 @@ function InviteSection({ child, sentInvitations }: { child: Child; sentInvitatio
       <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@ejemplo.com" className="settings-input" style={{ marginBottom: 10 }} />
       <button style={{ width:'100%', padding:'11px', borderRadius:12, border:'none', background:(!email.includes('@')||loading)?'rgba(255,255,255,0.08)':'#10b981', color:(!email.includes('@')||loading)?'#6b7280':'#fff', fontSize:13, fontWeight:700, cursor:(!email.includes('@')||loading)?'not-allowed':'pointer' }} onClick={handleInvite} disabled={!email.includes('@')||loading}>{loading ? 'Enviando...' : 'Enviar invitación'}</button>
       {error && <div style={{ marginTop:10, color:'#fca5a5', fontSize:12 }}>{error}</div>}
-      {sentInvitations.length > 0 && <div style={{ marginTop:14 }}><div style={{ fontSize:12, fontWeight:700, color:'#9ca3af', marginBottom:8 }}>Invitaciones enviadas</div><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{sentInvitations.map(inv => <div key={inv.id} style={{ padding:'10px 12px', borderRadius:12, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)' }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}><div><div style={{ color:'#e5e7eb', fontSize:12 }}>{inv.toEmail}</div><div style={{ color: inv.status === 'pending' ? '#fbbf24' : inv.status === 'accepted' ? '#10b981' : inv.status === 'cancelled' ? '#9ca3af' : '#f87171', fontSize:11, fontWeight:700 }}>{inv.status.toUpperCase()}</div></div><div style={{ display:'flex', gap:8 }}>{inv.status !== 'accepted' && <button onClick={() => resendInvitation(inv.id)} style={{ background:'none', border:'none', color:'#60a5fa', fontSize:12, fontWeight:700, cursor:'pointer' }}>Reenviar</button>}{inv.status === 'pending' && <button onClick={() => cancelInvitation(inv.id)} style={{ background:'none', border:'none', color:'#f87171', fontSize:12, fontWeight:700, cursor:'pointer' }}>Cancelar</button>}</div></div></div>)}</div></div>}
+      {sentInvitations.length > 0 && <div style={{ marginTop:14 }}><div style={{ fontSize:12, fontWeight:700, color:'#9ca3af', marginBottom:8 }}>Invitaciones enviadas</div><div style={{ display:'flex', flexDirection:'column', gap:8 }}>{sentInvitations.map(inv => <div key={inv.id} style={{ padding:'10px 12px', borderRadius:12, background:'var(--bg-soft)', border:'1px solid var(--border)' }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}><div><div style={{ color:'var(--text-strong)', fontSize:12 }}>{inv.toEmail}</div><div style={{ color: inv.status === 'pending' ? '#fbbf24' : inv.status === 'accepted' ? '#10b981' : inv.status === 'cancelled' ? '#9ca3af' : '#f87171', fontSize:11, fontWeight:700 }}>{inv.status.toUpperCase()}</div></div><div style={{ display:'flex', gap:8 }}>{inv.status !== 'accepted' && <button onClick={() => resendInvitation(inv.id)} style={{ background:'none', border:'none', color:'#60a5fa', fontSize:12, fontWeight:700, cursor:'pointer' }}>Reenviar</button>}{inv.status === 'pending' && <button onClick={() => cancelInvitation(inv.id)} style={{ background:'none', border:'none', color:'#f87171', fontSize:12, fontWeight:700, cursor:'pointer' }}>Cancelar</button>}</div></div></div>)}</div></div>}
     </div>
   )
 }

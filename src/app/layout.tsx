@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
+import { ThemeProvider } from '@/lib/theme-context'
 
 export const metadata: Metadata = {
   title: 'CustodiaApp',
@@ -19,9 +20,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
-      <body style={{ fontFamily: 'system-ui, -apple-system, sans-serif', background: '#0d1117', margin: 0 }}>
-        <AuthProvider>{children}</AuthProvider>
+    <html lang="es" data-theme="dark">
+      <body style={{ fontFamily: 'system-ui, -apple-system, sans-serif', margin: 0 }}>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
