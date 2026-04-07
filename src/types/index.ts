@@ -85,8 +85,9 @@ export interface Note {
   updatedAt?: Date
 }
 
-export type EventCategory = 'reunion' | 'excursion' | 'examen' | 'extraescolar' | 'festivo' | 'otro'
+export type EventCategory = 'reunion' | 'excursion' | 'examen' | 'extraescolar' | 'festivo' | 'vacaciones' | 'otro'
 export type EventRecurrence = 'none' | 'weekly' | 'monthly'
+export type EventAssignmentStatus = 'pending' | 'accepted' | 'rejected'
 
 export interface SchoolEvent {
   id: string
@@ -105,6 +106,11 @@ export interface SchoolEvent {
   recurrenceWeekdays?: number[]
   cancelledDates?: string[]
   recurrenceGroupId?: string
+  assignedParentId?: string
+  assignmentStatus?: EventAssignmentStatus
+  assignmentRequestedBy?: string
+  assignmentRequestedByName?: string
+  assignmentRequestToParentId?: string
   createdAt: Date
   updatedAt?: Date
 }
