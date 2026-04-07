@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createEvent, deleteEvent, updateEvent, setOverride } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
-import type { SchoolEvent, EventCategory, EventRecurrence } from '@/types'
+import type { SchoolEvent, EventCategory, EventRecurrence, EventAssignmentStatus } from '@/types'
 
 const CAT_CONFIG: Record<EventCategory, { label: string; icon: string; color: string }> = {
   reunion:      { label: 'Reunión',       icon: '👥', color: '#3b82f6' },
@@ -211,7 +211,8 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
       const finalDate = recurrence === 'monthly' ? buildMonthlyDate(date, monthlyDay) : date
       const otherParentId = child.parents.find(pid => pid !== user.uid)
       const wantsAssignment = !!assignedParentId && !!otherParentId
-      const payload = {
+      const assignmentStatus: EventAssignmentStatus | undefined = wantsAssignment ? 'pending' : undefined
+      const payload: Partial<SchoolEvent> = {
         childId: child.id,
         createdBy: event?.createdBy ?? user.uid,
         title: title.trim(),
@@ -226,7 +227,7 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
         recurrenceUntil: recurrence === 'none' ? undefined : recurrenceUntil,
         recurrenceWeekdays: recurrence === 'weekly' ? recurrenceWeekdays : undefined,
         assignedParentId: wantsAssignment ? assignedParentId : undefined,
-        assignmentStatus: wantsAssignment ? 'pending' : undefined,
+        assignmentStatus,
         assignmentRequestedBy: wantsAssignment ? user.uid : undefined,
         assignmentRequestedByName: wantsAssignment ? (user.displayName || user.email || 'Progenitor') : undefined,
         assignmentRequestToParentId: wantsAssignment ? otherParentId : undefined,
