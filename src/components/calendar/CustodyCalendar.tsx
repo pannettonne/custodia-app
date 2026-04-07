@@ -71,12 +71,6 @@ export function CustodyCalendar() {
   }, [child, pattern, overrides, specialPeriods, user?.uid])
   const getSpecialPeriodForDate = useCallback((dateStr: string) => specialPeriods.find(p => dateStr >= p.startDate && dateStr <= p.endDate), [specialPeriods])
 
-  const todayStr = toISODate(new Date())
-  const todayInfo = useMemo(() => getParentInfo(new Date(todayStr + 'T12:00:00')), [getParentInfo, todayStr])
-  const todayRequests = useMemo(() => requests.filter(r => requestMatchesDate(r, todayStr)), [requests, todayStr])
-  const upcomingEvents = useMemo(() => events.filter(e => e.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date)).slice(0, 3), [events, todayStr])
-  const pendingReceived = useMemo(() => requests.filter(r => r.toParentId === user?.uid && r.status === 'pending').length, [requests, user?.uid])
-
   const selectedNotes = useMemo(() => selectedDate ? notes.filter(n => noteMatchesDate(n, selectedDate)) : [], [notes, selectedDate])
   const selectedEvents = useMemo(() => selectedDate ? events.map(event => ({ event, ...getEventOccurrenceState(event, selectedDate) })).filter(item => item.matches) : [], [events, selectedDate])
   const selectedOverride = useMemo(() => selectedDate ? overrides.find(o => o.date === selectedDate) ?? null : null, [overrides, selectedDate])
@@ -102,21 +96,6 @@ export function CustodyCalendar() {
 
   return (
     <div>
-      <div className="card" style={{ marginBottom: 12 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:10 }}>
-          <div style={{ padding:'2px 0' }}>
-            <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:4 }}>Hoy</div>
-            <div style={{ fontSize:18, fontWeight:800, color:'var(--text-strong)' }}>{todayInfo ? todayInfo.name : 'Sin patrón'}</div>
-            <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:4 }}>{formatDate(todayStr)}{todayRequests.length > 0 ? ` · ${todayRequests.length} pendiente(s)` : ''}</div>
-          </div>
-          <div style={{ display:'grid', gap:6 }}>
-            <div style={{ padding:'10px 12px', borderRadius:12, background:'var(--bg-soft)', border:'1px solid var(--border)' }}><div style={{ fontSize:11, color:'var(--text-muted)' }}>Solicitudes pendientes</div><div style={{ fontSize:16, fontWeight:800, color:'var(--text-strong)' }}>{pendingReceived}</div></div>
-            <div style={{ padding:'10px 12px', borderRadius:12, background:'var(--bg-soft)', border:'1px solid var(--border)' }}><div style={{ fontSize:11, color:'var(--text-muted)' }}>Próximo evento</div><div style={{ fontSize:12, fontWeight:700, color:'var(--text-strong)' }}>{upcomingEvents[0]?.title || 'Nada próximo'}</div></div>
-          </div>
-        </div>
-        {upcomingEvents.length > 0 && <div style={{ marginTop:10, display:'flex', gap:6, flexWrap:'wrap' }}>{upcomingEvents.map(ev => <div key={ev.id} style={{ padding:'6px 10px', borderRadius:999, background:'var(--bg-soft)', border:'1px solid var(--border)', fontSize:11, color:'var(--text-secondary)' }}>🎓 {ev.title} · {formatDate(ev.date)}</div>)}</div>}
-      </div>
-
       <div className="calendar-month-nav"><button className="calendar-nav-btn" onClick={() => setCurrentMonth(subMonths(currentMonth,1))}>‹</button><div><div className="calendar-month-title">{format(currentMonth,'MMMM yyyy',{locale:es})}</div><div className="calendar-legend">{child.parents.map(pid => <div key={pid} className="legend-item"><div className="legend-dot" style={{background: child.parentColors?.[pid] ?? '#6B7280'}} /><span>{child.parentNames?.[pid] ?? 'Progenitor'}{pid===user?.uid?' (tú)':''}</span></div>)}</div></div><button className="calendar-nav-btn" onClick={() => setCurrentMonth(addMonths(currentMonth,1))}>›</button></div>
       {activeSpecialPeriods.length > 0 && <div style={{marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 4}}>{activeSpecialPeriods.map(sp => { const color = child.parentColors?.[sp.parentId] ?? '#6B7280'; const name = child.parentNames?.[sp.parentId] ?? 'Progenitor'; const labelStr = sp.label === 'otro' ? (sp.customLabel ?? 'Período especial') : PERIOD_LABELS[sp.label]; return <div key={sp.id} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 10px', borderRadius:10, background: color+'18', border:`1px solid ${color}33`}}><span style={{fontSize:13}}>{labelStr.split(' ')[0]}</span><span style={{fontSize:11, fontWeight:700, color}}>{labelStr.replace(/^.\s/,'')}</span><span style={{fontSize:11, color:'var(--text-secondary)'}}>→ {name} · {sp.startDate.slice(8)}/{sp.startDate.slice(5,7)} – {sp.endDate.slice(8)}/{sp.endDate.slice(5,7)}</span></div> })}</div>}
       <div className="day-headers">{DAYS.map(d => <div key={d} className="day-header">{d}</div>)}</div>
