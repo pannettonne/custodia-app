@@ -3,13 +3,13 @@ import { useMemo } from 'react'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
-import { respondToRequest, setOverride, cancelRequest } from '@/lib/db'
-import { formatDate } from '@/lib/utils'
+import { respondToRequest, setOverride, cancelRequest, deleteRequest } from '@/lib/db'
+import { formatDate, getParentForDate } from '@/lib/utils'
 import type { ChangeRequest } from '@/types'
 
 export function RequestsList() {
   const { user } = useAuth()
-  const { requests, children, selectedChildId } = useAppStore()
+  const { requests, children, selectedChildId, pattern, overrides, specialPeriods } = useAppStore()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const { incoming, outgoing } = useMemo(() => !user ? { incoming:[], outgoing:[] } : {
     incoming: requests.filter(r => r.toParentId === user.uid),
@@ -19,8 +19,16 @@ export function RequestsList() {
   const handleAccept = async (req: ChangeRequest) => {
     if (!child || !user) return
     await respondToRequest(req.id, 'accepted')
-    const dates = req.type === 'single' ? [req.date!] : eachDayOfInterval({ start: parseISO(req.startDate!), end: parseISO(req.endDate!) }).map(d => format(d,'yyyy-MM-dd'))
-    for (const date of dates) await setOverride({ childId: req.childId, date, parentId: req.fromParentId, reason: req.reason, createdBy: user.uid })
+    const dates = req.type === 'single'
+      ? [req.date!]
+      : eachDayOfInterval({ start: parseISO(req.startDate!), end: parseISO(req.endDate!) }).map(d => format(d,'yyyy-MM-dd'))
+
+    for (const date of dates) {
+      const currentOwner = getParentForDate(new Date(date + 'T12:00:00'), pattern, overrides, child, specialPeriods)
+      const otherParent = child.parents.find(pid => pid !== currentOwner) ?? req.fromParentId
+      const targetParentId = currentOwner === req.fromParentId ? otherParent : req.fromParentId
+      await setOverride({ childId: req.childId, date, parentId: targetParentId, reason: req.reason, createdBy: user.uid })
+    }
   }
 
   if (requests.length === 0) return (
@@ -51,6 +59,11 @@ export function RequestsList() {
         {!isIncoming && req.status === 'pending' && (
           <div className="req-actions">
             <button className="req-action-btn btn-reject" onClick={() => cancelRequest(req.id)}>Cancelar solicitud</button>
+          </div>
+        )}
+        {req.status === 'cancelled' && (
+          <div className="req-actions">
+            <button className="req-action-btn btn-reject" onClick={() => deleteRequest(req.id)}>Eliminar</button>
           </div>
         )}
       </div>

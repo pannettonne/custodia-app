@@ -22,6 +22,9 @@ service cloud.firestore {
         ||
         (request.auth.uid == resource.data.fromParentId && resource.data.status == 'pending' && request.resource.data.status == 'cancelled' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']))
       );
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.fromParentId || request.auth.uid == resource.data.toParentId
+      ) && resource.data.status == 'cancelled';
     }
     match /invitations/{invitationId} {
       allow read: if request.auth != null && (request.auth.token.email == resource.data.toEmail || request.auth.token.email == resource.data.fromEmail);
