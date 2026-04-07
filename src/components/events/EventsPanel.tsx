@@ -140,20 +140,20 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
         <div style={{ width: 38, height: 38, borderRadius: 10, background: cat.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{cat.icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
-            <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{event.title}</span>
+            <span style={{ color: 'var(--text-strong)', fontSize: 13, fontWeight: 700 }}>{event.title}</span>
             {isToday && <span style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>¡Hoy!</span>}
             <span style={{ background: cat.color + '22', color: cat.color, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 6 }}>{categoryLabel}</span>
             {recurrenceLabel && <span style={{ background: 'rgba(139,92,246,0.18)', color: '#a78bfa', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>{recurrenceLabel}</span>}
             {event.assignmentStatus === 'pending' && assignedName && <span style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>Pendiente para {assignedName}</span>}
             {event.assignmentStatus === 'accepted' && assignedName && <span style={{ background: 'rgba(16,185,129,0.18)', color: '#6ee7b7', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>Asignado a {assignedName}</span>}
           </div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>📅 {formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}{event.time ? ` · ⏰ ${event.time}` : event.allDay ? ' · Todo el día' : ''}</div>
-          {event.notes && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 5 }}>{event.notes}</div>}
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>📅 {formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}{event.time ? ` · ⏰ ${event.time}` : event.allDay ? ' · Todo el día' : ''}</div>
+          {event.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>{event.notes}</div>}
 
           {child && canRequestAssignment && (
             <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>
               {child.parents.map(pid => (
-                <button key={pid} onClick={() => requestAssignment(pid)} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, color:'#cbd5e1', fontSize:11, fontWeight:700, padding:'5px 8px', cursor:'pointer' }}>
+                <button key={pid} onClick={() => requestAssignment(pid)} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', cursor:'pointer' }}>
                   Asignar a {child.parentNames?.[pid] ?? 'Progenitor'}
                 </button>
               ))}
@@ -169,8 +169,8 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
         </div>
         {event.createdBy === user?.uid && (
           <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-            <button onClick={onEdit} style={{ background:'none', border:'none', color:'#9ca3af', cursor:'pointer', fontSize:12, fontWeight:700 }}>Editar</button>
-            <button onClick={() => deleteEvent(event.id)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 16, padding: '0 2px', flexShrink: 0 }}>✕</button>
+            <button onClick={onEdit} style={{ background:'none', border:'none', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontWeight:700 }}>Editar</button>
+            <button onClick={() => deleteEvent(event.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 2px', flexShrink: 0 }}>✕</button>
           </div>
         )}
       </div>
@@ -244,25 +244,25 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
 
   return (
     <div className="card" style={{ marginBottom: 14, borderColor: 'rgba(16,185,129,0.3)' }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>{event ? '✏️ Editar evento' : '🎓 Nuevo evento'}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12 }}>{event ? '✏️ Editar evento' : '🎓 Nuevo evento'}</div>
       <div style={{ marginBottom: 10 }}><div className="settings-label">Título</div><input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Vacaciones de verano" className="settings-input" /></div>
       <div style={{ marginBottom: 10 }}>
         <div className="settings-label">Categoría</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
           {(Object.entries(CAT_CONFIG) as [EventCategory, typeof CAT_CONFIG[EventCategory]][]).map(([k, v]) => (
-            <button key={k} onClick={() => setCategory(k)} style={{ padding: '8px 4px', borderRadius: 10, border: `1px solid ${category === k ? v.color : 'rgba(255,255,255,0.1)'}`, background: category === k ? v.color + '22' : 'rgba(255,255,255,0.04)', color: category === k ? v.color : '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}><span style={{ fontSize: 16 }}>{v.icon}</span>{v.label}</button>
+            <button key={k} onClick={() => setCategory(k)} style={{ padding: '8px 4px', borderRadius: 10, border: `1px solid ${category === k ? v.color : 'var(--border)'}`, background: category === k ? v.color + '22' : 'var(--bg-soft)', color: category === k ? v.color : 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}><span style={{ fontSize: 16 }}>{v.icon}</span>{v.label}</button>
           ))}
         </div>
         {category === 'otro' && <input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Nombre de la categoría" className="settings-input" style={{ marginTop: 8 }} />}
       </div>
-      <div style={{ marginBottom: 10 }}><div className="date-pair"><div><div className="date-pair-label">{recurrence === 'none' ? 'Fecha' : 'Empieza el'}</div><input type="date" value={date} onChange={e => setDate(e.target.value)} className="settings-input" /></div><div><div className="date-pair-label">Hasta (opcional)</div><input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" /></div></div></div>
-      <div style={{ marginBottom: 10 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#cbd5e1', fontSize: 13, fontWeight: 600 }}><input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) setTime('') }} />Evento de todo el día</label></div>
+      <div style={{ marginBottom: 10 }}><div className="date-pair"><div><div className="date-pair-label">{recurrence === 'none' ? 'Fecha' : 'Empieza el'}</div><input type="date" value={date} onChange={e => { const next = e.target.value; setDate(next); if (!endDate || endDate < next) setEndDate(next); if (!recurrenceUntil || recurrenceUntil < next) setRecurrenceUntil(next) }} className="settings-input" /></div><div><div className="date-pair-label">Hasta (opcional)</div><input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" /></div></div></div>
+      <div style={{ marginBottom: 10 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}><input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) setTime('') }} />Evento de todo el día</label></div>
       {!allDay && <div style={{ marginBottom: 10 }}><div className="settings-label">Hora (opcional)</div><input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" /></div>}
       {!event && (
         <div style={{ marginBottom: 10 }}>
           <div className="settings-label">Repetición</div>
-          <div style={{ display:'flex', gap:8, marginBottom:8 }}>{(['none','weekly','monthly'] as EventRecurrence[]).map(r => <button key={r} onClick={() => setRecurrence(r)} style={{ flex:1, padding:'8px 6px', borderRadius:10, border:`1px solid ${recurrence===r ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, background:recurrence===r ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.04)', color:recurrence===r ? '#a78bfa' : '#9ca3af', fontSize:11, fontWeight:700, cursor:'pointer' }}>{r === 'none' ? 'Una vez' : r === 'weekly' ? 'Semanal' : 'Una vez al mes'}</button>)}</div>
-          {recurrence === 'weekly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Días de la semana</div><div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>{WEEKDAYS.map(day => <button key={day.value} onClick={() => toggleWeekday(day.value)} style={{ width:34, height:34, borderRadius:17, border:`1px solid ${recurrenceWeekdays.includes(day.value) ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, background:recurrenceWeekdays.includes(day.value) ? 'rgba(139,92,246,0.18)' : 'rgba(255,255,255,0.04)', color:recurrenceWeekdays.includes(day.value) ? '#a78bfa' : '#9ca3af', fontSize:12, fontWeight:700, cursor:'pointer' }}>{day.label}</button>)}</div><div className="settings-label" style={{ marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}
+          <div style={{ display:'flex', gap:8, marginBottom:8 }}>{(['none','weekly','monthly'] as EventRecurrence[]).map(r => <button key={r} onClick={() => setRecurrence(r)} style={{ flex:1, padding:'8px 6px', borderRadius:10, border:`1px solid ${recurrence===r ? '#8b5cf6' : 'var(--border)'}`, background:recurrence===r ? 'rgba(139,92,246,0.18)' : 'var(--bg-soft)', color:recurrence===r ? '#a78bfa' : 'var(--text-secondary)', fontSize:11, fontWeight:700, cursor:'pointer' }}>{r === 'none' ? 'Una vez' : r === 'weekly' ? 'Semanal' : 'Una vez al mes'}</button>)}</div>
+          {recurrence === 'weekly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Días de la semana</div><div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>{WEEKDAYS.map(day => <button key={day.value} onClick={() => toggleWeekday(day.value)} style={{ width:34, height:34, borderRadius:17, border:`1px solid ${recurrenceWeekdays.includes(day.value) ? '#8b5cf6' : 'var(--border)'}`, background:recurrenceWeekdays.includes(day.value) ? 'rgba(139,92,246,0.18)' : 'var(--bg-soft)', color:recurrenceWeekdays.includes(day.value) ? '#a78bfa' : 'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>{day.label}</button>)}</div><div className="settings-label" style={{ marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}
           {recurrence === 'monthly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Día del mes</div><input type="number" min="1" max="31" value={monthlyDay} onChange={e => setMonthlyDay(Number(e.target.value || 1))} className="settings-input" /><div className="settings-label" style={{ marginTop: 8, marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}
         </div>
       )}
@@ -272,10 +272,10 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
           <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:8 }}>
             {child.parents.map(pid => {
               const selected = assignedParentId === pid
-              return <button key={pid} onClick={() => setAssignedParentId(selected ? '' : pid)} style={{ padding:'10px 8px', borderRadius:12, border:`1px solid ${selected ? (child.parentColors?.[pid] ?? '#3b82f6') : 'rgba(255,255,255,0.1)'}`, background:selected ? ((child.parentColors?.[pid] ?? '#3b82f6') + '22') : 'rgba(255,255,255,0.04)', color:selected ? (child.parentColors?.[pid] ?? '#93c5fd') : '#cbd5e1', fontSize:12, fontWeight:700, cursor:'pointer' }}>{child.parentNames?.[pid] ?? 'Progenitor'}</button>
+              return <button key={pid} onClick={() => setAssignedParentId(selected ? '' : pid)} style={{ padding:'10px 8px', borderRadius:12, border:`1px solid ${selected ? (child.parentColors?.[pid] ?? '#3b82f6') : 'var(--border)'}`, background:selected ? ((child.parentColors?.[pid] ?? '#3b82f6') + '22') : 'var(--bg-soft)', color:selected ? (child.parentColors?.[pid] ?? '#93c5fd') : 'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>{child.parentNames?.[pid] ?? 'Progenitor'}</button>
             })}
           </div>
-          <div style={{ fontSize:11, color:'#9ca3af', marginTop:6 }}>
+          <div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:6 }}>
             Si el otro progenitor acepta: en eventos de día completo se cambiará la custodia de esos días; en eventos con hora solo quedará reflejada la asignación del evento.
           </div>
         </div>

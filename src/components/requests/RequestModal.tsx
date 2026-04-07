@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
 import { createChangeRequest } from '@/lib/db'
@@ -15,11 +15,20 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
 
   const [type, setType] = useState<'single'|'range'>('single')
   const [date, setDate] = useState(initialDate ?? '')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [startDate, setStartDate] = useState(initialDate ?? '')
+  const [endDate, setEndDate] = useState(initialDate ?? '')
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    if (initialDate) {
+      setDate(initialDate)
+      setStartDate(prev => prev || initialDate)
+      setEndDate(prev => prev || initialDate)
+    }
+  }, [open, initialDate])
 
   if (!open) return null
 
@@ -59,7 +68,13 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
                 <div className="settings-label">Tipo de cambio</div>
                 <div className="type-toggle">
                   {[{v:'single',l:'📅 Día concreto'},{v:'range',l:'↔ Rango de fechas'}].map(({v,l}) => (
-                    <button key={v} className={`type-btn ${type===v?'active':''}`} onClick={() => setType(v as any)}>{l}</button>
+                    <button key={v} className={`type-btn ${type===v?'active':''}`} onClick={() => {
+                      setType(v as any)
+                      if (v === 'range' && date) {
+                        setStartDate(prev => prev || date)
+                        setEndDate(prev => prev || date)
+                      }
+                    }}>{l}</button>
                   ))}
                 </div>
               </div>
@@ -70,7 +85,7 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
                   <input type="date" value={date} onChange={e => setDate(e.target.value)} className="settings-input" />
                 ) : (
                   <div className="date-pair">
-                    <div><div className="date-pair-label">Desde</div><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="settings-input" /></div>
+                    <div><div className="date-pair-label">Desde</div><input type="date" value={startDate} onChange={e => { const next = e.target.value; setStartDate(next); if (!endDate || endDate < next) setEndDate(next) }} className="settings-input" /></div>
                     <div><div className="date-pair-label">Hasta</div><input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} className="settings-input" /></div>
                   </div>
                 )}

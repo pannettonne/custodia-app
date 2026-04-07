@@ -22,7 +22,6 @@ export function SpecialPeriodsManager() {
 
   if (!child) return null
 
-  // Sort: upcoming first, then past
   const today = new Date().toISOString().slice(0, 10)
   const sorted = [...specialPeriods].sort((a, b) => {
     const aFuture = a.endDate >= today
@@ -37,7 +36,7 @@ export function SpecialPeriodsManager() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 16 }}>🗓️</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af' }}>Periodos especiales</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>Periodos especiales</span>
         </div>
         <button onClick={() => setShowForm(!showForm)}
           style={{ fontSize: 12, color: '#f59e0b', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>
@@ -45,7 +44,7 @@ export function SpecialPeriodsManager() {
         </button>
       </div>
 
-      <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 14, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
         Define quién tiene al menor durante vacaciones u otros periodos puntuales. Tienen prioridad sobre el patrón habitual.
       </p>
 
@@ -54,7 +53,7 @@ export function SpecialPeriodsManager() {
       {sorted.length === 0 && !showForm ? (
         <div style={{ textAlign: 'center', padding: '16px 0' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📭</div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>Sin periodos especiales. Añade verano, Navidad...</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Sin periodos especiales. Añade verano, Navidad...</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -74,7 +73,6 @@ function SpecialPeriodCard({ period, child, today }: { period: SpecialPeriod; ch
   const isActive = period.startDate <= today && period.endDate >= today
   const isPast = period.endDate < today
 
-  // Count days
   const start = new Date(period.startDate + 'T12:00:00')
   const end = new Date(period.endDate + 'T12:00:00')
   const days = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
@@ -82,15 +80,15 @@ function SpecialPeriodCard({ period, child, today }: { period: SpecialPeriod; ch
   return (
     <div style={{
       padding: '12px 14px', borderRadius: 14,
-      background: isPast ? 'rgba(255,255,255,0.03)' : color + '15',
-      border: `1px solid ${isPast ? 'rgba(255,255,255,0.08)' : color + '40'}`,
-      opacity: isPast ? 0.65 : 1,
+      background: isPast ? 'var(--bg-soft)' : color + '15',
+      border: `1px solid ${isPast ? 'var(--border)' : color + '40'}`,
+      opacity: isPast ? 0.72 : 1,
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15 }}>{labelStr.split(' ')[0]}</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: isPast ? '#6b7280' : '#e5e7eb' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: isPast ? 'var(--text-secondary)' : 'var(--text-strong)' }}>
               {labelStr.replace(/^.\s/, '')}
             </span>
             {isActive && (
@@ -99,34 +97,32 @@ function SpecialPeriodCard({ period, child, today }: { period: SpecialPeriod; ch
               </span>
             )}
             {isPast && (
-              <span style={{ color: '#4b5563', fontSize: 10, fontWeight: 600 }}>Pasado</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }}>Pasado</span>
             )}
           </div>
 
-          {/* Date range pill */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, padding: '4px 10px', fontSize: 12, color: '#d1d5db', fontWeight: 600 }}>
+            <div style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600 }}>
               📅 {formatDate(period.startDate)} → {formatDate(period.endDate)}
-              <span style={{ color: '#6b7280', fontWeight: 400, marginLeft: 6 }}>({days} días)</span>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>({days} días)</span>
             </div>
           </div>
 
-          {/* Parent assignment */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: isPast ? '#6b7280' : '#9ca3af' }}>
-              Corresponde a <strong style={{ color: isPast ? '#9ca3af' : color }}>{name}</strong>
+            <span style={{ fontSize: 12, color: isPast ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+              Corresponde a <strong style={{ color: isPast ? 'var(--text-secondary)' : color }}>{name}</strong>
               {period.parentId === user?.uid ? ' (tú)' : ''}
             </span>
           </div>
 
           {period.notes && (
-            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, lineHeight: 1.4 }}>{period.notes}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>{period.notes}</div>
           )}
         </div>
 
         <button onClick={() => deleteSpecialPeriod(period.id)}
-          style={{ background: 'none', border: 'none', color: '#4b5563', cursor: 'pointer', fontSize: 18, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>
+          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>
           ✕
         </button>
       </div>
@@ -165,7 +161,6 @@ function SpecialPeriodForm({ child, onClose }: { child: any; onClose: () => void
     } finally { setLoading(false) }
   }
 
-  // Quick fill helpers
   const currentYear = new Date().getFullYear()
   const quickFill = (type: string) => {
     const y = currentYear
@@ -183,7 +178,6 @@ function SpecialPeriodForm({ child, onClose }: { child: any; onClose: () => void
     <div style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 12 }}>🗓️ Nuevo periodo especial</div>
 
-      {/* Quick fill */}
       <div style={{ marginBottom: 12 }}>
         <div className="settings-label">Acceso rápido</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -201,13 +195,12 @@ function SpecialPeriodForm({ child, onClose }: { child: any; onClose: () => void
         </div>
       </div>
 
-      {/* Label */}
       <div style={{ marginBottom: 10 }}>
         <div className="settings-label">Tipo de periodo</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
           {PERIOD_OPTIONS.map(({ value, label: lbl }) => (
             <button key={value} onClick={() => setLabel(value)}
-              style={{ padding: '8px 4px', borderRadius: 10, border: `1px solid ${label===value ? 'rgba(245,158,11,0.6)' : 'rgba(255,255,255,0.1)'}`, background: label===value ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.04)', color: label===value ? '#f59e0b' : '#9ca3af', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+              style={{ padding: '8px 4px', borderRadius: 10, border: `1px solid ${label===value ? 'rgba(245,158,11,0.6)' : 'var(--border)'}`, background: label===value ? 'rgba(245,158,11,0.2)' : 'var(--bg-soft)', color: label===value ? '#f59e0b' : 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
               {lbl}
             </button>
           ))}
@@ -218,20 +211,18 @@ function SpecialPeriodForm({ child, onClose }: { child: any; onClose: () => void
         )}
       </div>
 
-      {/* Dates */}
       <div style={{ marginBottom: 10 }}>
         <div className="date-pair">
-          <div><div className="date-pair-label">Desde</div><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="settings-input" /></div>
+          <div><div className="date-pair-label">Desde</div><input type="date" value={startDate} onChange={e => { const next = e.target.value; setStartDate(next); if (!endDate || endDate < next) setEndDate(next) }} className="settings-input" /></div>
           <div><div className="date-pair-label">Hasta</div><input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} className="settings-input" /></div>
         </div>
         {startDate && endDate && startDate <= endDate && (
-          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
             {Math.round((new Date(endDate+'T12:00:00').getTime() - new Date(startDate+'T12:00:00').getTime()) / 86400000) + 1} días
           </div>
         )}
       </div>
 
-      {/* Parent selector */}
       <div style={{ marginBottom: 10 }}>
         <div className="settings-label">¿A quién le corresponde?</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
@@ -241,13 +232,13 @@ function SpecialPeriodForm({ child, onClose }: { child: any; onClose: () => void
             const isSelected = parentId === pid
             return (
               <button key={pid} onClick={() => setParentId(pid)}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: `2px solid ${isSelected ? color : 'rgba(255,255,255,0.1)'}`, background: isSelected ? color + '20' : 'rgba(255,255,255,0.04)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: `2px solid ${isSelected ? color : 'var(--border)'}`, background: isSelected ? color + '20' : 'var(--bg-soft)', cursor: 'pointer', transition: 'all 0.15s' }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
                   {name[0]?.toUpperCase()}
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? color : '#9ca3af' }}>{name}</div>
-                  {pid === user?.uid && <div style={{ fontSize: 10, color: '#6b7280' }}>Tú</div>}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? color : 'var(--text-secondary)' }}>{name}</div>
+                  {pid === user?.uid && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Tú</div>}
                 </div>
                 {isSelected && <div style={{ marginLeft: 'auto', color, fontSize: 16 }}>✓</div>}
               </button>
@@ -256,7 +247,6 @@ function SpecialPeriodForm({ child, onClose }: { child: any; onClose: () => void
         </div>
       </div>
 
-      {/* Notes */}
       <div style={{ marginBottom: 14 }}>
         <div className="settings-label">Observaciones (opcional)</div>
         <input value={notes} onChange={e => setNotes(e.target.value)}

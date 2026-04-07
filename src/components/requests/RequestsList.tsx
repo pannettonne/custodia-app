@@ -41,28 +41,49 @@ export function RequestsList() {
 
   const Card = ({ req, isIncoming }: { req: ChangeRequest; isIncoming: boolean }) => {
     const dateText = req.type === 'single' ? formatDate(req.date!) : `${formatDate(req.startDate!)} → ${formatDate(req.endDate!)}`
-    const borderColor = req.status === 'pending' ? 'rgba(245,158,11,0.3)' : req.status === 'accepted' ? 'rgba(16,185,129,0.3)' : req.status === 'cancelled' ? 'rgba(107,114,128,0.3)' : 'rgba(239,68,68,0.3)'
-    const bgColor = req.status === 'pending' ? 'rgba(245,158,11,0.06)' : req.status === 'accepted' ? 'rgba(16,185,129,0.06)' : req.status === 'cancelled' ? 'rgba(107,114,128,0.06)' : 'rgba(239,68,68,0.06)'
+    const palette = req.status === 'pending'
+      ? { border: 'rgba(245,158,11,0.30)', bg: 'var(--bg-card)', badgeBg: 'rgba(245,158,11,0.14)', badgeColor: '#f59e0b' }
+      : req.status === 'accepted'
+      ? { border: 'rgba(16,185,129,0.28)', bg: 'var(--bg-card)', badgeBg: 'rgba(16,185,129,0.14)', badgeColor: '#10b981' }
+      : req.status === 'cancelled'
+      ? { border: 'var(--border)', bg: 'var(--bg-card)', badgeBg: 'var(--bg-soft)', badgeColor: 'var(--text-muted)' }
+      : { border: 'rgba(239,68,68,0.26)', bg: 'var(--bg-card)', badgeBg: 'rgba(239,68,68,0.14)', badgeColor: '#ef4444' }
     const badgeText = req.status === 'pending' ? 'Pendiente' : req.status === 'accepted' ? 'Aceptada' : req.status === 'cancelled' ? 'Cancelada' : 'Rechazada'
+
     return (
-      <div className="req-card" style={{ borderColor, background: bgColor }}>
-        <div><span className={`req-badge ${req.status === 'cancelled' ? 'rejected' : req.status}`}>{badgeText}</span></div>
-        <div className="req-title">{isIncoming ? req.fromParentName : 'Tú'} pide cambio · {req.type === 'single' ? 'Día concreto' : 'Rango de fechas'}</div>
-        <div className="req-date">📅 {dateText}</div>
-        <div className="req-reason"><span style={{color:'#6b7280'}}>Motivo: </span>{req.reason}</div>
+      <div style={{ background: palette.bg, border: `1px solid ${palette.border}`, borderRadius: 18, padding: 14, marginBottom: 10, boxShadow: 'var(--card-shadow)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom: 10 }}>
+          <span style={{ display:'inline-flex', alignItems:'center', padding:'5px 10px', borderRadius: 999, background: palette.badgeBg, color: palette.badgeColor, fontSize: 11, fontWeight: 800 }}>{badgeText}</span>
+        </div>
+
+        <div style={{ color:'var(--text-strong)', fontSize: 14, fontWeight: 800, marginBottom: 6 }}>
+          {isIncoming ? req.fromParentName : 'Tú'} pide cambio · {req.type === 'single' ? 'Día concreto' : 'Rango de fechas'}
+        </div>
+
+        <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize: 12, color:'var(--text-secondary)', background:'var(--bg-soft)', border:'1px solid var(--border)', padding:'5px 10px', borderRadius: 10, marginBottom: 10 }}>
+          <span>📅</span>
+          <span style={{ fontWeight: 700 }}>{dateText}</span>
+        </div>
+
+        <div style={{ fontSize: 12, color:'var(--text-secondary)', lineHeight: 1.45 }}>
+          <span style={{ color:'var(--text-muted)' }}>Motivo: </span>{req.reason}
+        </div>
+
         {isIncoming && req.status === 'pending' && (
-          <div className="req-actions">
+          <div style={{ display:'flex', gap:8, marginTop: 12 }}>
             <button className="req-action-btn btn-reject" onClick={() => respondToRequest(req.id, 'rejected')}>✕ Rechazar</button>
             <button className="req-action-btn btn-accept" onClick={() => handleAccept(req)}>✓ Aceptar</button>
           </div>
         )}
+
         {!isIncoming && req.status === 'pending' && (
-          <div className="req-actions">
+          <div style={{ display:'flex', gap:8, marginTop: 12 }}>
             <button className="req-action-btn btn-reject" onClick={() => cancelRequest(req.id)}>Cancelar solicitud</button>
           </div>
         )}
+
         {req.status === 'cancelled' && (
-          <div className="req-actions">
+          <div style={{ display:'flex', gap:8, marginTop: 12 }}>
             <button className="req-action-btn btn-reject" onClick={() => deleteRequest(req.id)}>Eliminar</button>
           </div>
         )}
