@@ -11,15 +11,17 @@ import { NotesPanel } from '@/components/notes/NotesPanel'
 import { EventsPanel } from '@/components/events/EventsPanel'
 import { PackingPanel } from '@/components/packing/PackingPanel'
 import { StatsPanel } from '@/components/stats/StatsPanel'
+import { markNotificationRead } from '@/lib/db'
 
 type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
 
 export function AppShell() {
   const { user, signOut } = useAuth()
-  const { children, selectedChildId, setSelectedChildId, requests, invitations, notes } = useAppStore()
+  const { children, selectedChildId, setSelectedChildId, requests, invitations, notes, notifications } = useAppStore()
   const [tab, setTab] = useState<Tab>('calendar')
   const [moreOpen, setMoreOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
   useDataSubscriptions()
 
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
@@ -29,7 +31,8 @@ export function AppShell() {
     const myEmail = (user?.email ?? '').trim().toLowerCase()
     return invitations.filter(i => i.status === 'pending' && i.toEmail === myEmail).length
   }, [invitations, user?.email])
-  const totalBadge = pendingReqs + pendingInvitations + unreadNotes
+  const unreadNotifications = useMemo(() => notifications.filter(n => !n.read).length, [notifications])
+  const totalBadge = pendingReqs + pendingInvitations + unreadNotes + unreadNotifications
 
   const mainTabs = [
     { id: 'calendar' as Tab, label: 'Calendario', emoji: '📅' },
@@ -41,6 +44,7 @@ export function AppShell() {
 
   const handleTabClick = (id: Tab) => {
     setUserMenuOpen(false)
+    setNotifOpen(false)
     if (id === 'settings') {
       setMoreOpen(v => !v)
       return
@@ -49,26 +53,10 @@ export function AppShell() {
     setTab(id)
   }
 
-  const handleBellClick = () => {
-    setMoreOpen(false)
-    setUserMenuOpen(false)
-    if (unreadNotes > 0) {
-      setTab('notes')
-      return
-    }
-    if (pendingReqs > 0) {
-      setTab('requests')
-      return
-    }
-    if (pendingInvitations > 0) {
-      setTab('settings')
-    }
-  }
-
   const activeMore = ['packing', 'stats', 'settings'].includes(tab)
 
   return (
-    <div className="app-shell" onClick={() => { if (moreOpen) setMoreOpen(false); if (userMenuOpen) setUserMenuOpen(false) }}>
+    <div className="app-shell" onClick={() => { if (moreOpen) setMoreOpen(false); if (userMenuOpen) setUserMenuOpen(false); if (notifOpen) setNotifOpen(false) }}>
       <header className="app-header" onClick={e => e.stopPropagation()}>
         <div className="app-header-left">
           <div className="app-logo">👨‍👩‍👦</div>
@@ -84,13 +72,34 @@ export function AppShell() {
               {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          {totalBadge > 0 && (
-            <button className="notif-btn" onClick={handleBellClick}>
-              🔔<span className="notif-count">{totalBadge}</span>
-            </button>
-          )}
           <div style={{ position: 'relative' }}>
-            <button className="user-avatar" onClick={() => { setMoreOpen(false); setUserMenuOpen(v => !v) }} title="Usuario">
+            {totalBadge > 0 && (
+              <button className="notif-btn" onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(v => !v) }}>
+                🔔<span className="notif-count">{totalBadge}</span>
+              </button>
+            )}
+            {notifOpen && (
+              <div className="header-popup-menu notifications-popup-menu">
+                <div className="popup-menu-label">Avisos</div>
+                {notifications.length === 0 ? (
+                  <div className="popup-empty">No hay recordatorios automáticos.</div>
+                ) : (
+                  notifications.map(item => (
+                    <button key={item.id} className="notification-item" onClick={async () => { await markNotificationRead(item.id); if (item.childId) setSelectedChildId(item.childId); setNotifOpen(false) }}>
+                      <div className="notification-item-title">{item.title}</div>
+                      <div className="notification-item-body">{item.body}</div>
+                      {!item.read && <div className="notification-item-dot" />}
+                    </button>
+                  ))
+                )}
+                {pendingReqs > 0 && <button className="popup-menu-item" onClick={() => { setTab('requests'); setNotifOpen(false) }}>Ver solicitudes pendientes</button>}
+                {unreadNotes > 0 && <button className="popup-menu-item" onClick={() => { setTab('notes'); setNotifOpen(false) }}>Ver notas no leídas</button>}
+                {pendingInvitations > 0 && <button className="popup-menu-item" onClick={() => { setTab('settings'); setNotifOpen(false) }}>Ver invitaciones pendientes</button>}
+              </div>
+            )}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <button className="user-avatar" onClick={() => { setMoreOpen(false); setNotifOpen(false); setUserMenuOpen(v => !v) }} title="Usuario">
               {user?.photoURL ? <img src={user.photoURL} alt="" /> : (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase()}
             </button>
             {userMenuOpen && (

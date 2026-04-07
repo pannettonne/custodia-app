@@ -1,7 +1,7 @@
 "use client"
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, type Unsubscribe } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, type Unsubscribe } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod } from '@/types'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification } from '@/types'
 
 function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> { return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T> }
 
@@ -37,6 +37,12 @@ export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promi
 export async function cancelEventOccurrence(id: string, date: string): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), { cancelledDates: arrayUnion(date), updatedAt: serverTimestamp() }) }
 export async function restoreEventOccurrence(id: string, date: string): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), { cancelledDates: arrayRemove(date), updatedAt: serverTimestamp() }) }
 export async function deleteEvent(id: string): Promise<void> { await deleteDoc(doc(db, 'schoolEvents', id)) }
+
+export function subscribeToNotifications(uid: string, cb: (notifications: AppNotification[]) => void): Unsubscribe {
+  const q = query(collection(db, 'notifications'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(20))
+  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification))))
+}
+export async function markNotificationRead(id: string): Promise<void> { await updateDoc(doc(db, 'notifications', id), { read: true }) }
 
 export function subscribeToPackingItems(childId: string, cb: (items: PackingItem[]) => void): Unsubscribe { const q = query(collection(db, 'packingItems'), where('childId', '==', childId)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as PackingItem)))) }
 export async function createPackingItem(data: Omit<PackingItem, 'id'>): Promise<string> { const ref = await addDoc(collection(db, 'packingItems'), compactUndefined(data)); return ref.id }

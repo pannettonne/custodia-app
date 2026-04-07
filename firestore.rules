@@ -33,6 +33,11 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
     }
+    match /notifications/{notificationId} {
+      allow read, update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if false;
+      allow delete: if false;
+    }
     match /packingItems/{itemId} {
       allow read, update, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
       allow create: if request.auth != null && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;

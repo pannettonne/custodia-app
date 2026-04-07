@@ -6,6 +6,7 @@ import {
   subscribeToChildren, subscribeToPattern, subscribeToOverrides,
   subscribeToRequests, subscribeToInvitations, subscribeToNotes,
   subscribeToEvents, subscribeToPackingItems, subscribeToSpecialPeriods,
+  subscribeToNotifications,
 } from '@/lib/db'
 
 export function useDataSubscriptions() {
@@ -13,7 +14,7 @@ export function useDataSubscriptions() {
   const {
     selectedChildId, setChildren, setPattern, setOverrides, setRequests,
     setInvitations, setNotes, setEvents, setPackingItems, setSpecialPeriods,
-    setSelectedChildId,
+    setSelectedChildId, setNotifications,
   } = useAppStore()
 
   useEffect(() => {
@@ -28,6 +29,11 @@ export function useDataSubscriptions() {
     if (!user?.email) return
     return subscribeToInvitations(user.email, setInvitations)
   }, [user?.email])
+
+  useEffect(() => {
+    if (!user?.uid) return
+    return subscribeToNotifications(user.uid, setNotifications)
+  }, [user?.uid])
 
   useEffect(() => {
     if (!selectedChildId) {

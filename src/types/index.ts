@@ -109,6 +109,19 @@ export interface SchoolEvent {
   updatedAt?: Date
 }
 
+export interface AppNotification {
+  id: string
+  userId: string
+  childId?: string
+  childName?: string
+  type: 'event_reminder' | 'pending_request' | 'special_period_start'
+  title: string
+  body: string
+  dateKey: string
+  read: boolean
+  createdAt: Date
+}
+
 export type ItemLocation = 'casa1' | 'casa2' | 'desconocido'
 
 export interface PackingItem {
