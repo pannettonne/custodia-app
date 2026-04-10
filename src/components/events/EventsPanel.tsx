@@ -58,6 +58,7 @@ export function EventsPanel() {
   const [editingEvent, setEditingEvent] = useState<SchoolEvent | null>(null)
   const [filter, setFilter] = useState<EventCategory | 'all'>('all')
   const [showPast, setShowPast] = useState(false)
+  const [showUpcoming, setShowUpcoming] = useState(true)
   const [showPendingAssignments, setShowPendingAssignments] = useState(true)
 
   const filtered = useMemo(() => {
@@ -66,12 +67,21 @@ export function EventsPanel() {
   }, [events, filter])
   const today = new Date().toISOString().slice(0, 10)
   const pendingAssignments = filtered.filter(e => e.assignmentStatus === 'pending')
-  const upcoming = filtered.filter(e => e.date >= today && e.assignmentStatus !== 'pending')
+  const todayEvents = filtered.filter(e => e.date === today && e.assignmentStatus !== 'pending')
+  const upcoming = filtered.filter(e => e.date > today && e.assignmentStatus !== 'pending')
   const past = filtered.filter(e => e.date < today && e.assignmentStatus !== 'pending')
 
-  const Section = ({ title, count, open, onToggle, children }: any) => {
+  const Section = ({ title, count, open, onToggle, defaultOpen = false, children }: any) => {
     if (count === 0) return null
-    return <div style={{ marginBottom: 14 }}><button onClick={onToggle} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', background:'none', border:'none', padding:'0 0 8px 0', cursor:'pointer' }}><div className="section-title" style={{ margin:0 }}>{title} ({count})</div><span style={{ color:'var(--text-muted)', fontSize:12 }}>{open ? 'Ocultar' : 'Mostrar'}</span></button>{open && children}</div>
+    return (
+      <div style={{ marginBottom: 14 }}>
+        <button onClick={onToggle} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', background:'none', border:'none', padding:'0 0 8px 0', cursor:'pointer' }}>
+          <div className="section-title" style={{ margin:0 }}>{title} ({count})</div>
+          <span style={{ color:'var(--text-muted)', fontSize:12 }}>{open ? 'Ocultar' : 'Mostrar'}</span>
+        </button>
+        {open && children}
+      </div>
+    )
   }
 
   return (
@@ -79,7 +89,7 @@ export function EventsPanel() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div className="page-title" style={{ marginBottom: 0 }}>Eventos</div>
-          {upcoming.length > 0 && <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{upcoming.length} próximos</span>}
+          {(todayEvents.length + upcoming.length) > 0 && <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{todayEvents.length + upcoming.length} activos</span>}
         </div>
         <button onClick={() => { setEditingEvent(null); setShowForm(true) }} style={{ background: '#10b981', border: 'none', borderRadius: 12, padding: '8px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Evento</button>
       </div>
@@ -91,14 +101,17 @@ export function EventsPanel() {
       </div>
 
       {showForm && <EventForm event={editingEvent} onClose={() => { setShowForm(false); setEditingEvent(null) }} />}
-
       {!showForm && filtered.length === 0 ? <div className="empty-state"><div className="empty-state-icon">🎓</div><div className="empty-state-title">Sin eventos</div><div className="empty-state-sub">Añade reuniones, exámenes, vacaciones...</div></div> : null}
 
       <Section title="Asignaciones pendientes" count={pendingAssignments.length} open={showPendingAssignments} onToggle={() => setShowPendingAssignments(v => !v)}>
         <div>{pendingAssignments.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div>
       </Section>
 
-      <div>{upcoming.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div>
+      {todayEvents.length > 0 && <div style={{ marginBottom: 14 }}><div className="section-title" style={{ marginBottom: 8 }}>Hoy ({todayEvents.length})</div><div>{todayEvents.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div></div>}
+
+      <Section title="Próximos" count={upcoming.length} open={showUpcoming} onToggle={() => setShowUpcoming(v => !v)}>
+        <div>{upcoming.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div>
+      </Section>
 
       <Section title="Pasados" count={past.length} open={showPast} onToggle={() => setShowPast(v => !v)}>
         <div>{past.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div>
