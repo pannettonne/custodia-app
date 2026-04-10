@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { useDataSubscriptions } from '@/hooks/useDataSubscriptions'
@@ -12,18 +12,40 @@ import { EventsPanel } from '@/components/events/EventsPanel'
 import { PackingPanel } from '@/components/packing/PackingPanel'
 import { StatsPanel } from '@/components/stats/StatsPanel'
 import { markNotificationRead } from '@/lib/db'
+import type { AppNotification } from '@/types'
 
 type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
 
+function inferTargetTab(item: AppNotification): Tab {
+  if (item.targetTab) return item.targetTab
+  if (item.type === 'pending_request' || item.type === 'event_assignment_pending' || item.type === 'event_assignment_response') return 'requests'
+  if (item.type === 'event_reminder') return 'events'
+  return 'calendar'
+}
+
 export function AppShell() {
   const { user, signOut } = useAuth()
-  const { children, selectedChildId, setSelectedChildId, requests, invitations, notes, notifications } = useAppStore()
+  const { children, selectedChildId, setSelectedChildId, requests, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate } = useAppStore()
   const [tab, setTab] = useState<Tab>('calendar')
   const [moreOpen, setMoreOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [queryOpen, setQueryOpen] = useState(false)
   useDataSubscriptions()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const targetTab = params.get('tab') as Tab | null
+    const childId = params.get('childId')
+    const date = params.get('date')
+    if (childId) setSelectedChildId(childId)
+    if (date) {
+      setSelectedCalendarDate(date)
+      setCurrentMonth(new Date(date + 'T12:00:00'))
+    }
+    if (targetTab) setTab(targetTab)
+  }, [])
 
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const pendingReqs = useMemo(() => requests.filter(r => r.status === 'pending' && r.toParentId === user?.uid).length, [requests, user?.uid])
@@ -42,6 +64,17 @@ export function AppShell() {
     { id: 'events' as Tab, label: 'Eventos', emoji: '🎓' },
     { id: 'settings' as Tab, label: 'Más', emoji: '⋯', badge: pendingInvitations },
   ]
+
+  const openNotification = async (item: AppNotification) => {
+    await markNotificationRead(item.id)
+    if (item.childId) setSelectedChildId(item.childId)
+    if (item.targetDate) {
+      setSelectedCalendarDate(item.targetDate)
+      setCurrentMonth(new Date(item.targetDate + 'T12:00:00'))
+    }
+    setTab(inferTargetTab(item))
+    setNotifOpen(false)
+  }
 
   const handleTabClick = (id: Tab) => {
     setUserMenuOpen(false)
@@ -97,7 +130,7 @@ export function AppShell() {
                   <div className="popup-empty">No hay recordatorios automáticos.</div>
                 ) : (
                   notifications.map(item => (
-                    <button key={item.id} className="notification-item" onClick={async () => { await markNotificationRead(item.id); if (item.childId) setSelectedChildId(item.childId); setNotifOpen(false) }}>
+                    <button key={item.id} className="notification-item" onClick={() => openNotification(item)}>
                       <div className="notification-item-title">{item.title}</div>
                       <div className="notification-item-body">{item.body}</div>
                       {!item.read && <div className="notification-item-dot" />}

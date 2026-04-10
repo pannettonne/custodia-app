@@ -34,21 +34,14 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
 
   const isValid = reason.trim().length > 0 && (type === 'single' ? !!date : !!startDate && !!endDate && startDate <= endDate)
   const summaryDate = type === 'single' ? date : `${startDate}→${endDate}`
+  const targetDate = type === 'single' ? date : startDate
 
   const handleSubmit = async () => {
     if (!user || !child || !otherParentId || !reason.trim()) return
     setLoading(true)
     try {
       await createChangeRequest({ childId: child.id, fromParentId: user.uid, fromParentName: user.displayName ?? user.email ?? 'Progenitor', toParentId: otherParentId, type, ...(type === 'single' ? { date } : { startDate, endDate }), reason: reason.trim() })
-      await createNotification({
-        userId: otherParentId,
-        childId: child.id,
-        childName: child.name,
-        type: 'pending_request',
-        title: 'Nueva solicitud de cambio',
-        body: `${user.displayName || user.email || 'El otro progenitor'} ha pedido un cambio de custodia (${summaryDate}).`,
-        dateKey: `change-request:${child.id}:${summaryDate}:${Date.now()}`,
-      })
+      await createNotification({ userId: otherParentId, childId: child.id, childName: child.name, type: 'pending_request', title: 'Nueva solicitud de cambio', body: `${user.displayName || user.email || 'El otro progenitor'} ha pedido un cambio de custodia (${summaryDate}).`, dateKey: `change-request:${child.id}:${summaryDate}:${Date.now()}`, targetTab: 'requests', targetDate })
       setSuccess(true)
       setTimeout(() => { onClose(); setSuccess(false) }, 1500)
     } catch(e) { console.error(e) } finally { setLoading(false) }

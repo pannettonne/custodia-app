@@ -89,6 +89,7 @@ export type EventCategory = 'reunion' | 'excursion' | 'examen' | 'extraescolar' 
 export type EventRecurrence = 'none' | 'weekly' | 'monthly'
 export type EventAssignmentStatus = 'pending' | 'accepted' | 'rejected'
 export type EventReminderAudience = 'self' | 'both'
+export type NotificationTargetTab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
 
 export interface SchoolEvent {
   id: string
@@ -130,6 +131,8 @@ export interface AppNotification {
   dateKey: string
   read: boolean
   createdAt: Date
+  targetTab?: NotificationTargetTab
+  targetDate?: string
 }
 
 export type ItemLocation = 'casa1' | 'casa2' | 'desconocido'

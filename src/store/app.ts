@@ -26,6 +26,8 @@ interface AppState {
   setSpecialPeriods: (s: SpecialPeriod[]) => void
   currentMonth: Date
   setCurrentMonth: (d: Date) => void
+  selectedCalendarDate: string | null
+  setSelectedCalendarDate: (d: string | null) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -53,4 +55,6 @@ export const useAppStore = create<AppState>((set) => ({
   setSpecialPeriods: specialPeriods => set({ specialPeriods }),
   currentMonth: new Date(),
   setCurrentMonth: currentMonth => set({ currentMonth }),
+  selectedCalendarDate: null,
+  setSelectedCalendarDate: selectedCalendarDate => set({ selectedCalendarDate }),
 }))
