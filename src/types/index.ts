@@ -88,6 +88,7 @@ export interface Note {
 export type EventCategory = 'reunion' | 'excursion' | 'examen' | 'extraescolar' | 'festivo' | 'vacaciones' | 'otro'
 export type EventRecurrence = 'none' | 'weekly' | 'monthly'
 export type EventAssignmentStatus = 'pending' | 'accepted' | 'rejected'
+export type EventReminderAudience = 'self' | 'both'
 
 export interface SchoolEvent {
   id: string
@@ -111,6 +112,9 @@ export interface SchoolEvent {
   assignmentRequestedBy?: string
   assignmentRequestedByName?: string
   assignmentRequestToParentId?: string
+  reminderEnabled?: boolean
+  reminderDaysBefore?: number
+  reminderAudience?: EventReminderAudience
   createdAt: Date
   updatedAt?: Date
 }

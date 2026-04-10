@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createEvent, createNotification, deleteEvent, updateEvent, setOverride } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
-import type { SchoolEvent, EventCategory, EventRecurrence, EventAssignmentStatus } from '@/types'
+import type { SchoolEvent, EventCategory, EventRecurrence, EventAssignmentStatus, EventReminderAudience } from '@/types'
 
 const CAT_CONFIG: Record<EventCategory, { label: string; icon: string; color: string }> = {
   reunion:      { label: 'Reunión',       icon: '👥', color: '#3b82f6' },
@@ -45,27 +45,11 @@ function listDates(startDate: string, endDate?: string) {
 }
 
 async function notifyEventAssignmentPending(params: { toUserId: string; childId: string; childName?: string; eventTitle: string; dateKey: string; requesterName: string }) {
-  await createNotification({
-    userId: params.toUserId,
-    childId: params.childId,
-    childName: params.childName,
-    type: 'event_assignment_pending',
-    title: 'Asignación de evento pendiente',
-    body: `${params.requesterName} te ha pedido asignarte el evento “${params.eventTitle}”.`,
-    dateKey: params.dateKey,
-  })
+  await createNotification({ userId: params.toUserId, childId: params.childId, childName: params.childName, type: 'event_assignment_pending', title: 'Asignación de evento pendiente', body: `${params.requesterName} te ha pedido asignarte el evento “${params.eventTitle}”.`, dateKey: params.dateKey })
 }
 
 async function notifyEventAssignmentResponse(params: { toUserId: string; childId: string; childName?: string; eventTitle: string; dateKey: string; accepted: boolean; responderName: string }) {
-  await createNotification({
-    userId: params.toUserId,
-    childId: params.childId,
-    childName: params.childName,
-    type: 'event_assignment_response',
-    title: params.accepted ? 'Asignación de evento aceptada' : 'Asignación de evento rechazada',
-    body: `${params.responderName} ha ${params.accepted ? 'aceptado' : 'rechazado'} la asignación del evento “${params.eventTitle}”.`,
-    dateKey: params.dateKey,
-  })
+  await createNotification({ userId: params.toUserId, childId: params.childId, childName: params.childName, type: 'event_assignment_response', title: params.accepted ? 'Asignación de evento aceptada' : 'Asignación de evento rechazada', body: `${params.responderName} ha ${params.accepted ? 'aceptado' : 'rechazado'} la asignación del evento “${params.eventTitle}”.`, dateKey: params.dateKey })
 }
 
 export function EventsPanel() {
@@ -73,23 +57,29 @@ export function EventsPanel() {
   const [showForm, setShowForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState<SchoolEvent | null>(null)
   const [filter, setFilter] = useState<EventCategory | 'all'>('all')
+  const [showPast, setShowPast] = useState(false)
+  const [showPendingAssignments, setShowPendingAssignments] = useState(true)
 
   const filtered = useMemo(() => {
     const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date) || ((a.time || '').localeCompare(b.time || '')))
     return filter === 'all' ? sorted : sorted.filter(e => e.category === filter)
   }, [events, filter])
+  const today = new Date().toISOString().slice(0, 10)
+  const pendingAssignments = filtered.filter(e => e.assignmentStatus === 'pending')
+  const upcoming = filtered.filter(e => e.date >= today && e.assignmentStatus !== 'pending')
+  const past = filtered.filter(e => e.date < today && e.assignmentStatus !== 'pending')
 
-  const upcoming = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10)
-    return events.filter(e => e.date >= today).length
-  }, [events])
+  const Section = ({ title, count, open, onToggle, children }: any) => {
+    if (count === 0) return null
+    return <div style={{ marginBottom: 14 }}><button onClick={onToggle} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', background:'none', border:'none', padding:'0 0 8px 0', cursor:'pointer' }}><div className="section-title" style={{ margin:0 }}>{title} ({count})</div><span style={{ color:'var(--text-muted)', fontSize:12 }}>{open ? 'Ocultar' : 'Mostrar'}</span></button>{open && children}</div>
+  }
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div className="page-title" style={{ marginBottom: 0 }}>Eventos</div>
-          {upcoming > 0 && <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{upcoming} próximos</span>}
+          {upcoming.length > 0 && <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{upcoming.length} próximos</span>}
         </div>
         <button onClick={() => { setEditingEvent(null); setShowForm(true) }} style={{ background: '#10b981', border: 'none', borderRadius: 12, padding: '8px 14px', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Evento</button>
       </div>
@@ -102,11 +92,17 @@ export function EventsPanel() {
 
       {showForm && <EventForm event={editingEvent} onClose={() => { setShowForm(false); setEditingEvent(null) }} />}
 
-      {filtered.length === 0 && !showForm ? (
-        <div className="empty-state"><div className="empty-state-icon">🎓</div><div className="empty-state-title">Sin eventos</div><div className="empty-state-sub">Añade reuniones, exámenes, vacaciones...</div></div>
-      ) : (
-        <div>{filtered.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div>
-      )}
+      {!showForm && filtered.length === 0 ? <div className="empty-state"><div className="empty-state-icon">🎓</div><div className="empty-state-title">Sin eventos</div><div className="empty-state-sub">Añade reuniones, exámenes, vacaciones...</div></div> : null}
+
+      <Section title="Asignaciones pendientes" count={pendingAssignments.length} open={showPendingAssignments} onToggle={() => setShowPendingAssignments(v => !v)}>
+        <div>{pendingAssignments.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div>
+      </Section>
+
+      <div>{upcoming.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div>
+
+      <Section title="Pasados" count={past.length} open={showPast} onToggle={() => setShowPast(v => !v)}>
+        <div>{past.map(ev => <EventCard key={ev.id} event={ev} onEdit={() => { setEditingEvent(ev); setShowForm(true) }} />)}</div>
+      </Section>
     </div>
   )
 }
@@ -129,13 +125,7 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
     if (!user || !child) return
     const otherParentId = child.parents.find(pid => pid !== user.uid)
     if (!otherParentId) return
-    await updateEvent(event.id, {
-      assignedParentId: targetParentId,
-      assignmentStatus: 'pending',
-      assignmentRequestedBy: user.uid,
-      assignmentRequestedByName: user.displayName || user.email || 'Progenitor',
-      assignmentRequestToParentId: otherParentId,
-    })
+    await updateEvent(event.id, { assignedParentId: targetParentId, assignmentStatus: 'pending', assignmentRequestedBy: user.uid, assignmentRequestedByName: user.displayName || user.email || 'Progenitor', assignmentRequestToParentId: otherParentId })
     await notifyEventAssignmentPending({ toUserId: otherParentId, childId: event.childId, childName: child.name, eventTitle: event.title, dateKey: event.date, requesterName: user.displayName || user.email || 'Progenitor' })
   }
 
@@ -147,11 +137,7 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
       return
     }
     await updateEvent(event.id, { assignmentStatus: 'accepted' })
-    if (event.allDay && event.assignedParentId) {
-      for (const date of listDates(event.date, event.endDate)) {
-        await setOverride({ childId: event.childId, date, parentId: event.assignedParentId, reason: `Asignación por evento: ${event.title}`, createdBy: user.uid })
-      }
-    }
+    if (event.allDay && event.assignedParentId) for (const date of listDates(event.date, event.endDate)) await setOverride({ childId: event.childId, date, parentId: event.assignedParentId, reason: `Asignación por evento: ${event.title}`, createdBy: user.uid })
     if (event.assignmentRequestedBy) await notifyEventAssignmentResponse({ toUserId: event.assignmentRequestedBy, childId: event.childId, childName: child.name, eventTitle: event.title, dateKey: event.date, accepted: true, responderName: user.displayName || user.email || 'Progenitor' })
   }
 
@@ -165,35 +151,18 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
             {isToday && <span style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>¡Hoy!</span>}
             <span style={{ background: cat.color + '22', color: cat.color, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 6 }}>{categoryLabel}</span>
             {recurrenceLabel && <span style={{ background: 'rgba(139,92,246,0.18)', color: '#a78bfa', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>{recurrenceLabel}</span>}
+            {event.reminderEnabled && <span style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>⏰ {event.reminderDaysBefore ?? 0}d antes</span>}
             {event.assignmentStatus === 'pending' && assignedName && <span style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>Pendiente para {assignedName}</span>}
             {event.assignmentStatus === 'accepted' && assignedName && <span style={{ background: 'rgba(16,185,129,0.18)', color: '#6ee7b7', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6 }}>Asignado a {assignedName}</span>}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>📅 {formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}{event.time ? ` · ⏰ ${event.time}` : event.allDay ? ' · Todo el día' : ''}</div>
           {event.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>{event.notes}</div>}
+          {event.reminderEnabled && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>Aviso: {event.reminderDaysBefore === 0 ? 'el mismo día' : `${event.reminderDaysBefore} día(s) antes`} · {event.reminderAudience === 'both' ? 'ambos progenitores' : 'solo tú'}</div>}
 
-          {child && canRequestAssignment && (
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>
-              {child.parents.map(pid => (
-                <button key={pid} onClick={() => requestAssignment(pid)} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', cursor:'pointer' }}>
-                  Asignar a {child.parentNames?.[pid] ?? 'Progenitor'}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {canRespondAssignment && (
-            <div style={{ display:'flex', gap:8, marginTop:8 }}>
-              <button onClick={() => respondAssignment(false)} style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:8, color:'#fca5a5', fontSize:11, fontWeight:700, padding:'6px 10px', cursor:'pointer' }}>Rechazar asignación</button>
-              <button onClick={() => respondAssignment(true)} style={{ background:'rgba(16,185,129,0.15)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:8, color:'#6ee7b7', fontSize:11, fontWeight:700, padding:'6px 10px', cursor:'pointer' }}>Aceptar asignación</button>
-            </div>
-          )}
+          {child && canRequestAssignment && <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>{child.parents.map(pid => <button key={pid} onClick={() => requestAssignment(pid)} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', cursor:'pointer' }}>Asignar a {child.parentNames?.[pid] ?? 'Progenitor'}</button>)}</div>}
+          {canRespondAssignment && <div style={{ display:'flex', gap:8, marginTop:8 }}><button onClick={() => respondAssignment(false)} style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:8, color:'#fca5a5', fontSize:11, fontWeight:700, padding:'6px 10px', cursor:'pointer' }}>Rechazar asignación</button><button onClick={() => respondAssignment(true)} style={{ background:'rgba(16,185,129,0.15)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:8, color:'#6ee7b7', fontSize:11, fontWeight:700, padding:'6px 10px', cursor:'pointer' }}>Aceptar asignación</button></div>}
         </div>
-        {event.createdBy === user?.uid && (
-          <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-            <button onClick={onEdit} style={{ background:'none', border:'none', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontWeight:700 }}>Editar</button>
-            <button onClick={() => deleteEvent(event.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 2px', flexShrink: 0 }}>✕</button>
-          </div>
-        )}
+        {event.createdBy === user?.uid && <div style={{ display:'flex', flexDirection:'column', gap:4 }}><button onClick={onEdit} style={{ background:'none', border:'none', color:'var(--text-secondary)', cursor:'pointer', fontSize:12, fontWeight:700 }}>Editar</button><button onClick={() => deleteEvent(event.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 2px', flexShrink: 0 }}>✕</button></div>}
       </div>
     </div>
   )
@@ -217,11 +186,13 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
   const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>(event?.recurrenceWeekdays ?? [])
   const [monthlyDay, setMonthlyDay] = useState<number>(event ? Number((event.date || '').slice(8, 10)) || 1 : 1)
   const [assignedParentId, setAssignedParentId] = useState(event?.assignedParentId ?? '')
+  const [reminderEnabled, setReminderEnabled] = useState(event?.reminderEnabled ?? false)
+  const [reminderDaysBefore, setReminderDaysBefore] = useState<number>(event?.reminderDaysBefore ?? 1)
+  const [reminderAudience, setReminderAudience] = useState<EventReminderAudience>(event?.reminderAudience ?? 'self')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const isValid = !!user && !!child && !!title.trim() && !!date && (category !== 'otro' || !!customCategory.trim()) && (recurrence === 'none' || !!recurrenceUntil) && (recurrence !== 'weekly' || recurrenceWeekdays.length > 0) && (recurrence !== 'monthly' || (monthlyDay >= 1 && monthlyDay <= 31))
-
   const toggleWeekday = (day: number) => setRecurrenceWeekdays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort((a,b) => a-b))
 
   const handleSubmit = async () => {
@@ -252,58 +223,32 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
         assignmentRequestedBy: wantsAssignment ? user.uid : undefined,
         assignmentRequestedByName: wantsAssignment ? (user.displayName || user.email || 'Progenitor') : undefined,
         assignmentRequestToParentId: wantsAssignment ? otherParentId : undefined,
+        reminderEnabled,
+        reminderDaysBefore: reminderEnabled ? reminderDaysBefore : undefined,
+        reminderAudience: reminderEnabled ? reminderAudience : undefined,
       }
       if (event) await updateEvent(event.id, payload)
       else {
-        const newId = await createEvent(payload as any)
+        await createEvent(payload as any)
         if (wantsAssignment && otherParentId) await notifyEventAssignmentPending({ toUserId: otherParentId, childId: child.id, childName: child.name, eventTitle: title.trim(), dateKey: finalDate, requesterName: user.displayName || user.email || 'Progenitor' })
       }
       onClose()
     } catch (e: any) {
       setError(e?.message || 'No se pudo guardar el evento')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   return (
     <div className="card" style={{ marginBottom: 14, borderColor: 'rgba(16,185,129,0.3)' }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12 }}>{event ? '✏️ Editar evento' : '🎓 Nuevo evento'}</div>
       <div style={{ marginBottom: 10 }}><div className="settings-label">Título</div><input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Vacaciones de verano" className="settings-input" /></div>
-      <div style={{ marginBottom: 10 }}>
-        <div className="settings-label">Categoría</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-          {(Object.entries(CAT_CONFIG) as [EventCategory, typeof CAT_CONFIG[EventCategory]][]).map(([k, v]) => (
-            <button key={k} onClick={() => setCategory(k)} style={{ padding: '8px 4px', borderRadius: 10, border: `1px solid ${category === k ? v.color : 'var(--border)'}`, background: category === k ? v.color + '22' : 'var(--bg-soft)', color: category === k ? v.color : 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}><span style={{ fontSize: 16 }}>{v.icon}</span>{v.label}</button>
-          ))}
-        </div>
-        {category === 'otro' && <input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Nombre de la categoría" className="settings-input" style={{ marginTop: 8 }} />}
-      </div>
+      <div style={{ marginBottom: 10 }}><div className="settings-label">Categoría</div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>{(Object.entries(CAT_CONFIG) as [EventCategory, typeof CAT_CONFIG[EventCategory]][]).map(([k, v]) => <button key={k} onClick={() => setCategory(k)} style={{ padding: '8px 4px', borderRadius: 10, border: `1px solid ${category === k ? v.color : 'var(--border)'}`, background: category === k ? v.color + '22' : 'var(--bg-soft)', color: category === k ? v.color : 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}><span style={{ fontSize: 16 }}>{v.icon}</span>{v.label}</button>)}</div>{category === 'otro' && <input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Nombre de la categoría" className="settings-input" style={{ marginTop: 8 }} />}</div>
       <div style={{ marginBottom: 10 }}><div className="date-pair"><div><div className="date-pair-label">{recurrence === 'none' ? 'Fecha' : 'Empieza el'}</div><input type="date" value={date} onChange={e => { const next = e.target.value; setDate(next); if (!endDate || endDate < next) setEndDate(next); if (!recurrenceUntil || recurrenceUntil < next) setRecurrenceUntil(next) }} className="settings-input" /></div><div><div className="date-pair-label">Hasta (opcional)</div><input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" /></div></div></div>
       <div style={{ marginBottom: 10 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}><input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) setTime('') }} />Evento de todo el día</label></div>
       {!allDay && <div style={{ marginBottom: 10 }}><div className="settings-label">Hora (opcional)</div><input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" /></div>}
-      {!event && (
-        <div style={{ marginBottom: 10 }}>
-          <div className="settings-label">Repetición</div>
-          <div style={{ display:'flex', gap:8, marginBottom:8 }}>{(['none','weekly','monthly'] as EventRecurrence[]).map(r => <button key={r} onClick={() => setRecurrence(r)} style={{ flex:1, padding:'8px 6px', borderRadius:10, border:`1px solid ${recurrence===r ? '#8b5cf6' : 'var(--border)'}`, background:recurrence===r ? 'rgba(139,92,246,0.18)' : 'var(--bg-soft)', color:recurrence===r ? '#a78bfa' : 'var(--text-secondary)', fontSize:11, fontWeight:700, cursor:'pointer' }}>{r === 'none' ? 'Una vez' : r === 'weekly' ? 'Semanal' : 'Una vez al mes'}</button>)}</div>
-          {recurrence === 'weekly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Días de la semana</div><div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>{WEEKDAYS.map(day => <button key={day.value} onClick={() => toggleWeekday(day.value)} style={{ width:34, height:34, borderRadius:17, border:`1px solid ${recurrenceWeekdays.includes(day.value) ? '#8b5cf6' : 'var(--border)'}`, background:recurrenceWeekdays.includes(day.value) ? 'rgba(139,92,246,0.18)' : 'var(--bg-soft)', color:recurrenceWeekdays.includes(day.value) ? '#a78bfa' : 'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>{day.label}</button>)}</div><div className="settings-label" style={{ marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}
-          {recurrence === 'monthly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Día del mes</div><input type="number" min="1" max="31" value={monthlyDay} onChange={e => setMonthlyDay(Number(e.target.value || 1))} className="settings-input" /><div className="settings-label" style={{ marginTop: 8, marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}
-        </div>
-      )}
-      {child && child.parents.length > 1 && (
-        <div style={{ marginBottom: 14 }}>
-          <div className="settings-label">Solicitar asignación a progenitor (opcional)</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:8 }}>
-            {child.parents.map(pid => {
-              const selected = assignedParentId === pid
-              return <button key={pid} onClick={() => setAssignedParentId(selected ? '' : pid)} style={{ padding:'10px 8px', borderRadius:12, border:`1px solid ${selected ? (child.parentColors?.[pid] ?? '#3b82f6') : 'var(--border)'}`, background:selected ? ((child.parentColors?.[pid] ?? '#3b82f6') + '22') : 'var(--bg-soft)', color:selected ? (child.parentColors?.[pid] ?? '#93c5fd') : 'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>{child.parentNames?.[pid] ?? 'Progenitor'}</button>
-            })}
-          </div>
-          <div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:6 }}>
-            Si el otro progenitor acepta: en eventos de día completo se cambiará la custodia de esos días; en eventos con hora solo quedará reflejada la asignación del evento.
-          </div>
-        </div>
-      )}
+      {!event && <div style={{ marginBottom: 10 }}><div className="settings-label">Repetición</div><div style={{ display:'flex', gap:8, marginBottom:8 }}>{(['none','weekly','monthly'] as EventRecurrence[]).map(r => <button key={r} onClick={() => setRecurrence(r)} style={{ flex:1, padding:'8px 6px', borderRadius:10, border:`1px solid ${recurrence===r ? '#8b5cf6' : 'var(--border)'}`, background:recurrence===r ? 'rgba(139,92,246,0.18)' : 'var(--bg-soft)', color:recurrence===r ? '#a78bfa' : 'var(--text-secondary)', fontSize:11, fontWeight:700, cursor:'pointer' }}>{r === 'none' ? 'Una vez' : r === 'weekly' ? 'Semanal' : 'Una vez al mes'}</button>)}</div>{recurrence === 'weekly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Días de la semana</div><div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>{WEEKDAYS.map(day => <button key={day.value} onClick={() => toggleWeekday(day.value)} style={{ width:34, height:34, borderRadius:17, border:`1px solid ${recurrenceWeekdays.includes(day.value) ? '#8b5cf6' : 'var(--border)'}`, background:recurrenceWeekdays.includes(day.value) ? 'rgba(139,92,246,0.18)' : 'var(--bg-soft)', color:recurrenceWeekdays.includes(day.value) ? '#a78bfa' : 'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>{day.label}</button>)}</div><div className="settings-label" style={{ marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}{recurrence === 'monthly' && <><div className="settings-label" style={{ marginBottom: 6 }}>Día del mes</div><input type="number" min="1" max="31" value={monthlyDay} onChange={e => setMonthlyDay(Number(e.target.value || 1))} className="settings-input" /><div className="settings-label" style={{ marginTop: 8, marginBottom: 6 }}>Repetir hasta</div><input type="date" value={recurrenceUntil} min={date} onChange={e => setRecurrenceUntil(e.target.value)} className="settings-input" /></>}</div>}
+      {child && child.parents.length > 1 && <div style={{ marginBottom: 14 }}><div className="settings-label">Solicitar asignación a progenitor (opcional)</div><div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:8 }}>{child.parents.map(pid => { const selected = assignedParentId === pid; return <button key={pid} onClick={() => setAssignedParentId(selected ? '' : pid)} style={{ padding:'10px 8px', borderRadius:12, border:`1px solid ${selected ? (child.parentColors?.[pid] ?? '#3b82f6') : 'var(--border)'}`, background:selected ? ((child.parentColors?.[pid] ?? '#3b82f6') + '22') : 'var(--bg-soft)', color:selected ? (child.parentColors?.[pid] ?? '#93c5fd') : 'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>{child.parentNames?.[pid] ?? 'Progenitor'}</button> })}</div></div>}
+      <div style={{ marginBottom: 14, padding:'12px', borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-soft)' }}><label style={{ display:'flex', alignItems:'center', gap:8, color:'var(--text-secondary)', fontSize:13, fontWeight:700, marginBottom:10 }}><input type="checkbox" checked={reminderEnabled} onChange={e => setReminderEnabled(e.target.checked)} />Recordatorio antes del evento</label>{reminderEnabled && <><div style={{ marginBottom:10 }}><div className="settings-label">Cuándo avisar</div><select value={String(reminderDaysBefore)} onChange={e => setReminderDaysBefore(Number(e.target.value))} className="settings-select"><option value="0">El mismo día</option><option value="1">1 día antes</option><option value="2">2 días antes</option><option value="3">3 días antes</option><option value="7">7 días antes</option></select></div><div><div className="settings-label">Avisar a</div><div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8 }}><button onClick={() => setReminderAudience('self')} style={{ padding:'10px 8px', borderRadius:12, border:`1px solid ${reminderAudience === 'self' ? '#3b82f6' : 'var(--border)'}`, background: reminderAudience === 'self' ? 'rgba(59,130,246,0.14)' : 'var(--bg-card)', color: reminderAudience === 'self' ? '#93c5fd' : 'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>Solo yo</button><button onClick={() => setReminderAudience('both')} style={{ padding:'10px 8px', borderRadius:12, border:`1px solid ${reminderAudience === 'both' ? '#3b82f6' : 'var(--border)'}`, background: reminderAudience === 'both' ? 'rgba(59,130,246,0.14)' : 'var(--bg-card)', color: reminderAudience === 'both' ? '#93c5fd' : 'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>Ambos progenitores</button></div></div></>}<div style={{ fontSize:11, color:'var(--text-muted)', marginTop:8 }}>Desactivado por defecto.</div></div>
       <div style={{ marginBottom: 14 }}><div className="settings-label">Observaciones (opcional)</div><textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={2} className="settings-textarea" /></div>
       {error && <div style={{ marginBottom:10, padding:'8px 10px', borderRadius:10, background:'rgba(239,68,68,0.12)', color:'#fca5a5', fontSize:12 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8 }}><button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={onClose}>Cancelar</button><button style={{ flex:1, padding:11, borderRadius:12, border:'none', background: isValid && !loading ? '#10b981' : 'rgba(255,255,255,0.08)', color: isValid && !loading ? '#fff' : '#6b7280', fontSize:13, fontWeight:700, cursor:isValid && !loading ? 'pointer' : 'not-allowed' }} onClick={handleSubmit} disabled={!isValid || loading}>{loading ? 'Guardando...' : (event ? 'Guardar cambios' : 'Guardar evento')}</button></div>
