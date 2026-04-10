@@ -41,6 +41,7 @@ export async function restoreEventOccurrence(id: string, date: string): Promise<
 export async function deleteEvent(id: string): Promise<void> { await deleteDoc(doc(db, 'schoolEvents', id)) }
 
 export function subscribeToNotifications(uid: string, cb: (notifications: AppNotification[]) => void): Unsubscribe { const q = query(collection(db, 'notifications'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(20)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification)))) }
+export async function createNotification(data: Omit<AppNotification, 'id' | 'createdAt' | 'read'>): Promise<string> { const ref = await addDoc(collection(db, 'notifications'), compactUndefined({ ...data, read: false, createdAt: serverTimestamp() })); return ref.id }
 export async function markNotificationRead(id: string): Promise<void> { await updateDoc(doc(db, 'notifications', id), { read: true }) }
 
 export function subscribeToPackingItems(childId: string, cb: (items: PackingItem[]) => void): Unsubscribe { const q = query(collection(db, 'packingItems'), where('childId', '==', childId)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as PackingItem)))) }

@@ -120,7 +120,7 @@ export interface AppNotification {
   userId: string
   childId?: string
   childName?: string
-  type: 'event_reminder' | 'pending_request' | 'special_period_start'
+  type: 'event_reminder' | 'pending_request' | 'special_period_start' | 'event_assignment_pending' | 'event_assignment_response'
   title: string
   body: string
   dateKey: string

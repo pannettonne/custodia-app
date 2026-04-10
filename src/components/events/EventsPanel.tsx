@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
-import { createEvent, deleteEvent, updateEvent, setOverride } from '@/lib/db'
+import { createEvent, createNotification, deleteEvent, updateEvent, setOverride } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 import type { SchoolEvent, EventCategory, EventRecurrence, EventAssignmentStatus } from '@/types'
 
@@ -42,6 +42,30 @@ function listDates(startDate: string, endDate?: string) {
     cur.setDate(cur.getDate() + 1)
   }
   return result
+}
+
+async function notifyEventAssignmentPending(params: { toUserId: string; childId: string; childName?: string; eventTitle: string; dateKey: string; requesterName: string }) {
+  await createNotification({
+    userId: params.toUserId,
+    childId: params.childId,
+    childName: params.childName,
+    type: 'event_assignment_pending',
+    title: 'Asignación de evento pendiente',
+    body: `${params.requesterName} te ha pedido asignarte el evento “${params.eventTitle}”.`,
+    dateKey: params.dateKey,
+  })
+}
+
+async function notifyEventAssignmentResponse(params: { toUserId: string; childId: string; childName?: string; eventTitle: string; dateKey: string; accepted: boolean; responderName: string }) {
+  await createNotification({
+    userId: params.toUserId,
+    childId: params.childId,
+    childName: params.childName,
+    type: 'event_assignment_response',
+    title: params.accepted ? 'Asignación de evento aceptada' : 'Asignación de evento rechazada',
+    body: `${params.responderName} ha ${params.accepted ? 'aceptado' : 'rechazado'} la asignación del evento “${params.eventTitle}”.`,
+    dateKey: params.dateKey,
+  })
 }
 
 export function EventsPanel() {
@@ -112,26 +136,23 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
       assignmentRequestedByName: user.displayName || user.email || 'Progenitor',
       assignmentRequestToParentId: otherParentId,
     })
+    await notifyEventAssignmentPending({ toUserId: otherParentId, childId: event.childId, childName: child.name, eventTitle: event.title, dateKey: event.date, requesterName: user.displayName || user.email || 'Progenitor' })
   }
 
   const respondAssignment = async (accept: boolean) => {
     if (!user || !child) return
     if (!accept) {
       await updateEvent(event.id, { assignmentStatus: 'rejected' })
+      if (event.assignmentRequestedBy) await notifyEventAssignmentResponse({ toUserId: event.assignmentRequestedBy, childId: event.childId, childName: child.name, eventTitle: event.title, dateKey: event.date, accepted: false, responderName: user.displayName || user.email || 'Progenitor' })
       return
     }
     await updateEvent(event.id, { assignmentStatus: 'accepted' })
     if (event.allDay && event.assignedParentId) {
       for (const date of listDates(event.date, event.endDate)) {
-        await setOverride({
-          childId: event.childId,
-          date,
-          parentId: event.assignedParentId,
-          reason: `Asignación por evento: ${event.title}`,
-          createdBy: user.uid,
-        })
+        await setOverride({ childId: event.childId, date, parentId: event.assignedParentId, reason: `Asignación por evento: ${event.title}`, createdBy: user.uid })
       }
     }
+    if (event.assignmentRequestedBy) await notifyEventAssignmentResponse({ toUserId: event.assignmentRequestedBy, childId: event.childId, childName: child.name, eventTitle: event.title, dateKey: event.date, accepted: true, responderName: user.displayName || user.email || 'Progenitor' })
   }
 
   return (
@@ -233,7 +254,10 @@ function EventForm({ event, onClose }: { event: SchoolEvent | null; onClose: () 
         assignmentRequestToParentId: wantsAssignment ? otherParentId : undefined,
       }
       if (event) await updateEvent(event.id, payload)
-      else await createEvent(payload as any)
+      else {
+        const newId = await createEvent(payload as any)
+        if (wantsAssignment && otherParentId) await notifyEventAssignmentPending({ toUserId: otherParentId, childId: child.id, childName: child.name, eventTitle: title.trim(), dateKey: finalDate, requesterName: user.displayName || user.email || 'Progenitor' })
+      }
       onClose()
     } catch (e: any) {
       setError(e?.message || 'No se pudo guardar el evento')
