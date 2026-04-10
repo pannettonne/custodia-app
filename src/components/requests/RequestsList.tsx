@@ -37,6 +37,18 @@ export function RequestsList() {
     return { incomingPending, outgoingPending, incomingEventAssignments, outgoingEventAssignments, resolved, cancelled }
   }, [requests, events, user?.uid])
 
+  const notifyRequester = async (req: ChangeRequest, accepted: boolean) => {
+    await createNotification({
+      userId: req.fromParentId,
+      childId: req.childId,
+      childName: child?.name,
+      type: 'pending_request',
+      title: accepted ? 'Solicitud de cambio aceptada' : 'Solicitud de cambio rechazada',
+      body: `${user?.displayName || user?.email || 'El otro progenitor'} ha ${accepted ? 'aceptado' : 'rechazado'} tu solicitud de cambio.`,
+      dateKey: `change-request-response:${req.id}:${accepted ? 'accepted' : 'rejected'}`,
+    })
+  }
+
   const handleAccept = async (req: ChangeRequest) => {
     if (!child || !user) return
     await respondToRequest(req.id, 'accepted')
@@ -50,6 +62,25 @@ export function RequestsList() {
       const targetParentId = currentOwner === req.fromParentId ? otherParent : req.fromParentId
       await setOverride({ childId: req.childId, date, parentId: targetParentId, reason: req.reason, createdBy: user.uid })
     }
+    await notifyRequester(req, true)
+  }
+
+  const handleReject = async (req: ChangeRequest) => {
+    await respondToRequest(req.id, 'rejected')
+    await notifyRequester(req, false)
+  }
+
+  const handleCancelOwn = async (req: ChangeRequest) => {
+    await cancelRequest(req.id)
+    await createNotification({
+      userId: req.toParentId,
+      childId: req.childId,
+      childName: child?.name,
+      type: 'pending_request',
+      title: 'Solicitud de cambio cancelada',
+      body: `${user?.displayName || user?.email || 'El otro progenitor'} ha cancelado una solicitud de cambio pendiente.`,
+      dateKey: `change-request-cancel:${req.id}`,
+    })
   }
 
   const respondEventAssignment = async (event: SchoolEvent, accept: boolean) => {
@@ -112,14 +143,14 @@ export function RequestsList() {
 
         {isIncoming && req.status === 'pending' && (
           <div style={{ display:'flex', gap:8, marginTop: 12 }}>
-            <button className="req-action-btn btn-reject" onClick={() => respondToRequest(req.id, 'rejected')}>✕ Rechazar</button>
+            <button className="req-action-btn btn-reject" onClick={() => handleReject(req)}>✕ Rechazar</button>
             <button className="req-action-btn btn-accept" onClick={() => handleAccept(req)}>✓ Aceptar</button>
           </div>
         )}
 
         {!isIncoming && req.status === 'pending' && (
           <div style={{ display:'flex', gap:8, marginTop: 12 }}>
-            <button className="req-action-btn btn-reject" onClick={() => cancelRequest(req.id)}>Cancelar solicitud</button>
+            <button className="req-action-btn btn-reject" onClick={() => handleCancelOwn(req)}>Cancelar solicitud</button>
           </div>
         )}
 
