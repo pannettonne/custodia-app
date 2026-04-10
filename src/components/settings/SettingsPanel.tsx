@@ -6,6 +6,7 @@ import { useTheme, type ThemeMode } from '@/lib/theme-context'
 import { createChild, createInvitation, acceptInvitation, setPattern, forgetChild, resendInvitation, cancelInvitation } from '@/lib/db'
 import { PARENT_COLORS, PATTERN_LABELS } from '@/lib/utils'
 import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManager'
+import { PushSection } from '@/components/settings/PushSection'
 import type { Child, Invitation } from '@/types'
 
 export function SettingsPanel() {
@@ -18,6 +19,7 @@ export function SettingsPanel() {
   return (
     <div>
       <ThemeSection />
+      <PushSection />
       {receivedInvitations.length > 0 && <PendingInvitations invitations={receivedInvitations} />}
       <ChildSection child={child} />
       {child && <PatternSection child={child} />}
