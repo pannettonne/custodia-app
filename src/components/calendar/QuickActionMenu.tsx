@@ -19,7 +19,7 @@ export function QuickActionMenu({ date, x, y, onClose }: QuickActionMenuProps) {
   const [showEventForm, setShowEventForm] = useState(false)
   const [showNoteForm, setShowNoteForm] = useState(false)
   const [eventTitle, setEventTitle] = useState('')
-  const [eventCategory, setEventCategory] = useState<EventCategory>('escolar')
+  const [eventCategory, setEventCategory] = useState<EventCategory>('escolar' as EventCategory)
   const [eventAllDay, setEventAllDay] = useState(true)
   const [eventTime, setEventTime] = useState('')
   const [noteText, setNoteText] = useState('')
