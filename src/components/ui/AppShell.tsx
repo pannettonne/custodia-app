@@ -118,7 +118,7 @@ export function AppShell() {
     <div className="app-shell" onClick={() => { if (moreOpen) setMoreOpen(false); if (userMenuOpen) setUserMenuOpen(false); if (notifOpen) setNotifOpen(false); if (queryOpen) setQueryOpen(false) }}>
       <header className="app-header" onClick={e => e.stopPropagation()}>
         <div className="app-header-left">
-          <div className="app-logo">👨‍👩‍👦</div>
+          <img src="/apple-touch-icon.png?v=4" alt="Custodia" className="app-logo" style={{ width:40, height:40, borderRadius:12, boxShadow:'var(--card-shadow)', objectFit:'cover' }} />
           <div>
             <div className="app-title">CustodiaApp</div>
             <div style={{ display:'flex', alignItems:'center', gap:8, position:'relative' }}>
