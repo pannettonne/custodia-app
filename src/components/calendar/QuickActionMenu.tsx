@@ -76,6 +76,8 @@ export function QuickActionMenu({ date, x, y, onClose }: QuickActionMenuProps) {
         date,
         createdBy: user.uid,
         createdByName: user.displayName || 'Usuario',
+        read: false,
+        mentionOther: [],
       })
       refreshNotes()
       onClose()
