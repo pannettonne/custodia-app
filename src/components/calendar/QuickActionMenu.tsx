@@ -4,7 +4,7 @@ import { toISODate } from '@/lib/utils'
 import { createEvent, createNote } from '@/lib/db'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
-import type { EventCategory } from '@/types'
+import type { EventCategory, NoteTag } from '@/types'
 
 interface QuickActionMenuProps {
   date: string
