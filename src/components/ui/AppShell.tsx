@@ -15,6 +15,17 @@ import { markNotificationRead } from '@/lib/db'
 import type { AppNotification } from '@/types'
 
 type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
+type SearchResultType = 'child' | 'parent' | 'event' | 'note' | 'request' | 'special_period'
+type SearchResult = {
+  id: string
+  type: SearchResultType
+  title: string
+  subtitle: string
+  childId?: string
+  date?: string
+  endDate?: string
+  targetTab: Tab
+}
 
 function inferTargetTab(item: AppNotification): Tab {
   if (item.targetTab) return item.targetTab
@@ -30,15 +41,41 @@ function notificationGroupLabel(type: AppNotification['type']) {
   return 'Otros'
 }
 
+function normalizeText(value: string) {
+  return (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
+
+function matchesQuery(query: string, ...fields: Array<string | undefined | null>) {
+  const q = normalizeText(query)
+  if (!q) return true
+  return fields.some(field => normalizeText(field || '').includes(q))
+}
+
+function searchGroupLabel(type: SearchResultType) {
+  if (type === 'event') return 'Eventos'
+  if (type === 'note') return 'Notas'
+  if (type === 'request') return 'Cambios'
+  if (type === 'special_period') return 'Períodos especiales'
+  if (type === 'child') return 'Menores'
+  return 'Progenitores'
+}
+
 export function AppShell() {
   const { user, signOut } = useAuth()
-  const { children, selectedChildId, setSelectedChildId, requests, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate } = useAppStore()
+  const { children, selectedChildId, setSelectedChildId, requests, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate, events, specialPeriods } = useAppStore()
   const [tab, setTab] = useState<Tab>('calendar')
   const [moreOpen, setMoreOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [queryOpen, setQueryOpen] = useState(false)
   const [notifFilter, setNotifFilter] = useState<'unread' | 'all'>('unread')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchFilter, setSearchFilter] = useState<'all' | SearchResultType>('all')
   useDataSubscriptions()
 
   useEffect(() => {
@@ -53,6 +90,18 @@ export function AppShell() {
       setCurrentMonth(new Date(date + 'T12:00:00'))
     }
     if (targetTab) setTab(targetTab)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handler = (ev: KeyboardEvent) => {
+      if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 'k') {
+        ev.preventDefault()
+        setSearchOpen(v => !v)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [])
 
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
@@ -76,6 +125,63 @@ export function AppShell() {
     return Object.entries(groups)
   }, [visibleNotifications])
 
+  const allSearchResults = useMemo<SearchResult[]>(() => {
+    const results: SearchResult[] = []
+
+    for (const c of children) {
+      results.push({ id: `child-${c.id}`, type: 'child', title: c.name, subtitle: `${c.parents.length} progenitor(es)`, childId: c.id, targetTab: 'calendar' })
+      for (const pid of c.parents) {
+        results.push({ id: `parent-${c.id}-${pid}`, type: 'parent', title: c.parentNames?.[pid] ?? 'Progenitor', subtitle: `${c.name}${pid === user?.uid ? ' · tú' : ''}`, childId: c.id, targetTab: 'settings' })
+      }
+    }
+
+    for (const event of events) {
+      const childName = children.find(c => c.id === event.childId)?.name ?? 'Menor'
+      results.push({ id: `event-${event.id}`, type: 'event', title: event.title, subtitle: `${childName} · ${event.date}${event.endDate ? ` → ${event.endDate}` : ''}${event.notes ? ` · ${event.notes}` : ''}`, childId: event.childId, date: event.date, endDate: event.endDate, targetTab: 'events' })
+    }
+
+    for (const note of notes) {
+      const childName = children.find(c => c.id === note.childId)?.name ?? 'Menor'
+      const dateLabel = note.type === 'single' ? note.date : `${note.startDate} → ${note.endDate}`
+      results.push({ id: `note-${note.id}`, type: 'note', title: note.text, subtitle: `${childName} · ${dateLabel || ''} · ${note.createdByName || 'Nota'}`, childId: note.childId, date: note.date || note.startDate || undefined, endDate: note.endDate || undefined, targetTab: 'notes' })
+    }
+
+    for (const request of requests) {
+      const childName = children.find(c => c.id === request.childId)?.name ?? 'Menor'
+      const dateLabel = request.type === 'single' ? request.date : `${request.startDate} → ${request.endDate}`
+      results.push({ id: `request-${request.id}`, type: 'request', title: request.reason || 'Solicitud de cambio', subtitle: `${childName} · ${dateLabel || ''} · ${request.status}`, childId: request.childId, date: request.date || request.startDate || undefined, endDate: request.endDate || undefined, targetTab: 'requests' })
+    }
+
+    for (const period of specialPeriods) {
+      const childName = children.find(c => c.id === period.childId)?.name ?? 'Menor'
+      const label = period.label === 'otro' ? (period.customLabel || 'Período especial') : period.label
+      const ownerName = children.find(c => c.id === period.childId)?.parentNames?.[period.parentId] ?? 'Progenitor'
+      results.push({ id: `special-${period.id}`, type: 'special_period', title: label, subtitle: `${childName} · ${period.startDate} → ${period.endDate} · ${ownerName}`, childId: period.childId, date: period.startDate, endDate: period.endDate, targetTab: 'settings' })
+    }
+
+    return results
+  }, [children, events, notes, requests, specialPeriods, user?.uid])
+
+  const filteredSearchResults = useMemo(() => {
+    const trimmed = searchQuery.trim()
+    const base = allSearchResults.filter(result => {
+      const typeOk = searchFilter === 'all' || result.type === searchFilter
+      if (!typeOk) return false
+      return matchesQuery(trimmed, result.title, result.subtitle)
+    })
+    return base.slice(0, 50)
+  }, [allSearchResults, searchQuery, searchFilter])
+
+  const groupedSearchResults = useMemo(() => {
+    const groups: Record<string, SearchResult[]> = {}
+    for (const item of filteredSearchResults) {
+      const key = searchGroupLabel(item.type)
+      groups[key] ||= []
+      groups[key].push(item)
+    }
+    return Object.entries(groups)
+  }, [filteredSearchResults])
+
   const mainTabs = [
     { id: 'calendar' as Tab, label: 'Calendario', emoji: '📅' },
     { id: 'requests' as Tab, label: 'Cambios', emoji: '🔄', badge: pendingReqs },
@@ -93,6 +199,18 @@ export function AppShell() {
     }
     setTab(inferTargetTab(item))
     setNotifOpen(false)
+  }
+
+  const openSearchResult = (item: SearchResult) => {
+    if (item.childId) setSelectedChildId(item.childId)
+    if (item.date) {
+      setSelectedCalendarDate(item.date)
+      setCurrentMonth(new Date(item.date + 'T12:00:00'))
+    }
+    setTab(item.targetTab)
+    setSearchOpen(false)
+    setSearchQuery('')
+    setSearchFilter('all')
   }
 
   const markAllVisibleAsRead = async () => {
@@ -135,6 +253,10 @@ export function AppShell() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+          <button onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(false); setSearchOpen(true) }} title="Buscar" style={{ height:36, minWidth:36, borderRadius:12, border:'1px solid var(--border-hover)', background:'var(--bg-input)', color:'var(--text-secondary)', cursor:'pointer', padding:'0 10px', display:'flex', alignItems:'center', justifyContent:'center', gap:6, boxShadow:'var(--card-shadow)' }}>
+            <span>🔎</span>
+            <span style={{ fontSize:11, fontWeight:700 }}>Buscar</span>
+          </button>
           {children.length > 1 && (
             <select value={selectedChildId ?? ''} onChange={e => setSelectedChildId(e.target.value)} style={{ background: 'var(--bg-input)', border: '1px solid var(--border-hover)', borderRadius: 12, padding: '7px 12px', color: 'var(--text-strong)', fontSize: 12, outline: 'none', boxShadow: 'var(--card-shadow)' }}>
               {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -201,6 +323,47 @@ export function AppShell() {
         {tab === 'stats'     && <StatsPanel />}
         {tab === 'settings'  && <><div className="page-title">Configuración</div><SettingsPanel /></>}
       </main>
+
+      {searchOpen && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:90, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'70px 14px 14px' }} onClick={() => setSearchOpen(false)}>
+          <div className="card" style={{ width:'100%', maxWidth:680, maxHeight:'80vh', overflow:'auto', padding:14 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+              <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar en eventos, notas, cambios, menores, progenitores..." className="settings-input" style={{ marginBottom:0 }} />
+              <button className="btn-primary btn-outline" style={{ padding:'10px 12px' }} onClick={() => setSearchOpen(false)}>Cerrar</button>
+            </div>
+            <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:4, marginBottom:10, flexWrap:'wrap' }}>
+              {[
+                ['all','Todo'],
+                ['event','Eventos'],
+                ['note','Notas'],
+                ['request','Cambios'],
+                ['special_period','Períodos'],
+                ['child','Menores'],
+                ['parent','Progenitores'],
+              ].map(([value, label]) => (
+                <button key={value} onClick={() => setSearchFilter(value as any)} style={{ padding:'6px 10px', borderRadius:999, border:`1px solid ${searchFilter === value ? 'var(--text-strong)' : 'var(--border)'}`, background: searchFilter === value ? 'var(--bg-soft)' : 'transparent', color:'var(--text-secondary)', fontSize:11, fontWeight:700, cursor:'pointer' }}>{label}</button>
+              ))}
+            </div>
+            {groupedSearchResults.length === 0 ? (
+              <div className="popup-empty">No hay resultados para esa búsqueda.</div>
+            ) : (
+              groupedSearchResults.map(([group, items]) => (
+                <div key={group} style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:0.4, marginBottom:6 }}>{group}</div>
+                  <div style={{ display:'grid', gap:6 }}>
+                    {items.map(item => (
+                      <button key={item.id} className="notification-item" onClick={() => openSearchResult(item)} style={{ textAlign:'left' }}>
+                        <div className="notification-item-title">{item.title}</div>
+                        <div className="notification-item-body">{item.subtitle}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {moreOpen && (
         <div className="floating-more-menu" onClick={e => e.stopPropagation()}>
