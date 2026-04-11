@@ -23,7 +23,7 @@ export function QuickActionMenu({ date, x, y, onClose }: QuickActionMenuProps) {
   const [eventAllDay, setEventAllDay] = useState(true)
   const [eventTime, setEventTime] = useState('')
   const [noteText, setNoteText] = useState('')
-  const [noteTag, setNoteTag] = useState('importante')
+  const [noteTag, setNoteTag] = useState<NoteTag>('importante' as NoteTag)
   const [loading, setLoading] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
