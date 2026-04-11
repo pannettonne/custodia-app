@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isToday, addMonths, subMonths, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAppStore } from '@/store/app'
@@ -50,9 +50,6 @@ export function CustodyCalendar() {
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string | null>(selectedCalendarDate)
   const [eventActionLoading, setEventActionLoading] = useState<string | null>(null)
-  const [actionMenuDate, setActionMenuDate] = useState<string | null>(null)
-  const longPressTimer = useRef<number | null>(null)
-  const ignoreNextClick = useRef(false)
 
   useEffect(() => {
     if (selectedCalendarDate) {
@@ -114,31 +111,6 @@ export function CustodyCalendar() {
     setSelectedCalendarDate(null)
   }
 
-  const clearLongPress = () => {
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current)
-      longPressTimer.current = null
-    }
-  }
-
-  const openActionMenu = (dateStr: string) => {
-    ignoreNextClick.current = true
-    setActionMenuDate(dateStr)
-    setSelectedDate(dateStr)
-    setSelectedCalendarDate(dateStr)
-  }
-
-  const startLongPress = (dateStr: string) => {
-    clearLongPress()
-    longPressTimer.current = window.setTimeout(() => openActionMenu(dateStr), 450)
-  }
-
-  const openQuickAction = (type: 'note' | 'event') => {
-    if (!actionMenuDate || typeof window === 'undefined') return
-    window.dispatchEvent(new CustomEvent('custodia:quick-action', { detail: { type, date: actionMenuDate } }))
-    setActionMenuDate(null)
-  }
-
   if (!child) return <div className="empty-state"><div className="empty-state-icon">👶</div><div className="empty-state-title">No hay ningún menor configurado</div><div className="empty-state-sub">Ve a Configuración para añadir un menor</div></div>
 
   return (
@@ -159,13 +131,7 @@ export function CustodyCalendar() {
           const hasNotes = inMonth && notes.some(n => noteMatchesDate(n, dateStr))
           const hasEvents = inMonth && events.some(e => getEventOccurrenceState(e, dateStr).matches)
           const isSelected = selectedDate === dateStr
-          return <div key={date.toISOString()} className={`cal-cell${!inMonth?' other-month':''}${todayDay?' today':''}`} style={info ? { background: info.color+'28', borderColor: isSelected ? 'var(--text-strong)' : hasPendingRequest ? '#60a5fa' : (sp ? info.color+'99' : info.color+'55'), borderWidth: isSelected || sp || hasPendingRequest ? 2 : 1, borderStyle: hasPendingRequest ? 'dashed' : 'solid' } : { background:'var(--bg-soft)', borderColor:isSelected ? 'var(--text-strong)' : hasPendingRequest ? '#60a5fa' : 'var(--border)', borderWidth:isSelected || hasPendingRequest ? 2 : 1, borderStyle: hasPendingRequest ? 'dashed' : 'solid' }}
-            onClick={() => { if(!inMonth) return; if (ignoreNextClick.current) { ignoreNextClick.current = false; return } setSelectedDate(dateStr); setSelectedCalendarDate(dateStr) }}
-            onContextMenu={(e) => { if (!inMonth) return; e.preventDefault(); openActionMenu(dateStr) }}
-            onTouchStart={() => { if (inMonth) startLongPress(dateStr) }}
-            onTouchEnd={clearLongPress}
-            onTouchMove={clearLongPress}
-          ><div className="cal-day-num">{format(date,'d')}</div>{info && <div className="cal-day-name" style={{color:info.color}}>{info.name.split(' ')[0].slice(0,4)}</div>}{isOverride && <div className="cal-modified-dot" />}{hasPendingRequest && <div style={{position:'absolute',top:2,left:2,fontSize:8,color:'#60a5fa',fontWeight:800}}>P</div>}{sp && isSpecialStart && <div style={{position:'absolute',top:1,left: hasPendingRequest ? 10 : 1,width:5,height:5,borderRadius:'50%',background:'var(--text-strong)',opacity:0.7}} />}{todayDay && <div className="cal-today-dot" />}{(hasNotes || hasEvents) && <div style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', gap:4, alignItems:'center' }}>{hasNotes && <div style={{ width:6, height:6, borderRadius:'50%', background:'#f59e0b' }} />}{hasEvents && <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981' }} />}</div>}</div>
+          return <div key={date.toISOString()} className={`cal-cell${!inMonth?' other-month':''}${todayDay?' today':''}`} style={info ? { background: info.color+'28', borderColor: isSelected ? 'var(--text-strong)' : hasPendingRequest ? '#60a5fa' : (sp ? info.color+'99' : info.color+'55'), borderWidth: isSelected || sp || hasPendingRequest ? 2 : 1, borderStyle: hasPendingRequest ? 'dashed' : 'solid' } : { background:'var(--bg-soft)', borderColor:isSelected ? 'var(--text-strong)' : hasPendingRequest ? '#60a5fa' : 'var(--border)', borderWidth:isSelected || hasPendingRequest ? 2 : 1, borderStyle: hasPendingRequest ? 'dashed' : 'solid' }} onClick={() => { if(inMonth){ setSelectedDate(dateStr); setSelectedCalendarDate(dateStr) } }}><div className="cal-day-num">{format(date,'d')}</div>{info && <div className="cal-day-name" style={{color:info.color}}>{info.name.split(' ')[0].slice(0,4)}</div>}{isOverride && <div className="cal-modified-dot" />}{hasPendingRequest && <div style={{position:'absolute',top:2,left:2,fontSize:8,color:'#60a5fa',fontWeight:800}}>P</div>}{sp && isSpecialStart && <div style={{position:'absolute',top:1,left: hasPendingRequest ? 10 : 1,width:5,height:5,borderRadius:'50%',background:'var(--text-strong)',opacity:0.7}} />}{todayDay && <div className="cal-today-dot" />}{(hasNotes || hasEvents) && <div style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', gap:4, alignItems:'center' }}>{hasNotes && <div style={{ width:6, height:6, borderRadius:'50%', background:'#f59e0b' }} />}{hasEvents && <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981' }} />}</div>}</div>
         })}
       </div>
       <div style={{marginTop:14,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div style={{display:'flex',alignItems:'center',gap:12,fontSize:11,color:'var(--text-muted)', flexWrap:'wrap'}}><div style={{display:'flex',alignItems:'center',gap:4}}><div style={{width:8,height:8,borderRadius:'50%',background:'#fbbf24'}} />cambio puntual</div><div style={{display:'flex',alignItems:'center',gap:4}}><div style={{width:8,height:8,borderRadius:'50%',background:'#60a5fa'}} />solicitud pendiente</div><div style={{display:'flex',alignItems:'center',gap:4}}><div style={{width:8,height:8,borderRadius:'50%',background:'var(--text-strong)',opacity:0.6}} />periodo especial</div><div style={{display:'flex',alignItems:'center',gap:4}}><div style={{width:8,height:8,borderRadius:'50%',background:'#f59e0b'}} />notas</div><div style={{display:'flex',alignItems:'center',gap:4}}><div style={{width:8,height:8,borderRadius:'50%',background:'#10b981'}} />eventos</div></div><div style={{display:'flex',gap:8}}><button onClick={handlePrint} style={{fontSize:12,color:'#10b981',background:'none',border:'none',cursor:'pointer',fontWeight:700}}>🖨️ Imprimir / PDF</button><button onClick={() => { setSelectedDate(null); setSelectedCalendarDate(null); setModalOpen(true) }} style={{fontSize:12,color:'#3B82F6',background:'none',border:'none',cursor:'pointer',fontWeight:600}}>+ Solicitar cambio</button></div></div>
@@ -174,11 +140,10 @@ export function CustodyCalendar() {
         {selectedSpecialPeriod && <div style={{ marginBottom:10, padding:'10px 12px', borderRadius:12, background:'var(--bg-soft)', border:'1px solid var(--border)' }}><div style={{ fontSize:12, fontWeight:700, color:'var(--text-strong)', marginBottom:4 }}>{selectedSpecialPeriod.label === 'otro' ? (selectedSpecialPeriod.customLabel ?? 'Período especial') : PERIOD_LABELS[selectedSpecialPeriod.label]}</div><div style={{ fontSize:12, color:'var(--text-secondary)' }}>Periodo especial activo este día</div></div>}
         <div style={{ display:'grid', gap:10 }}>
           <div><div style={{ fontSize:12, fontWeight:700, color:'#f59e0b', marginBottom:6 }}>Notas del día</div>{selectedNotes.length === 0 ? <div style={{ fontSize:12, color:'var(--text-muted)' }}>No hay notas para este día.</div> : <div style={{ display:'flex', flexDirection:'column', gap:8 }}>{selectedNotes.map(note => <div key={note.id} style={{ padding:'10px 12px', borderRadius:12, background:'rgba(245,158,11,0.10)', border:'1px solid rgba(245,158,11,0.2)' }}><div style={{ fontSize:11, color:'#f59e0b', fontWeight:700, marginBottom:4 }}>{note.tag.toUpperCase()}</div><div style={{ fontSize:12, color:'var(--text-strong)' }}>{note.text}</div><div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:6 }}>Por {note.createdByName}{note.mentionOther ? ' · notifica al otro progenitor' : ''}</div></div>)}</div>}</div>
-          <div><div style={{ font Size:12 }}></div><div style={{ fontSize:12, fontWeight:700, color:'#10b981', marginBottom:6 }}>Eventos del día</div>{selectedEvents.length === 0 ? <div style={{ fontSize:12, color:'var(--text-muted)' }}>No hay eventos para este día.</div> : <div style={{ display:'flex', flexDirection:'column', gap:8 }}>{selectedEvents.map(({ event, cancelled }) => <div key={event.id} style={{ padding:'10px 12px', borderRadius:12, background: cancelled ? 'rgba(239,68,68,0.10)' : 'rgba(16,185,129,0.10)', border: cancelled ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(16,185,129,0.2)', opacity: cancelled ? 0.9 : 1 }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}><div><div style={{ fontSize:12, color:'var(--text-strong)', fontWeight:700 }}>{event.title}</div><div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:4 }}>{event.allDay ? 'Todo el día' : (event.time || 'Sin hora')} · {event.customCategory || event.category}</div></div>{event.recurrence && event.recurrence !== 'none' && event.createdBy === user?.uid && <button onClick={() => handleToggleOccurrence(event.id, cancelled)} disabled={eventActionLoading === event.id} style={{ background:'none', border:'none', color: cancelled ? '#10b981' : '#f87171', fontSize:12, fontWeight:700, cursor:'pointer' }}>{eventActionLoading === event.id ? '...' : cancelled ? 'Restaurar' : 'Cancelar este día'}</button>}</div>{cancelled && <div style={{ fontSize:11, color:'#f87171', marginTop:6, fontWeight:700 }}>Cancelado</div>}{event.notes && <div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:6 }}>{event.notes}</div>}</div>)}</div>}</div>
+          <div><div style={{ fontSize:12, fontWeight:700, color:'#10b981', marginBottom:6 }}>Eventos del día</div>{selectedEvents.length === 0 ? <div style={{ fontSize:12, color:'var(--text-muted)' }}>No hay eventos para este día.</div> : <div style={{ display:'flex', flexDirection:'column', gap:8 }}>{selectedEvents.map(({ event, cancelled }) => <div key={event.id} style={{ padding:'10px 12px', borderRadius:12, background: cancelled ? 'rgba(239,68,68,0.10)' : 'rgba(16,185,129,0.10)', border: cancelled ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(16,185,129,0.2)', opacity: cancelled ? 0.9 : 1 }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}><div><div style={{ fontSize:12, color:'var(--text-strong)', fontWeight:700 }}>{event.title}</div><div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:4 }}>{event.allDay ? 'Todo el día' : (event.time || 'Sin hora')} · {event.customCategory || event.category}</div></div>{event.recurrence && event.recurrence !== 'none' && event.createdBy === user?.uid && <button onClick={() => handleToggleOccurrence(event.id, cancelled)} disabled={eventActionLoading === event.id} style={{ background:'none', border:'none', color: cancelled ? '#10b981' : '#f87171', fontSize:12, fontWeight:700, cursor:'pointer' }}>{eventActionLoading === event.id ? '...' : cancelled ? 'Restaurar' : 'Cancelar este día'}</button>}</div>{cancelled && <div style={{ fontSize:11, color:'#f87171', marginTop:6, fontWeight:700 }}>Cancelado</div>}{event.notes && <div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:6 }}>{event.notes}</div>}</div>)}</div>}</div>
           <div><div style={{ fontSize:12, fontWeight:700, color:'#60a5fa', marginBottom:6 }}>Solicitudes de cambio</div>{selectedRequests.length === 0 ? <div style={{ fontSize:12, color:'var(--text-muted)' }}>No hay solicitudes para este día.</div> : <div style={{ display:'flex', flexDirection:'column', gap:8 }}>{selectedRequests.map(req => <div key={req.id} style={{ padding:'10px 12px', borderRadius:12, background:'rgba(59,130,246,0.10)', border:'1px solid rgba(59,130,246,0.2)' }}><div style={{ fontSize:12, color:'var(--text-strong)', fontWeight:700 }}>{req.fromParentName}</div><div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:4 }}>{req.reason}</div><div style={{ fontSize:11, color:req.status === 'pending' ? '#fbbf24' : req.status === 'accepted' ? '#10b981' : req.status === 'cancelled' ? 'var(--text-muted)' : '#f87171', marginTop:6, fontWeight:700 }}>{req.status.toUpperCase()}</div></div>)}</div>}</div>
         </div>
       </div>}
-      {actionMenuDate && <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.38)', zIndex:60, display:'flex', alignItems:'flex-end', justifyContent:'center', padding:12 }} onClick={() => setActionMenuDate(null)}><div className="card" style={{ width:'100%', maxWidth:420, borderRadius:20, padding:12 }} onClick={e => e.stopPropagation()}><div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:6 }}>Acciones rápidas</div><div style={{ fontSize:14, fontWeight:800, color:'var(--text-strong)', marginBottom:12 }}>{formatDate(actionMenuDate)}</div><div style={{ display:'grid', gap:8 }}><button className="popup-menu-item" style={{ justifyContent:'center', padding:'12px 14px' }} onClick={() => openQuickAction('note')}>📝 Añadir nota</button><button className="popup-menu-item" style={{ justifyContent:'center', padding:'12px 14px' }} onClick={() => openQuickAction('event')}>🎓 Añadir evento</button><button className="popup-menu-item" style={{ justifyContent:'center', padding:'12px 14px' }} onClick={() => { setSelectedDate(actionMenuDate); setSelectedCalendarDate(actionMenuDate); setActionMenuDate(null); setModalOpen(true) }}>🔄 Solicitar cambio</button><button className="popup-menu-item" style={{ justifyContent:'center', padding:'12px 14px' }} onClick={() => { setSelectedDate(actionMenuDate); setSelectedCalendarDate(actionMenuDate); setActionMenuDate(null) }}>👁️ Ver detalle del día</button><button className="popup-menu-item" style={{ justifyContent:'center', padding:'12px 14px', color:'var(--text-muted)' }} onClick={() => setActionMenuDate(null)}>Cancelar</button></div></div></div>}
       {modalOpen && <RequestModal open={modalOpen} onClose={() => { setModalOpen(false) }} initialDate={selectedDate} />}
     </div>
   )

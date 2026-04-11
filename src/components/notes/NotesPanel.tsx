@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createNote, deleteNote, markNoteRead, updateNote } from '@/lib/db'
@@ -17,22 +17,8 @@ export function NotesPanel() {
   const { notes, children, selectedChildId } = useAppStore()
   const [showForm, setShowForm] = useState(false)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
-  const [initialDate, setInitialDate] = useState('')
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const unread = useMemo(() => notes.filter(n => !n.read && n.createdBy !== user?.uid).length, [notes, user?.uid])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const handler = (ev: Event) => {
-      const detail = (ev as CustomEvent<{ type: 'note'; date: string }>).detail
-      if (detail?.type !== 'note') return
-      setEditingNote(null)
-      setInitialDate(detail.date)
-      setShowForm(true)
-    }
-    window.addEventListener('custodia:quick-action', handler as EventListener)
-    return () => window.removeEventListener('custodia:quick-action', handler as EventListener)
-  }, [])
 
   return (
     <div>
@@ -41,12 +27,12 @@ export function NotesPanel() {
           <div className="page-title" style={{ marginBottom:0 }}>Notas</div>
           {unread > 0 && <span style={{ background:'#ef4444', color:'#fff', fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:20 }}>{unread} nueva{unread>1?'s':''}</span>}
         </div>
-        <button onClick={() => { setEditingNote(null); setInitialDate(''); setShowForm(true) }} style={{ background:'#3B82F6', border:'none', borderRadius:12, padding:'8px 14px', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>+ Nueva nota</button>
+        <button onClick={() => { setEditingNote(null); setShowForm(true) }} style={{ background:'#3B82F6', border:'none', borderRadius:12, padding:'8px 14px', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>+ Nueva nota</button>
       </div>
-      {showForm && <NoteForm note={editingNote} initialDate={initialDate} onClose={() => { setShowForm(false); setEditingNote(null); setInitialDate('') }} />}
+      {showForm && <NoteForm note={editingNote} onClose={() => { setShowForm(false); setEditingNote(null) }} />}
       {notes.length === 0 && !showForm
         ? <div className="empty-state"><div className="empty-state-icon">📝</div><div className="empty-state-title">Sin notas todavía</div><div className="empty-state-sub">Añade notas sobre días concretos para el otro progenitor</div></div>
-        : <div>{notes.map(note => <NoteCard key={note.id} note={note} child={child} onEdit={() => { setEditingNote(note); setInitialDate(''); setShowForm(true) }} />)}</div>
+        : <div>{notes.map(note => <NoteCard key={note.id} note={note} child={child} onEdit={() => { setEditingNote(note); setShowForm(true) }} />)}</div>
       }
     </div>
   )
@@ -81,15 +67,15 @@ function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () 
   )
 }
 
-function NoteForm({ note, initialDate, onClose }: { note: Note | null; initialDate?: string; onClose: () => void }) {
+function NoteForm({ note, onClose }: { note: Note | null; onClose: () => void }) {
   const { user } = useAuth()
   const { children, selectedChildId } = useAppStore()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
 
   const [type, setType] = useState<'single'|'range'>(note?.type ?? 'single')
-  const [date, setDate] = useState(note?.date ?? initialDate ?? '')
-  const [startDate, setStartDate] = useState(note?.startDate ?? initialDate ?? '')
-  const [endDate, setEndDate] = useState(note?.endDate ?? initialDate ?? '')
+  const [date, setDate] = useState(note?.date ?? '')
+  const [startDate, setStartDate] = useState(note?.startDate ?? '')
+  const [endDate, setEndDate] = useState(note?.endDate ?? '')
   const [text, setText] = useState(note?.text ?? '')
   const [tag, setTag] = useState<NoteTag>(note?.tag ?? 'info')
   const [mentionOther, setMentionOther] = useState(note?.mentionOther ?? false)
