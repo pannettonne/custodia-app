@@ -117,7 +117,7 @@ export function QuickActionMenu({ date, x, y, onClose }: QuickActionMenuProps) {
         />
         <select
           value={eventCategory}
-          onChange={(e) => setEventCategory(e.target.value)}
+          onChange={(e) => setEventCategory(e.target.value as EventCategory)}
           style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-soft)', fontSize: 13, marginBottom: 10 }}
         >
           <option value="escolar">📚 Escolar</option>
