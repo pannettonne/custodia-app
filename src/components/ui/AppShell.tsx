@@ -23,6 +23,13 @@ function inferTargetTab(item: AppNotification): Tab {
   return 'calendar'
 }
 
+function notificationGroupLabel(type: AppNotification['type']) {
+  if (type === 'pending_request') return 'Cambios'
+  if (type === 'event_assignment_pending' || type === 'event_assignment_response') return 'Asignaciones'
+  if (type === 'event_reminder') return 'Recordatorios'
+  return 'Otros'
+}
+
 export function AppShell() {
   const { user, signOut } = useAuth()
   const { children, selectedChildId, setSelectedChildId, requests, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate } = useAppStore()
@@ -31,6 +38,7 @@ export function AppShell() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [queryOpen, setQueryOpen] = useState(false)
+  const [notifFilter, setNotifFilter] = useState<'unread' | 'all'>('unread')
   useDataSubscriptions()
 
   useEffect(() => {
@@ -57,6 +65,17 @@ export function AppShell() {
   const unreadNotifications = useMemo(() => notifications.filter(n => !n.read).length, [notifications])
   const totalBadge = pendingReqs + pendingInvitations + unreadNotes + unreadNotifications
 
+  const visibleNotifications = useMemo(() => notifFilter === 'unread' ? notifications.filter(n => !n.read) : notifications, [notifications, notifFilter])
+  const groupedNotifications = useMemo(() => {
+    const groups: Record<string, AppNotification[]> = {}
+    for (const item of visibleNotifications) {
+      const key = notificationGroupLabel(item.type)
+      groups[key] ||= []
+      groups[key].push(item)
+    }
+    return Object.entries(groups)
+  }, [visibleNotifications])
+
   const mainTabs = [
     { id: 'calendar' as Tab, label: 'Calendario', emoji: '📅' },
     { id: 'requests' as Tab, label: 'Cambios', emoji: '🔄', badge: pendingReqs },
@@ -74,6 +93,11 @@ export function AppShell() {
     }
     setTab(inferTargetTab(item))
     setNotifOpen(false)
+  }
+
+  const markAllVisibleAsRead = async () => {
+    const unread = visibleNotifications.filter(n => !n.read)
+    await Promise.all(unread.map(n => markNotificationRead(n.id)))
   }
 
   const handleTabClick = (id: Tab) => {
@@ -112,34 +136,45 @@ export function AppShell() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
           {children.length > 1 && (
-            <select value={selectedChildId ?? ''} onChange={e => setSelectedChildId(e.target.value)}
-              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-hover)', borderRadius: 12, padding: '7px 12px', color: 'var(--text-strong)', fontSize: 12, outline: 'none', boxShadow: 'var(--card-shadow)' }}>
+            <select value={selectedChildId ?? ''} onChange={e => setSelectedChildId(e.target.value)} style={{ background: 'var(--bg-input)', border: '1px solid var(--border-hover)', borderRadius: 12, padding: '7px 12px', color: 'var(--text-strong)', fontSize: 12, outline: 'none', boxShadow: 'var(--card-shadow)' }}>
               {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
           <div style={{ position: 'relative' }}>
-            {totalBadge > 0 && (
-              <button className="notif-btn" onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setQueryOpen(false); setNotifOpen(v => !v) }}>
-                🔔<span className="notif-count">{totalBadge}</span>
-              </button>
-            )}
+            <button className="notif-btn" onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setQueryOpen(false); setNotifOpen(v => !v) }}>
+              🔔{totalBadge > 0 ? <span className="notif-count">{totalBadge}</span> : null}
+            </button>
             {notifOpen && (
-              <div className="header-popup-menu notifications-popup-menu">
-                <div className="popup-menu-label">Avisos</div>
-                {notifications.length === 0 ? (
-                  <div className="popup-empty">No hay recordatorios automáticos.</div>
+              <div className="header-popup-menu notifications-popup-menu" style={{ width: 340, maxHeight: '70vh', overflow: 'auto' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:8 }}>
+                  <div className="popup-menu-label" style={{ margin:0 }}>Avisos</div>
+                  <button className="popup-menu-item" style={{ padding:'4px 8px' }} onClick={markAllVisibleAsRead}>Marcar todo leído</button>
+                </div>
+                <div style={{ display:'flex', gap:6, marginBottom:10 }}>
+                  <button className="popup-menu-item" style={{ flex:1, justifyContent:'center', background: notifFilter === 'unread' ? 'var(--bg-soft)' : 'transparent' }} onClick={() => setNotifFilter('unread')}>No leídos</button>
+                  <button className="popup-menu-item" style={{ flex:1, justifyContent:'center', background: notifFilter === 'all' ? 'var(--bg-soft)' : 'transparent' }} onClick={() => setNotifFilter('all')}>Todos</button>
+                </div>
+                {groupedNotifications.length === 0 ? (
+                  <div className="popup-empty">No hay avisos en esta vista.</div>
                 ) : (
-                  notifications.map(item => (
-                    <button key={item.id} className="notification-item" onClick={() => openNotification(item)}>
-                      <div className="notification-item-title">{item.title}</div>
-                      <div className="notification-item-body">{item.body}</div>
-                      {!item.read && <div className="notification-item-dot" />}
-                    </button>
+                  groupedNotifications.map(([group, items]) => (
+                    <div key={group} style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:11, fontWeight:800, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:0.4, marginBottom:6 }}>{group}</div>
+                      {items.map(item => (
+                        <button key={item.id} className="notification-item" onClick={() => openNotification(item)}>
+                          <div className="notification-item-title">{item.title}</div>
+                          <div className="notification-item-body">{item.body}</div>
+                          {!item.read && <div className="notification-item-dot" />}
+                        </button>
+                      ))}
+                    </div>
                   ))
                 )}
-                {pendingReqs > 0 && <button className="popup-menu-item" onClick={() => { setTab('requests'); setNotifOpen(false) }}>Ver solicitudes pendientes</button>}
-                {unreadNotes > 0 && <button className="popup-menu-item" onClick={() => { setTab('notes'); setNotifOpen(false) }}>Ver notas no leídas</button>}
-                {pendingInvitations > 0 && <button className="popup-menu-item" onClick={() => { setTab('settings'); setNotifOpen(false) }}>Ver invitaciones pendientes</button>}
+                {(pendingReqs > 0 || unreadNotes > 0 || pendingInvitations > 0) && <div style={{ borderTop:'1px solid var(--border)', marginTop:8, paddingTop:8, display:'flex', flexDirection:'column', gap:4 }}>
+                  {pendingReqs > 0 && <button className="popup-menu-item" onClick={() => { setTab('requests'); setNotifOpen(false) }}>Ver solicitudes pendientes</button>}
+                  {unreadNotes > 0 && <button className="popup-menu-item" onClick={() => { setTab('notes'); setNotifOpen(false) }}>Ver notas no leídas</button>}
+                  {pendingInvitations > 0 && <button className="popup-menu-item" onClick={() => { setTab('settings'); setNotifOpen(false) }}>Ver invitaciones pendientes</button>}
+                </div>}
               </div>
             )}
           </div>
@@ -183,8 +218,7 @@ export function AppShell() {
 
       <nav className="bottom-nav" onClick={e => e.stopPropagation()}>
         {mainTabs.map(({ id, label, emoji, badge }) => (
-          <button key={id} className={`nav-btn ${(tab === id || (id === 'settings' && activeMore)) ? 'active' : ''}`}
-            onClick={() => handleTabClick(id)}>
+          <button key={id} className={`nav-btn ${(tab === id || (id === 'settings' && activeMore)) ? 'active' : ''}`} onClick={() => handleTabClick(id)}>
             <span style={{ fontSize: 20, lineHeight: 1 }}>{emoji}</span>
             <span>{label}</span>
             {badge && badge > 0 ? <span className="nav-badge">{badge}</span> : null}
