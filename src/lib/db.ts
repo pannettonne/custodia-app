@@ -1,9 +1,51 @@
 "use client"
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, type Unsubscribe } from 'firebase/firestore'
-import { db } from './firebase'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, RequestStatus } from '@/types'
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, type Unsubscribe, setDoc } from 'firebase/firestore'
+import { auth, db } from './firebase'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, RequestStatus, UserNotificationSettings, NotificationChannel } from '@/types'
 
 function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> { return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T> }
+
+const DEFAULT_NOTIFICATION_SETTINGS: Omit<UserNotificationSettings, 'uid'> = {
+  changes: 'both',
+  assignments: 'both',
+  reminders: 'both',
+  notes: 'in_app',
+}
+
+function mapNotificationTypeToPreferenceKey(type: AppNotification['type']): keyof Omit<UserNotificationSettings, 'uid' | 'updatedAt'> {
+  if (type === 'pending_request') return 'changes'
+  if (type === 'event_assignment_pending' || type === 'event_assignment_response') return 'assignments'
+  if (type === 'event_reminder') return 'reminders'
+  return 'changes'
+}
+
+async function getUserNotificationSettingsInternal(uid: string): Promise<UserNotificationSettings> {
+  const ref = doc(db, 'userNotificationSettings', uid)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) return { uid, ...DEFAULT_NOTIFICATION_SETTINGS }
+  return { uid, ...DEFAULT_NOTIFICATION_SETTINGS, ...(snap.data() as Partial<UserNotificationSettings>) }
+}
+
+function allowsInApp(channel: NotificationChannel) {
+  return channel === 'in_app' || channel === 'both'
+}
+
+function allowsPush(channel: NotificationChannel) {
+  return channel === 'push' || channel === 'both'
+}
+
+async function maybeDispatchPush(targetUserIds: string[], title: string, body: string, childId?: string, targetTab?: string, targetDate?: string) {
+  try {
+    const currentUser = auth.currentUser
+    if (!currentUser || targetUserIds.length === 0) return
+    const idToken = await currentUser.getIdToken()
+    await fetch('/api/push/dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ userIds: targetUserIds, title, body, childId, targetTab, targetDate }),
+    })
+  } catch {}
+}
 
 export function subscribeToChildren(uid: string, cb: (children: Child[]) => void): Unsubscribe { const q = query(collection(db, 'children'), where('parents', 'array-contains', uid)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as Child)))) }
 export async function createChild(data: Omit<Child, 'id' | 'createdAt'>): Promise<string> { const ref = await addDoc(collection(db, 'children'), { ...data, createdAt: serverTimestamp() }); return ref.id }
@@ -40,9 +82,37 @@ export async function cancelEventOccurrence(id: string, date: string): Promise<v
 export async function restoreEventOccurrence(id: string, date: string): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), { cancelledDates: arrayRemove(date), updatedAt: serverTimestamp() }) }
 export async function deleteEvent(id: string): Promise<void> { await deleteDoc(doc(db, 'schoolEvents', id)) }
 
-export function subscribeToNotifications(uid: string, cb: (notifications: AppNotification[]) => void): Unsubscribe { const q = query(collection(db, 'notifications'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(20)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification)))) }
-export async function createNotification(data: Omit<AppNotification, 'id' | 'createdAt' | 'read'>): Promise<string> { const ref = await addDoc(collection(db, 'notifications'), compactUndefined({ ...data, read: false, createdAt: serverTimestamp() })); return ref.id }
+export function subscribeToNotifications(uid: string, cb: (notifications: AppNotification[]) => void): Unsubscribe { const q = query(collection(db, 'notifications'), where('userId', '==', uid), orderBy('createdAt', 'desc'), limit(50)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as AppNotification)))) }
+export async function createNotification(data: Omit<AppNotification, 'id' | 'createdAt' | 'read'>): Promise<string> {
+  const settings = await getUserNotificationSettingsInternal(data.userId)
+  const preferenceKey = mapNotificationTypeToPreferenceKey(data.type)
+  const channel = settings[preferenceKey]
+  let createdId = ''
+  if (allowsInApp(channel)) {
+    const ref = await addDoc(collection(db, 'notifications'), compactUndefined({ ...data, read: false, createdAt: serverTimestamp() }))
+    createdId = ref.id
+  }
+  if (allowsPush(channel)) {
+    await maybeDispatchPush([data.userId], data.title, data.body, data.childId, data.targetTab, data.targetDate)
+  }
+  return createdId
+}
 export async function markNotificationRead(id: string): Promise<void> { await updateDoc(doc(db, 'notifications', id), { read: true }) }
+export async function markAllNotificationsRead(uid: string): Promise<void> { const snap = await getDocs(query(collection(db, 'notifications'), where('userId', '==', uid), where('read', '==', false))); await Promise.all(snap.docs.map(d => updateDoc(d.ref, { read: true }))) }
+export async function clearReadNotifications(uid: string): Promise<void> { const snap = await getDocs(query(collection(db, 'notifications'), where('userId', '==', uid), where('read', '==', true))); await Promise.all(snap.docs.map(d => deleteDoc(d.ref))) }
+
+export function subscribeToUserNotificationSettings(uid: string, cb: (settings: UserNotificationSettings) => void): Unsubscribe {
+  const ref = doc(db, 'userNotificationSettings', uid)
+  return onSnapshot(ref, snap => {
+    if (!snap.exists()) cb({ uid, ...DEFAULT_NOTIFICATION_SETTINGS })
+    else cb({ uid, ...DEFAULT_NOTIFICATION_SETTINGS, ...(snap.data() as Partial<UserNotificationSettings>) })
+  })
+}
+export async function getUserNotificationSettings(uid: string): Promise<UserNotificationSettings> { return getUserNotificationSettingsInternal(uid) }
+export async function updateUserNotificationSettings(uid: string, data: Partial<Omit<UserNotificationSettings, 'uid'>>): Promise<void> {
+  const ref = doc(db, 'userNotificationSettings', uid)
+  await setDoc(ref, compactUndefined({ ...data, updatedAt: serverTimestamp() as any }), { merge: true })
+}
 
 export function subscribeToPackingItems(childId: string, cb: (items: PackingItem[]) => void): Unsubscribe { const q = query(collection(db, 'packingItems'), where('childId', '==', childId)); return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as PackingItem)))) }
 export async function createPackingItem(data: Omit<PackingItem, 'id'>): Promise<string> { const ref = await addDoc(collection(db, 'packingItems'), compactUndefined(data)); return ref.id }

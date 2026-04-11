@@ -1,13 +1,13 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
 import { useTheme, type ThemeMode } from '@/lib/theme-context'
-import { createChild, createInvitation, acceptInvitation, setPattern, forgetChild, resendInvitation, cancelInvitation } from '@/lib/db'
+import { createChild, createInvitation, acceptInvitation, setPattern, forgetChild, resendInvitation, cancelInvitation, subscribeToUserNotificationSettings, updateUserNotificationSettings } from '@/lib/db'
 import { PARENT_COLORS, PATTERN_LABELS } from '@/lib/utils'
 import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManager'
 import { PushSection } from '@/components/settings/PushSection'
-import type { Child, Invitation } from '@/types'
+import type { Child, Invitation, NotificationChannel, UserNotificationSettings } from '@/types'
 
 export function SettingsPanel() {
   const { invitations, children, selectedChildId } = useAppStore()
@@ -20,6 +20,7 @@ export function SettingsPanel() {
     <div>
       <ThemeSection />
       <PushSection />
+      <NotificationPreferencesSection />
       {receivedInvitations.length > 0 && <PendingInvitations invitations={receivedInvitations} />}
       <ChildSection child={child} />
       {child && <PatternSection child={child} />}
@@ -51,6 +52,57 @@ function ThemeSection() {
       </div>
       <div style={{ fontSize: 11, color: '#6b7280', marginTop: 8 }}>
         Modo actual: <strong style={{ color: 'var(--text-secondary)' }}>{resolvedTheme === 'dark' ? 'Oscuro' : 'Claro'}</strong>
+      </div>
+    </div>
+  )
+}
+
+function NotificationPreferencesSection() {
+  const { user } = useAuth()
+  const [settings, setSettings] = useState<UserNotificationSettings | null>(null)
+  const [savingKey, setSavingKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user?.uid) return
+    return subscribeToUserNotificationSettings(user.uid, setSettings)
+  }, [user?.uid])
+
+  const options: { value: NotificationChannel; label: string }[] = [
+    { value: 'off', label: 'Desactivado' },
+    { value: 'in_app', label: 'Solo campanita' },
+    { value: 'push', label: 'Solo push' },
+    { value: 'both', label: 'Ambos' },
+  ]
+
+  const updatePref = async (key: 'changes' | 'assignments' | 'reminders' | 'notes', value: NotificationChannel) => {
+    if (!user?.uid) return
+    setSavingKey(key)
+    try { await updateUserNotificationSettings(user.uid, { [key]: value }) }
+    finally { setSavingKey(null) }
+  }
+
+  if (!settings) return null
+
+  const rows: { key: 'changes' | 'assignments' | 'reminders' | 'notes'; title: string; sub: string }[] = [
+    { key: 'changes', title: 'Cambios de custodia', sub: 'Solicitudes nuevas, aceptadas, rechazadas o canceladas' },
+    { key: 'assignments', title: 'Asignaciones de eventos', sub: 'Peticiones y respuestas sobre eventos asignados' },
+    { key: 'reminders', title: 'Recordatorios', sub: 'Avisos previos de eventos programados' },
+    { key: 'notes', title: 'Notas importantes', sub: 'Preparado para notas con mención o avisos relevantes' },
+  ]
+
+  return (
+    <div className="card">
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#9ca3af', marginBottom: 12 }}>🔔 Preferencias de avisos</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {rows.map(row => (
+          <div key={row.key} style={{ padding:'10px 0', borderTop: row.key === 'changes' ? 'none' : '1px solid var(--border)' }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'var(--text-strong)', marginBottom:4 }}>{row.title}</div>
+            <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:8 }}>{row.sub}</div>
+            <select value={settings[row.key]} onChange={e => updatePref(row.key, e.target.value as NotificationChannel)} className="settings-select" disabled={savingKey === row.key}>
+              {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+        ))}
       </div>
     </div>
   )

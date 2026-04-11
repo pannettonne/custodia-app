@@ -22,6 +22,12 @@ type AdminChild = {
   parents: string[]
 }
 
+type NotificationChannel = 'off' | 'in_app' | 'push' | 'both'
+
+type UserNotificationSettings = {
+  reminders?: NotificationChannel
+}
+
 function isAuthorized(request: NextRequest) {
   const authHeader = request.headers.get('authorization') || ''
   const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
@@ -53,17 +59,12 @@ function matchesReminderToday(event: AdminEvent, today: string) {
   const daysBefore = Number(event.reminderDaysBefore ?? 0)
   const occurrenceTarget = addDays(today, daysBefore)
 
-  if (!event.recurrence || event.recurrence === 'none') {
-    return { match: event.date === occurrenceTarget, occurrenceDate: event.date }
-  }
-
+  if (!event.recurrence || event.recurrence === 'none') return { match: event.date === occurrenceTarget, occurrenceDate: event.date }
   if (!event.recurrenceUntil) return { match: false, occurrenceDate: null }
   if (occurrenceTarget < event.date || occurrenceTarget > event.recurrenceUntil) return { match: false, occurrenceDate: null }
 
   if (event.recurrence === 'weekly') {
-    const weekdays = Array.isArray(event.recurrenceWeekdays) && event.recurrenceWeekdays.length > 0
-      ? event.recurrenceWeekdays
-      : [weekdayFromDate(event.date)]
+    const weekdays = Array.isArray(event.recurrenceWeekdays) && event.recurrenceWeekdays.length > 0 ? event.recurrenceWeekdays : [weekdayFromDate(event.date)]
     return { match: weekdays.includes(weekdayFromDate(occurrenceTarget)), occurrenceDate: occurrenceTarget }
   }
 
@@ -81,6 +82,20 @@ function matchesReminderToday(event: AdminEvent, today: string) {
 function buildLink(childId: string, targetDate: string) {
   const params = new URLSearchParams({ tab: 'events', childId, date: targetDate })
   return `/?${params.toString()}`
+}
+
+function allowsInApp(channel: NotificationChannel) {
+  return channel === 'in_app' || channel === 'both'
+}
+function allowsPush(channel: NotificationChannel) {
+  return channel === 'push' || channel === 'both'
+}
+
+async function getReminderChannel(uid: string): Promise<NotificationChannel> {
+  const snap = await adminDb.collection('userNotificationSettings').doc(uid).get()
+  if (!snap.exists) return 'both'
+  const data = snap.data() as UserNotificationSettings
+  return data.reminders || 'both'
 }
 
 async function createNotificationOnce({ docId, userId, childId, childName, title, body, dateKey, targetDate }: { docId: string; userId: string; childId: string; childName?: string; title: string; body: string; dateKey: string; targetDate: string }) {
@@ -139,13 +154,14 @@ export async function GET(request: NextRequest) {
 
       const usersToPush: string[] = []
       for (const uid of recipients) {
+        const channel = await getReminderChannel(uid)
         const docId = `event-reminder__${event.id}__${check.occurrenceDate}__${uid}`
         const dateKey = `event-reminder:${event.id}:${check.occurrenceDate}:${uid}`
-        const wasCreated = await createNotificationOnce({ docId, userId: uid, childId: child.id, childName: child.name, title, body, dateKey, targetDate: check.occurrenceDate })
-        if (wasCreated) {
-          created += 1
-          usersToPush.push(uid)
+        if (allowsInApp(channel)) {
+          const wasCreated = await createNotificationOnce({ docId, userId: uid, childId: child.id, childName: child.name, title, body, dateKey, targetDate: check.occurrenceDate })
+          if (wasCreated) created += 1
         }
+        if (allowsPush(channel)) usersToPush.push(uid)
       }
       if (usersToPush.length > 0) {
         const pushRes = await sendPushToUsers(usersToPush, { title, body, childId: child.id, targetDate: check.occurrenceDate })

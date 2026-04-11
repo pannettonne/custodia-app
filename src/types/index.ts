@@ -90,6 +90,16 @@ export type EventRecurrence = 'none' | 'weekly' | 'monthly'
 export type EventAssignmentStatus = 'pending' | 'accepted' | 'rejected'
 export type EventReminderAudience = 'self' | 'both'
 export type NotificationTargetTab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
+export type NotificationChannel = 'off' | 'in_app' | 'push' | 'both'
+
+export interface UserNotificationSettings {
+  uid: string
+  changes: NotificationChannel
+  assignments: NotificationChannel
+  reminders: NotificationChannel
+  notes: NotificationChannel
+  updatedAt?: Date
+}
 
 export interface SchoolEvent {
   id: string
