@@ -15,6 +15,7 @@ import { markNotificationRead } from '@/lib/db'
 import type { AppNotification } from '@/types'
 
 type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
+type QuickActionType = 'note' | 'event'
 
 function inferTargetTab(item: AppNotification): Tab {
   if (item.targetTab) return item.targetTab
@@ -54,6 +55,23 @@ export function AppShell() {
     }
     if (targetTab) setTab(targetTab)
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handler = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ type: QuickActionType; date: string }>).detail
+      if (!detail?.date) return
+      setSelectedCalendarDate(detail.date)
+      setCurrentMonth(new Date(detail.date + 'T12:00:00'))
+      setTab(detail.type === 'note' ? 'notes' : 'events')
+      setMoreOpen(false)
+      setNotifOpen(false)
+      setUserMenuOpen(false)
+      setQueryOpen(false)
+    }
+    window.addEventListener('custodia:quick-action', handler as EventListener)
+    return () => window.removeEventListener('custodia:quick-action', handler as EventListener)
+  }, [setCurrentMonth, setSelectedCalendarDate])
 
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const pendingReqs = useMemo(() => requests.filter(r => r.status === 'pending' && r.toParentId === user?.uid).length, [requests, user?.uid])
@@ -118,7 +136,7 @@ export function AppShell() {
     <div className="app-shell" onClick={() => { if (moreOpen) setMoreOpen(false); if (userMenuOpen) setUserMenuOpen(false); if (notifOpen) setNotifOpen(false); if (queryOpen) setQueryOpen(false) }}>
       <header className="app-header" onClick={e => e.stopPropagation()}>
         <div className="app-header-left">
-          <div className="app-logo">👨‍👩‍👦</div>
+          <img src="/apple-touch-icon.png?v=4" alt="Custodia" className="app-logo" style={{ width:40, height:40, borderRadius:12, boxShadow:'var(--card-shadow)', objectFit:'cover' }} />
           <div>
             <div className="app-title">CustodiaApp</div>
             <div style={{ display:'flex', alignItems:'center', gap:8, position:'relative' }}>
