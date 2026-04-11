@@ -24,6 +24,7 @@ const WEEKDAYS = [
   { value: 6, label: 'S' },
   { value: 7, label: 'D' },
 ]
+const ICS_WEEKDAY_MAP: Record<number, string> = { 1: 'MO', 2: 'TU', 3: 'WE', 4: 'TH', 5: 'FR', 6: 'SA', 7: 'SU' }
 
 function buildMonthlyDate(baseDate: string, dayOfMonth: number): string {
   if (!baseDate) return ''
@@ -42,6 +43,88 @@ function listDates(startDate: string, endDate?: string) {
     cur.setDate(cur.getDate() + 1)
   }
   return result
+}
+
+function pad(value: number) { return String(value).padStart(2, '0') }
+function formatICSDateUTC(date: Date) {
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`
+}
+function formatICSDateOnly(dateStr: string) {
+  return dateStr.replaceAll('-', '')
+}
+function escapeICS(value?: string) {
+  return (value || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;')
+}
+function buildEventDateRange(event: SchoolEvent) {
+  if (event.allDay) {
+    const start = formatICSDateOnly(event.date)
+    const endBase = new Date((event.endDate || event.date) + 'T12:00:00')
+    endBase.setDate(endBase.getDate() + 1)
+    const end = `${endBase.getFullYear()}${pad(endBase.getMonth() + 1)}${pad(endBase.getDate())}`
+    return [`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`]
+  }
+  const [hours, minutes] = (event.time || '09:00').split(':').map(Number)
+  const start = new Date(`${event.date}T${pad(hours || 0)}:${pad(minutes || 0)}:00`)
+  const end = new Date(start)
+  end.setHours(end.getHours() + 1)
+  return [`DTSTART:${formatICSDateUTC(start)}`, `DTEND:${formatICSDateUTC(end)}`]
+}
+function buildRecurrenceRule(event: SchoolEvent) {
+  if (event.recurrence === 'weekly' && event.recurrenceUntil) {
+    const byDay = (event.recurrenceWeekdays || []).map(day => ICS_WEEKDAY_MAP[day]).filter(Boolean).join(',') || ICS_WEEKDAY_MAP[((new Date(event.date + 'T12:00:00').getDay() || 7))]
+    const until = new Date(event.recurrenceUntil + 'T23:59:59Z')
+    return `RRULE:FREQ=WEEKLY;BYDAY=${byDay};UNTIL=${formatICSDateUTC(until)}`
+  }
+  if (event.recurrence === 'monthly' && event.recurrenceUntil) {
+    const day = Number(event.date.slice(8, 10)) || 1
+    const until = new Date(event.recurrenceUntil + 'T23:59:59Z')
+    return `RRULE:FREQ=MONTHLY;BYMONTHDAY=${day};UNTIL=${formatICSDateUTC(until)}`
+  }
+  return ''
+}
+function buildICS(event: SchoolEvent) {
+  const stamp = formatICSDateUTC(new Date())
+  const uid = `${event.id || `${event.title}-${event.date}`.replace(/\s+/g, '-')}-custodiaapp`
+  const dateLines = buildEventDateRange(event)
+  const recurrence = buildRecurrenceRule(event)
+  const alarms = event.reminderEnabled
+    ? ['BEGIN:VALARM', `TRIGGER:-P${Math.max(0, event.reminderDaysBefore || 0)}D`, 'ACTION:DISPLAY', `DESCRIPTION:${escapeICS(event.title)}`, 'END:VALARM']
+    : []
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//CustodiaApp//ES',
+    'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${stamp}`,
+    `SUMMARY:${escapeICS(event.title)}`,
+    ...dateLines,
+    `DESCRIPTION:${escapeICS(event.notes || '')}`,
+    recurrence,
+    ...alarms,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n')
+}
+async function downloadICSFile(event: SchoolEvent) {
+  const filename = `${(event.title || 'evento').toLowerCase().replace(/[^a-z0-9]+/gi, '-') || 'evento'}.ics`
+  const file = new File([buildICS(event)], filename, { type: 'text/calendar;charset=utf-8' })
+  const nav = navigator as Navigator & { share?: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>; canShare?: (data: { files?: File[] }) => boolean }
+  if (nav.canShare?.({ files: [file] })) {
+    try {
+      await nav.share({ files: [file], title: event.title, text: 'Añadir al calendario' })
+      return
+    } catch {}
+  }
+  const url = URL.createObjectURL(file)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 async function notifyEventAssignmentPending(params: { toUserId: string; childId: string; childName?: string; eventTitle: string; dateKey: string; requesterName: string }) {
@@ -71,7 +154,7 @@ export function EventsPanel() {
   const upcoming = filtered.filter(e => e.date > today && e.assignmentStatus !== 'pending')
   const past = filtered.filter(e => e.date < today && e.assignmentStatus !== 'pending')
 
-  const Section = ({ title, count, open, onToggle, defaultOpen = false, children }: any) => {
+  const Section = ({ title, count, open, onToggle, children }: any) => {
     if (count === 0) return null
     return (
       <div style={{ marginBottom: 14 }}>
@@ -123,6 +206,7 @@ export function EventsPanel() {
 function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }) {
   const { user } = useAuth()
   const { children, selectedChildId } = useAppStore()
+  const [calendarLoading, setCalendarLoading] = useState(false)
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const cat = CAT_CONFIG[event.category]
   const today = new Date().toISOString().slice(0, 10)
@@ -154,6 +238,15 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
     if (event.assignmentRequestedBy) await notifyEventAssignmentResponse({ toUserId: event.assignmentRequestedBy, childId: event.childId, childName: child.name, eventTitle: event.title, dateKey: event.date, accepted: true, responderName: user.displayName || user.email || 'Progenitor' })
   }
 
+  const addToCalendar = async () => {
+    setCalendarLoading(true)
+    try {
+      await downloadICSFile(event)
+    } finally {
+      setCalendarLoading(false)
+    }
+  }
+
   return (
     <div className="card" style={{ marginBottom: 8, opacity: isPast ? 0.6 : 1, borderLeft: `3px solid ${cat.color}`, borderRadius: '0 16px 16px 0' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -171,6 +264,11 @@ function EventCard({ event, onEdit }: { event: SchoolEvent; onEdit: () => void }
           <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>📅 {formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}{event.time ? ` · ⏰ ${event.time}` : event.allDay ? ' · Todo el día' : ''}</div>
           {event.notes && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>{event.notes}</div>}
           {event.reminderEnabled && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6 }}>Aviso: {event.reminderDaysBefore === 0 ? 'el mismo día' : `${event.reminderDaysBefore} día(s) antes`} · {event.reminderAudience === 'both' ? 'ambos progenitores' : 'solo tú'}</div>}
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:8 }}>
+            <button onClick={addToCalendar} disabled={calendarLoading} style={{ background:'rgba(59,130,246,0.12)', border:'1px solid rgba(59,130,246,0.24)', borderRadius:8, color:'#93c5fd', fontSize:11, fontWeight:700, padding:'6px 10px', cursor:'pointer' }}>
+              {calendarLoading ? 'Preparando...' : '📅 Añadir al calendario'}
+            </button>
+          </div>
 
           {child && canRequestAssignment && <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>{child.parents.map(pid => <button key={pid} onClick={() => requestAssignment(pid)} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', cursor:'pointer' }}>Asignar a {child.parentNames?.[pid] ?? 'Progenitor'}</button>)}</div>}
           {canRespondAssignment && <div style={{ display:'flex', gap:8, marginTop:8 }}><button onClick={() => respondAssignment(false)} style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:8, color:'#fca5a5', fontSize:11, fontWeight:700, padding:'6px 10px', cursor:'pointer' }}>Rechazar asignación</button><button onClick={() => respondAssignment(true)} style={{ background:'rgba(16,185,129,0.15)', border:'1px solid rgba(16,185,129,0.25)', borderRadius:8, color:'#6ee7b7', fontSize:11, fontWeight:700, padding:'6px 10px', cursor:'pointer' }}>Aceptar asignación</button></div>}
