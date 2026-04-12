@@ -175,7 +175,7 @@ export function CustodyCalendar() {
           </div>
         </div>
 
-        {selectedOverride && <div style={{ padding:'12px 14px', borderRadius:16, background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.25)' }}><div style={{ fontSize:12, fontWeight:800, color:'#fbbf24', marginBottom:4 }}>Cambio aprobado</div><div style={{ font Size:12, color:'var(--text-secondary)' }}>{selectedOverride.reason || 'Sin observaciones'}</div></div>}
+        {selectedOverride && <div style={{ padding:'12px 14px', borderRadius:16, background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.25)' }}><div style={{ fontSize:12, fontWeight:800, color:'#fbbf24', marginBottom:4 }}>Cambio aprobado</div><div style={{ fontSize:12, color:'var(--text-secondary)' }}>{selectedOverride.reason || 'Sin observaciones'}</div></div>}
         {selectedSpecialPeriod && <div style={{ padding:'12px 14px', borderRadius:16, background:'var(--bg-soft)', border:'1px solid var(--border)' }}><div style={{ fontSize:12, fontWeight:800, color:'var(--text-strong)', marginBottom:4 }}>{selectedSpecialPeriod.label === 'otro' ? (selectedSpecialPeriod.customLabel ?? 'Período especial') : PERIOD_LABELS[selectedSpecialPeriod.label]}</div><div style={{ fontSize:12, color:'var(--text-secondary)' }}>Periodo especial activo este día</div></div>}
 
         <div style={{ display:'grid', gap:12 }}>
@@ -191,23 +191,23 @@ export function CustodyCalendar() {
 
   return (
     <div>
-      <div style={{ padding:6, borderRadius:18, background:'var(--bg-soft)', border:'1px solid var(--border)', display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6, marginBottom:14 }}>
+      <div style={{ padding:5, borderRadius:16, background:'var(--bg-soft)', border:'1px solid var(--border)', display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5, marginBottom:12 }}>
         {([['day', 'Día'], ['week', 'Semana'], ['month', 'Mes']] as const).map(([value, label]) => (
-          <button key={value} onClick={() => { setViewMode(value); if (!selectedDate) goToToday() }} style={{ padding:'11px 8px', borderRadius:14, border:'none', background:viewMode === value ? 'linear-gradient(180deg, #3B82F6 0%, #2563EB 100%)' : 'transparent', color:viewMode === value ? '#fff' : 'var(--text-secondary)', fontSize:12, fontWeight:800, cursor:'pointer', boxShadow:viewMode === value ? '0 10px 24px rgba(59,130,246,0.22)' : 'none' }}>{label}</button>
+          <button key={value} onClick={() => { setViewMode(value); if (!selectedDate) goToToday() }} style={{ padding:'10px 6px', borderRadius:12, border:'none', background:viewMode === value ? 'linear-gradient(180deg, #3B82F6 0%, #2563EB 100%)' : 'transparent', color:viewMode === value ? '#fff' : 'var(--text-secondary)', fontSize:12, fontWeight:800, cursor:'pointer', boxShadow:viewMode === value ? '0 8px 20px rgba(59,130,246,0.18)' : 'none' }}>{label}</button>
         ))}
       </div>
 
-      <div className="card" style={{ padding:16, borderRadius:22, marginBottom:14, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', border:'1px solid var(--border)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
-          <button className="calendar-nav-btn" onClick={() => navigatePeriod(-1)} style={{ width:38, height:38, borderRadius:12 }}>‹</button>
+      <div className="card" style={{ padding:14, borderRadius:20, marginBottom:12, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', border:'1px solid var(--border)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+          <button className="calendar-nav-btn" onClick={() => navigatePeriod(-1)} style={{ width:34, height:34, borderRadius:10 }}>‹</button>
           <div style={{ textAlign:'center', flex:1 }}>
-            <div style={{ fontSize:12, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.5, marginBottom:4 }}>Calendario</div>
-            <div className="calendar-month-title" style={{ textTransform:'capitalize', fontSize:20 }}>{headerLabel}</div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, flexWrap:'wrap', marginTop:8 }}>{child.parents.map(pid => <div key={pid} style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 9px', borderRadius:999, background:'var(--bg-card)', border:'1px solid var(--border)' }}><div style={{ width:8, height:8, borderRadius:'50%', background:child.parentColors?.[pid] ?? '#6B7280' }} /><span style={{ fontSize:11, color:'var(--text-secondary)', fontWeight:700 }}>{child.parentNames?.[pid] ?? 'Progenitor'}{pid===user?.uid ? ' · tú' : ''}</span></div>)}</div>
+            <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:3 }}>Calendario</div>
+            <div className="calendar-month-title" style={{ textTransform:'capitalize', fontSize:18 }}>{headerLabel}</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, flexWrap:'wrap', marginTop:6 }}>{child.parents.map(pid => <div key={pid} style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 8px', borderRadius:999, background:'var(--bg-card)', border:'1px solid var(--border)' }}><div style={{ width:7, height:7, borderRadius:'50%', background:child.parentColors?.[pid] ?? '#6B7280' }} /><span style={{ fontSize:10, color:'var(--text-secondary)', fontWeight:700 }}>{child.parentNames?.[pid] ?? 'Progenitor'}{pid===user?.uid ? ' · tú' : ''}</span></div>)}</div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <button onClick={goToToday} style={{ fontSize:12, color:'#3B82F6', background:'none', border:'none', cursor:'pointer', fontWeight:800 }}>Hoy</button>
-            <button className="calendar-nav-btn" onClick={() => navigatePeriod(1)} style={{ width:38, height:38, borderRadius:12 }}>›</button>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <button onClick={goToToday} style={{ fontSize:11, color:'#3B82F6', background:'none', border:'none', cursor:'pointer', fontWeight:800 }}>Hoy</button>
+            <button className="calendar-nav-btn" onClick={() => navigatePeriod(1)} style={{ width:34, height:34, borderRadius:10 }}>›</button>
           </div>
         </div>
       </div>
@@ -237,7 +237,7 @@ export function CustodyCalendar() {
 
       {viewMode === 'week' && (
         <>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7, minmax(140px, 1fr))', gap:10, overflowX:'auto', paddingBottom:6 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7, minmax(0, 1fr))', gap:6 }}>
             {weekDays.map(day => {
               const dateStr = toISODate(day)
               const info = getParentInfo(day)
@@ -245,7 +245,7 @@ export function CustodyCalendar() {
               const itemsEvents = events.map(event => ({ event, ...getEventOccurrenceState(event, dateStr) })).filter(item => item.matches)
               const pendingCount = requests.filter(r => requestMatchesDate(r, dateStr)).length
               const isSelected = selectedDate === dateStr
-              return <button key={dateStr} onClick={() => syncToDate(dateStr)} style={{ minWidth:140, textAlign:'left', padding:'14px', borderRadius:20, border:`1px solid ${isSelected ? '#3B82F6' : 'var(--border)'}`, background:isSelected ? 'linear-gradient(180deg, rgba(59,130,246,0.14) 0%, var(--bg-card) 100%)' : (info ? info.color+'12' : 'var(--bg-card)'), color:'inherit', cursor:'pointer', boxShadow:isSelected ? '0 10px 24px rgba(59,130,246,0.14)' : 'none' }}><div style={{ marginBottom:8 }}><div style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', fontWeight:800 }}>{format(day, 'EEE', { locale: es })}</div><div style={{ fontSize:18, fontWeight:900, color:'var(--text-strong)' }}>{format(day, 'd', { locale: es })}</div><div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:2 }}>{format(day, 'MMM', { locale: es })}</div></div>{info && <div style={{ fontSize:11, fontWeight:800, color:info.color, marginBottom:8, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{info.name}</div>}<div style={{ display:'grid', gap:6 }}>{itemsEvents.length > 0 && <span style={{ fontSize:11, color:'#10b981', fontWeight:800, padding:'4px 8px', borderRadius:999, background:'rgba(16,185,129,0.10)' }}>{itemsEvents.length} evento(s)</span>}{itemsNotes.length > 0 && <span style={{ fontSize:11, color:'#f59e0b', fontWeight:800, padding:'4px 8px', borderRadius:999, background:'rgba(245,158,11,0.10)' }}>{itemsNotes.length} nota(s)</span>}{pendingCount > 0 && <span style={{ fontSize:11, color:'#60a5fa', fontWeight:800, padding:'4px 8px', borderRadius:999, background:'rgba(96,165,250,0.10)' }}>{pendingCount} cambio(s)</span>}{itemsEvents.length === 0 && itemsNotes.length === 0 && pendingCount === 0 && <span style={{ fontSize:11, color:'var(--text-muted)' }}>Sin actividad</span>}</div></button>
+              return <button key={dateStr} onClick={() => syncToDate(dateStr)} style={{ minWidth:0, textAlign:'center', padding:'10px 4px', borderRadius:16, border:`1px solid ${isSelected ? '#3B82F6' : 'var(--border)'}`, background:isSelected ? 'linear-gradient(180deg, rgba(59,130,246,0.14) 0%, var(--bg-card) 100%)' : (info ? info.color+'12' : 'var(--bg-card)'), color:'inherit', cursor:'pointer', boxShadow:isSelected ? '0 8px 18px rgba(59,130,246,0.12)' : 'none' }}><div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', fontWeight:800, marginBottom:4 }}>{format(day, 'EEE', { locale: es })}</div><div style={{ fontSize:16, fontWeight:900, color:'var(--text-strong)', lineHeight:1 }}>{format(day, 'd', { locale: es })}</div><div style={{ fontSize:9, color:'var(--text-secondary)', marginTop:3 }}>{format(day, 'MMM', { locale: es })}</div>{info && <div style={{ fontSize:9, fontWeight:800, color:info.color, marginTop:6, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{info.name.split(' ')[0]}</div>}<div style={{ display:'flex', justifyContent:'center', gap:4, marginTop:7, flexWrap:'wrap' }}>{itemsEvents.length > 0 && <span style={{ fontSize:9, color:'#10b981', fontWeight:800 }}>{itemsEvents.length}E</span>}{itemsNotes.length > 0 && <span style={{ fontSize:9, color:'#f59e0b', fontWeight:800 }}>{itemsNotes.length}N</span>}{pendingCount > 0 && <span style={{ fontSize:9, color:'#60a5fa', fontWeight:800 }}>{pendingCount}C</span>}{itemsEvents.length === 0 && itemsNotes.length === 0 && pendingCount === 0 && <span style={{ fontSize:9, color:'var(--text-muted)' }}>—</span>}</div></button>
             })}
           </div>
           {renderDayDetail()}
