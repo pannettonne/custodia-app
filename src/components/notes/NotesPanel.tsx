@@ -22,17 +22,24 @@ export function NotesPanel() {
 
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <div className="page-title" style={{ marginBottom:0 }}>Notas</div>
-          {unread > 0 && <span style={{ background:'#ef4444', color:'#fff', fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:20 }}>{unread} nueva{unread>1?'s':''}</span>}
+      <div className="card" style={{ marginBottom:16, padding:16, borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+          <div>
+            <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:4 }}>Comunicación</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              <div className="page-title" style={{ marginBottom:0 }}>Notas</div>
+              {unread > 0 && <span style={{ background:'rgba(239,68,68,0.16)', color:'#f87171', fontSize:11, fontWeight:800, padding:'4px 10px', borderRadius:999 }}>{unread} nueva{unread>1?'s':''}</span>}
+            </div>
+            <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:4 }}>Notas rápidas entre progenitores para días concretos o rangos.</div>
+          </div>
+          <button onClick={() => { setEditingNote(null); setShowForm(true) }} style={{ background:'#3B82F6', border:'none', borderRadius:12, padding:'10px 14px', color:'#fff', fontSize:12, fontWeight:800, cursor:'pointer', boxShadow:'0 10px 24px rgba(59,130,246,0.22)' }}>+ Nueva nota</button>
         </div>
-        <button onClick={() => { setEditingNote(null); setShowForm(true) }} style={{ background:'#3B82F6', border:'none', borderRadius:12, padding:'8px 14px', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>+ Nueva nota</button>
       </div>
+
       {showForm && <NoteForm note={editingNote} onClose={() => { setShowForm(false); setEditingNote(null) }} />}
       {notes.length === 0 && !showForm
         ? <div className="empty-state"><div className="empty-state-icon">📝</div><div className="empty-state-title">Sin notas todavía</div><div className="empty-state-sub">Añade notas sobre días concretos para el otro progenitor</div></div>
-        : <div>{notes.map(note => <NoteCard key={note.id} note={note} child={child} onEdit={() => { setEditingNote(note); setShowForm(true) }} />)}</div>
+        : <div style={{ display:'grid', gap:10 }}>{notes.map(note => <NoteCard key={note.id} note={note} child={child} onEdit={() => { setEditingNote(note); setShowForm(true) }} />)}</div>
       }
     </div>
   )
@@ -45,24 +52,24 @@ function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () 
   const dateText = note.type === 'single' ? formatDate(note.date!) : `${formatDate(note.startDate!)} → ${formatDate(note.endDate!)}`
   const authorColor = child?.parentColors?.[note.createdBy] ?? '#6b7280'
   return (
-    <div className="card" style={{ borderLeft:`3px solid ${tag.color}`, borderRadius:'0 16px 16px 0', marginBottom:10 }}>
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:8 }}>
+    <div className="card" style={{ border:`1px solid ${tag.color}33`, borderRadius:20, marginBottom:0, padding:16, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:10 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-          <span style={{ background:tag.bg, color:tag.color, fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:6 }}>{tag.label}</span>
-          {note.mentionOther && <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:6 }}>@ Mencionado</span>}
-          {!note.read && !isOwn && <span style={{ background:'rgba(239,68,68,0.15)', color:'#f87171', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:6 }}>● Nueva</span>}
+          <span style={{ background:tag.bg, color:tag.color, fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>{tag.label}</span>
+          {note.mentionOther && <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>@ Mencionado</span>}
+          {!note.read && !isOwn && <span style={{ background:'rgba(239,68,68,0.15)', color:'#f87171', fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>Nueva</span>}
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          {!isOwn && !note.read && <button onClick={() => markNoteRead(note.id)} style={{ background:'none', border:'none', color:'#60a5fa', cursor:'pointer', fontSize:12, fontWeight:700 }}>Marcar leída</button>}
-          {isOwn && <button onClick={onEdit} style={{ background:'none', border:'none', color:'#9ca3af', cursor:'pointer', fontSize:12, fontWeight:700 }}>Editar</button>}
-          {isOwn && <button onClick={() => deleteNote(note.id)} style={{ background:'none', border:'none', color:'#6b7280', cursor:'pointer', fontSize:16, lineHeight:1, padding:'0 2px' }}>✕</button>}
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
+          {!isOwn && !note.read && <button onClick={() => markNoteRead(note.id)} style={{ background:'rgba(59,130,246,0.12)', border:'1px solid rgba(59,130,246,0.22)', color:'#93c5fd', cursor:'pointer', fontSize:11, fontWeight:800, padding:'6px 10px', borderRadius:10 }}>Marcar leída</button>}
+          {isOwn && <button onClick={onEdit} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', cursor:'pointer', fontSize:11, fontWeight:800, padding:'6px 10px', borderRadius:10 }}>Editar</button>}
+          {isOwn && <button onClick={() => deleteNote(note.id)} style={{ background:'rgba(239,68,68,0.10)', border:'1px solid rgba(239,68,68,0.18)', color:'#fca5a5', cursor:'pointer', fontSize:11, fontWeight:800, padding:'6px 10px', borderRadius:10 }}>Eliminar</button>}
         </div>
       </div>
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
         <div style={{ width:8, height:8, borderRadius:'50%', background:authorColor, flexShrink:0 }} />
-        <span style={{ fontSize:11, color:'#9ca3af' }}>{note.createdByName} · 📅 {dateText}</span>
+        <span style={{ fontSize:11, color:'var(--text-secondary)' }}>{note.createdByName} · {dateText}</span>
       </div>
-      <p style={{ color:'#e5e7eb', fontSize:13, lineHeight:1.6 }}>{note.text}</p>
+      <p style={{ color:'var(--text-strong)', fontSize:13, lineHeight:1.6, margin:0 }}>{note.text}</p>
     </div>
   )
 }
@@ -105,8 +112,8 @@ function NoteForm({ note, onClose }: { note: Note | null; onClose: () => void })
   }
 
   return (
-    <div className="card" style={{ marginBottom:16, borderColor:'rgba(59,130,246,0.3)' }}>
-      <div style={{ fontSize:13, fontWeight:700, color:'#9ca3af', marginBottom:12 }}>{note ? '✏️ Editar nota' : '📝 Nueva nota'}</div>
+    <div className="card" style={{ marginBottom:16, borderColor:'rgba(59,130,246,0.3)', borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
+      <div style={{ fontSize:13, fontWeight:800, color:'var(--text-secondary)', marginBottom:12 }}>{note ? '✏️ Editar nota' : '📝 Nueva nota'}</div>
       <div style={{ marginBottom:10 }}>
         <div className="settings-label">Tipo</div>
         <div className="type-toggle">
@@ -125,7 +132,7 @@ function NoteForm({ note, onClose }: { note: Note | null; onClose: () => void })
         <div className="settings-label">Etiqueta</div>
         <div style={{ display:'flex', gap:8 }}>
           {(Object.entries(TAG_CONFIG) as [NoteTag, typeof TAG_CONFIG[NoteTag]][]).map(([k,v]) => (
-            <button key={k} onClick={() => setTag(k)} style={{ flex:1, padding:'8px 4px', borderRadius:10, border:`1px solid ${tag===k?v.color:'rgba(255,255,255,0.1)'}`, background:tag===k?v.bg:'rgba(255,255,255,0.04)', color:v.color, fontSize:11, fontWeight:700, cursor:'pointer' }}>{v.label}</button>
+            <button key={k} onClick={() => setTag(k)} style={{ flex:1, padding:'9px 4px', borderRadius:12, border:`1px solid ${tag===k?v.color:'var(--border)'}`, background:tag===k?v.bg:'var(--bg-soft)', color:v.color, fontSize:11, fontWeight:800, cursor:'pointer' }}>{v.label}</button>
           ))}
         </div>
       </div>
@@ -134,14 +141,14 @@ function NoteForm({ note, onClose }: { note: Note | null; onClose: () => void })
         <div style={{ marginBottom:14 }}>
           <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }}>
             <input type="checkbox" checked={mentionOther} onChange={e => setMentionOther(e.target.checked)} />
-            <span style={{ fontSize:12, color:'#9ca3af' }}>Notificar al otro progenitor</span>
+            <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Notificar al otro progenitor</span>
           </label>
         </div>
       )}
       {error && <div style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, padding:'8px 12px', marginBottom:10, fontSize:12, color:'#f87171' }}>⚠️ {error}</div>}
       <div style={{ display:'flex', gap:8 }}>
-        <button style={{ flex:1, padding:11, borderRadius:12, border:'1px solid rgba(255,255,255,0.2)', background:'transparent', color:'#9ca3af', fontSize:13, fontWeight:700, cursor:'pointer' }} onClick={onClose}>Cancelar</button>
-        <button style={{ flex:1, padding:11, borderRadius:12, border:'none', background: loading ? '#1d4ed8' : '#3B82F6', color:'#fff', fontSize:13, fontWeight:700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }} onClick={handleSubmit} disabled={loading}>{loading ? 'Guardando...' : (note ? 'Guardar cambios' : 'Guardar nota')}</button>
+        <button style={{ flex:1, padding:11, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-soft)', color:'var(--text-secondary)', fontSize:13, fontWeight:800, cursor:'pointer' }} onClick={onClose}>Cancelar</button>
+        <button style={{ flex:1, padding:11, borderRadius:12, border:'none', background: loading ? '#1d4ed8' : '#3B82F6', color:'#fff', fontSize:13, fontWeight:800, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }} onClick={handleSubmit} disabled={loading}>{loading ? 'Guardando...' : (note ? 'Guardar cambios' : 'Guardar nota')}</button>
       </div>
     </div>
   )
