@@ -28,8 +28,6 @@ interface AppState {
   setCurrentMonth: (d: Date) => void
   selectedCalendarDate: string | null
   setSelectedCalendarDate: (d: string | null) => void
-  refreshEvents: () => void
-  refreshNotes: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -59,6 +57,4 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentMonth: currentMonth => set({ currentMonth }),
   selectedCalendarDate: null,
   setSelectedCalendarDate: selectedCalendarDate => set({ selectedCalendarDate }),
-  refreshEvents: () => {},
-  refreshNotes: () => {},
 }))
