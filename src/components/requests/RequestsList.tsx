@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
@@ -19,12 +19,14 @@ function listDates(startDate: string, endDate?: string) {
   return result
 }
 
-export function RequestsList() {
+export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: string; focusSeq?: number } = {}) {
   const { user } = useAuth()
   const { requests, events, children, selectedChildId, pattern, overrides, specialPeriods } = useAppStore()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const [showResolved, setShowResolved] = useState(false)
   const [showCancelled, setShowCancelled] = useState(false)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   const grouped = useMemo(() => {
     if (!user) return { incomingPending:[], outgoingPending:[], incomingEventAssignments:[], outgoingEventAssignments:[], resolved:[], cancelled:[] }
@@ -36,6 +38,25 @@ export function RequestsList() {
     const cancelled = requests.filter(r => r.status === 'cancelled')
     return { incomingPending, outgoingPending, incomingEventAssignments, outgoingEventAssignments, resolved, cancelled }
   }, [requests, events, user?.uid])
+
+  useEffect(() => {
+    if (!focusTargetId || !focusTargetId.startsWith('request-')) return
+    const target = cardRefs.current[focusTargetId]
+    if (!target) return
+    const timer = window.setTimeout(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setHighlightedId(focusTargetId)
+      const matchedResolved = grouped.resolved.some(r => `request-${r.id}` === focusTargetId)
+      const matchedCancelled = grouped.cancelled.some(r => `request-${r.id}` === focusTargetId)
+      if (matchedResolved) setShowResolved(true)
+      if (matchedCancelled) setShowCancelled(true)
+    }, 80)
+    const clearTimer = window.setTimeout(() => setHighlightedId(current => current === focusTargetId ? null : current), 2600)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearTimeout(clearTimer)
+    }
+  }, [focusTargetId, focusSeq, grouped])
 
   const notifyRequester = async (req: ChangeRequest, accepted: boolean) => {
     await createNotification({ userId: req.fromParentId, childId: req.childId, childName: child?.name, type: 'pending_request', title: accepted ? 'Solicitud de cambio aceptada' : 'Solicitud de cambio rechazada', body: `${user?.displayName || user?.email || 'El otro progenitor'} ha ${accepted ? 'aceptado' : 'rechazado'} tu solicitud de cambio.`, dateKey: `change-request-response:${req.id}:${accepted ? 'accepted' : 'rejected'}` })
@@ -77,6 +98,10 @@ export function RequestsList() {
   }
   const EventAssignmentCard = ({ event, incoming }: { event: SchoolEvent; incoming: boolean }) => { const assignedName = event.assignedParentId && child ? child.parentNames?.[event.assignedParentId] : 'el otro progenitor'; return <div style={{ background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', border:'1px solid rgba(59,130,246,0.26)', borderRadius:20, padding:16, marginBottom:10, boxShadow:'var(--card-shadow)' }}><div style={{ marginBottom:10 }}><span style={{ display:'inline-flex', alignItems:'center', padding:'5px 10px', borderRadius:999, background:'rgba(59,130,246,0.14)', color:'#60a5fa', fontSize:11, fontWeight:800 }}>Asignación de evento pendiente</span></div><div style={{ color:'var(--text-strong)', fontSize:14, fontWeight:800, marginBottom:6 }}>{incoming ? `${event.assignmentRequestedByName || 'El otro progenitor'} quiere asignarte este evento` : `Has pedido asignar este evento a ${assignedName}`}</div><div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text-secondary)', background:'var(--bg-soft)', border:'1px solid var(--border)', padding:'6px 10px', borderRadius:12, marginBottom:10 }}>🎓 <span style={{ fontWeight:700 }}>{event.title}</span> · <span>{formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}</span></div><div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.45 }}>{event.allDay ? 'Evento de todo el día' : `Hora: ${event.time || 'Sin hora'}`}</div>{incoming ? <div style={{ display:'flex', gap:8, marginTop:12 }}><button className="req-action-btn btn-reject" onClick={() => respondEventAssignment(event, false)}>✕ Rechazar</button><button className="req-action-btn btn-accept" onClick={() => respondEventAssignment(event, true)}>✓ Aceptar</button></div> : null}</div> }
   const Section = ({ title, count, children, collapsible, open, onToggle }: any) => { if (count === 0) return null; return <div style={{ marginBottom: 14 }}><button onClick={collapsible ? onToggle : undefined} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', background:'none', border:'none', padding:'0 0 8px 0', cursor: collapsible ? 'pointer' : 'default' }}><div className="section-title" style={{ margin:0 }}>{title} ({count})</div>{collapsible && <span style={{ color:'var(--text-muted)', fontSize:12 }}>{open ? 'Ocultar' : 'Mostrar'}</span>}</button>{(!collapsible || open) && children}</div> }
+  const renderRequestCard = (req: ChangeRequest, isIncoming: boolean) => {
+    const searchId = `request-${req.id}`
+    return <div key={req.id} ref={el => { cardRefs.current[searchId] = el }} style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(245,158,11,0.45), 0 18px 40px rgba(245,158,11,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}><Card req={req} isIncoming={isIncoming} /></div>
+  }
 
-  return <div><div className="card" style={{ marginBottom:16, padding:16, borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}><div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:4 }}>Coordinación</div><div className="page-title" style={{ marginBottom:4 }}>Cambios</div><div style={{ fontSize:12, color:'var(--text-secondary)' }}>Solicitudes de cambio y asignaciones pendientes entre progenitores.</div></div><Section title="Pendientes recibidas" count={grouped.incomingPending.length}>{grouped.incomingPending.map(r => <Card key={r.id} req={r} isIncoming />)}</Section><Section title="Asignaciones de eventos pendientes" count={grouped.incomingEventAssignments.length}>{grouped.incomingEventAssignments.map(e => <EventAssignmentCard key={e.id} event={e} incoming />)}</Section><Section title="Pendientes enviadas" count={grouped.outgoingPending.length}>{grouped.outgoingPending.map(r => <Card key={r.id} req={r} isIncoming={false} />)}</Section><Section title="Asignaciones de eventos enviadas" count={grouped.outgoingEventAssignments.length}>{grouped.outgoingEventAssignments.map(e => <EventAssignmentCard key={e.id} event={e} incoming={false} />)}</Section><Section title="Resueltas" count={grouped.resolved.length} collapsible open={showResolved} onToggle={() => setShowResolved(v => !v)}>{grouped.resolved.map(r => <Card key={r.id} req={r} isIncoming={r.toParentId === user?.uid} />)}</Section><Section title="Canceladas" count={grouped.cancelled.length} collapsible open={showCancelled} onToggle={() => setShowCancelled(v => !v)}>{grouped.cancelled.map(r => <Card key={r.id} req={r} isIncoming={r.toParentId === user?.uid} />)}</Section></div>
+  return <div><div className="card" style={{ marginBottom:16, padding:16, borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}><div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:4 }}>Coordinación</div><div className="page-title" style={{ marginBottom:4 }}>Cambios</div><div style={{ fontSize:12, color:'var(--text-secondary)' }}>Solicitudes de cambio y asignaciones pendientes entre progenitores.</div></div><Section title="Pendientes recibidas" count={grouped.incomingPending.length}>{grouped.incomingPending.map(r => renderRequestCard(r, true))}</Section><Section title="Asignaciones de eventos pendientes" count={grouped.incomingEventAssignments.length}>{grouped.incomingEventAssignments.map(e => <EventAssignmentCard key={e.id} event={e} incoming />)}</Section><Section title="Pendientes enviadas" count={grouped.outgoingPending.length}>{grouped.outgoingPending.map(r => renderRequestCard(r, false))}</Section><Section title="Asignaciones de eventos enviadas" count={grouped.outgoingEventAssignments.length}>{grouped.outgoingEventAssignments.map(e => <EventAssignmentCard key={e.id} event={e} incoming={false} />)}</Section><Section title="Resueltas" count={grouped.resolved.length} collapsible open={showResolved} onToggle={() => setShowResolved(v => !v)}>{grouped.resolved.map(r => renderRequestCard(r, r.toParentId === user?.uid))}</Section><Section title="Canceladas" count={grouped.cancelled.length} collapsible open={showCancelled} onToggle={() => setShowCancelled(v => !v)}>{grouped.cancelled.map(r => renderRequestCard(r, r.toParentId === user?.uid))}</Section></div>
 }

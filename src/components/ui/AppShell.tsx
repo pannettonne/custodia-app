@@ -17,6 +17,7 @@ import type { AppNotification } from '@/types'
 type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
 type SearchResultType = 'child' | 'parent' | 'event' | 'note' | 'request' | 'special_period'
 type SearchResult = { id: string; type: SearchResultType; title: string; subtitle: string; childId?: string; date?: string; endDate?: string; targetTab: Tab }
+type FocusTarget = { id: string; seq: number } | null
 
 function inferTargetTab(item: AppNotification): Tab {
   if (item.targetTab) return item.targetTab
@@ -41,6 +42,7 @@ export function AppShell() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFilter, setSearchFilter] = useState<'all' | SearchResultType>('all')
+  const [focusTarget, setFocusTarget] = useState<FocusTarget>(null)
   useDataSubscriptions()
 
   useEffect(() => {
@@ -90,7 +92,19 @@ export function AppShell() {
   const mainTabs = [ { id: 'calendar' as Tab, label: 'Calendario', emoji: '📅' }, { id: 'requests' as Tab, label: 'Cambios', emoji: '🔄', badge: pendingReqs }, { id: 'notes' as Tab, label: 'Notas', emoji: '📝', badge: unreadNotes }, { id: 'events' as Tab, label: 'Eventos', emoji: '🎓' }, { id: 'settings' as Tab, label: 'Más', emoji: '⋯', badge: pendingInvitations } ]
 
   const openNotification = async (item: AppNotification) => { await markNotificationRead(item.id); if (item.childId) setSelectedChildId(item.childId); if (item.targetDate) { setSelectedCalendarDate(item.targetDate); setCurrentMonth(new Date(item.targetDate + 'T12:00:00')) } setTab(inferTargetTab(item)); setNotifOpen(false) }
-  const openSearchResult = (item: SearchResult) => { if (item.childId) setSelectedChildId(item.childId); if (item.date) { setSelectedCalendarDate(item.date); setCurrentMonth(new Date(item.date + 'T12:00:00')) } setTab(item.targetTab); setSearchOpen(false); setSearchQuery(''); setSearchFilter('all') }
+  const openSearchResult = (item: SearchResult) => {
+    if (item.childId) setSelectedChildId(item.childId)
+    if (item.date) {
+      setSelectedCalendarDate(item.date)
+      setCurrentMonth(new Date(item.date + 'T12:00:00'))
+    }
+    setTab(item.targetTab)
+    if (item.type === 'event' || item.type === 'note' || item.type === 'request') setFocusTarget({ id: item.id, seq: Date.now() })
+    else setFocusTarget(null)
+    setSearchOpen(false)
+    setSearchQuery('')
+    setSearchFilter('all')
+  }
   const markAllVisibleAsRead = async () => { const unread = visibleNotifications.filter(n => !n.read); await Promise.all(unread.map(n => markNotificationRead(n.id))) }
   const handleTabClick = (id: Tab) => { setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(false); if (id === 'settings') { setMoreOpen(v => !v); return } setMoreOpen(false); setTab(id) }
   const activeMore = ['packing', 'stats', 'settings'].includes(tab)
@@ -132,9 +146,9 @@ export function AppShell() {
 
       <main className="app-main" onClick={e => e.stopPropagation()}>
         {tab === 'calendar'  && <CustodyCalendar />}
-        {tab === 'requests'  && <RequestsList />}
-        {tab === 'notes'     && <NotesPanel />}
-        {tab === 'events'    && <EventsPanel />}
+        {tab === 'requests'  && <RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
+        {tab === 'notes'     && <NotesPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
+        {tab === 'events'    && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
         {tab === 'packing'   && <PackingPanel />}
         {tab === 'stats'     && <StatsPanel />}
         {tab === 'settings'  && <><div className="page-title">Configuración</div><SettingsPanel /></>}
