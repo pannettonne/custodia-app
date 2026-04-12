@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createNote, deleteNote, markNoteRead, updateNote } from '@/lib/db'
@@ -12,13 +12,30 @@ const TAG_CONFIG: Record<NoteTag, { label: string; color: string; bg: string }> 
   urgente:    { label: 'Urgente',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
 }
 
-export function NotesPanel() {
+export function NotesPanel({ focusTargetId, focusSeq }: { focusTargetId?: string; focusSeq?: number } = {}) {
   const { user } = useAuth()
   const { notes, children, selectedChildId } = useAppStore()
   const [showForm, setShowForm] = useState(false)
   const [editingNote, setEditingNote] = useState<Note | null>(null)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const unread = useMemo(() => notes.filter(n => !n.read && n.createdBy !== user?.uid).length, [notes, user?.uid])
+
+  useEffect(() => {
+    if (!focusTargetId || !focusTargetId.startsWith('note-')) return
+    const target = cardRefs.current[focusTargetId]
+    if (!target) return
+    const timer = window.setTimeout(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setHighlightedId(focusTargetId)
+    }, 80)
+    const clearTimer = window.setTimeout(() => setHighlightedId(current => current === focusTargetId ? null : current), 2600)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearTimeout(clearTimer)
+    }
+  }, [focusTargetId, focusSeq, notes.length])
 
   return (
     <div>
@@ -39,7 +56,20 @@ export function NotesPanel() {
       {showForm && <NoteForm note={editingNote} onClose={() => { setShowForm(false); setEditingNote(null) }} />}
       {notes.length === 0 && !showForm
         ? <div className="empty-state"><div className="empty-state-icon">📝</div><div className="empty-state-title">Sin notas todavía</div><div className="empty-state-sub">Añade notas sobre días concretos para el otro progenitor</div></div>
-        : <div style={{ display:'grid', gap:10 }}>{notes.map(note => <NoteCard key={note.id} note={note} child={child} onEdit={() => { setEditingNote(note); setShowForm(true) }} />)}</div>
+        : <div style={{ display:'grid', gap:10 }}>
+            {notes.map(note => {
+              const searchId = `note-${note.id}`
+              return (
+                <div
+                  key={note.id}
+                  ref={el => { cardRefs.current[searchId] = el }}
+                  style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(59,130,246,0.45), 0 18px 40px rgba(59,130,246,0.16)', transition: 'box-shadow 0.2s ease' } : undefined}
+                >
+                  <NoteCard note={note} child={child} onEdit={() => { setEditingNote(note); setShowForm(true) }} />
+                </div>
+              )
+            })}
+          </div>
       }
     </div>
   )
