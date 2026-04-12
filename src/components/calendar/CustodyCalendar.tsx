@@ -59,9 +59,9 @@ export function CustodyCalendar() {
   const { user } = useAuth()
   const { currentMonth, setCurrentMonth, children, selectedChildId, pattern, overrides, specialPeriods, notes, events, requests, selectedCalendarDate, setSelectedCalendarDate } = useAppStore()
   const [modalOpen, setModalOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<string | null>(selectedCalendarDate)
+  const [selectedDate, setSelectedDate] = useState<string | null>(selectedCalendarDate ?? toISODate(new Date()))
   const [eventActionLoading, setEventActionLoading] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('month')
+  const [viewMode, setViewMode] = useState<CalendarViewMode>('week')
 
   useEffect(() => {
     if (selectedCalendarDate) {
@@ -168,9 +168,9 @@ export function CustodyCalendar() {
               <div style={{ fontSize:18, fontWeight:900, color:'var(--text-strong)' }}>{formatDate(selectedDate)}</div>
               {selectedParentInfo && <div style={{ fontSize:13, color:'var(--text-secondary)', marginTop:6 }}>Corresponde a <strong style={{ color:selectedParentInfo.color }}>{selectedParentInfo.name}</strong>{selectedParentInfo.isMe ? ' (tú)' : ''}</div>}
             </div>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-              <button onClick={closeDayDetail} style={{ padding:'10px 13px', borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--text-secondary)', fontSize:12, fontWeight:700, cursor:'pointer' }}>Cerrar</button>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
               <button onClick={() => setModalOpen(true)} style={{ padding:'10px 13px', borderRadius:12, border:'none', background:'#3B82F6', color:'#fff', fontSize:12, fontWeight:800, cursor:'pointer', boxShadow:'0 8px 24px rgba(59,130,246,0.28)' }}>Solicitar cambio</button>
+              <button onClick={closeDayDetail} aria-label="Cerrar detalle del día" title="Cerrar" style={{ width:38, height:38, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--text-secondary)', fontSize:18, fontWeight:800, lineHeight:1, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
             </div>
           </div>
         </div>
