@@ -175,7 +175,7 @@ export function CustodyCalendar() {
           </div>
         </div>
 
-        {selectedOverride && <div style={{ padding:'12px 14px', borderRadius:16, background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.25)' }}><div style={{ fontSize:12, fontWeight:800, color:'#fbbf24', marginBottom:4 }}>Cambio aprobado</div><div style={{ font Size:12, color:'var(--text-secondary)' }}>{selectedOverride.reason || 'Sin observaciones'}</div></div>}
+        {selectedOverride && <div style={{ padding:'12px 14px', borderRadius:16, background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.25)' }}><div style={{ fontSize:12, fontWeight:800, color:'#fbbf24', marginBottom:4 }}>Cambio aprobado</div><div style={{ fontSize:12, color:'var(--text-secondary)' }}>{selectedOverride.reason || 'Sin observaciones'}</div></div>}
         {selectedSpecialPeriod && <div style={{ padding:'12px 14px', borderRadius:16, background:'var(--bg-soft)', border:'1px solid var(--border)' }}><div style={{ fontSize:12, fontWeight:800, color:'var(--text-strong)', marginBottom:4 }}>{selectedSpecialPeriod.label === 'otro' ? (selectedSpecialPeriod.customLabel ?? 'Período especial') : PERIOD_LABELS[selectedSpecialPeriod.label]}</div><div style={{ fontSize:12, color:'var(--text-secondary)' }}>Periodo especial activo este día</div></div>}
 
         <div style={{ display:'grid', gap:12 }}>
