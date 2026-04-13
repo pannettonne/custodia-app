@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
-import { respondToRequest, setOverride, cancelRequest, deleteRequest, updateEvent, createNotification } from '@/lib/db'
+import { respondToRequest, setOverride, cancelRequest, deleteRequest, updateEvent, createNotification, clearPendingEventAssignment } from '@/lib/db'
 import { formatDate, getParentForDate } from '@/lib/utils'
 import type { ChangeRequest, SchoolEvent } from '@/types'
 
@@ -103,13 +103,7 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
 
   const cancelOutgoingEventAssignment = async (event: SchoolEvent) => {
     if (!user || !child || !event.assignmentRequestToParentId) return
-    await updateEvent(event.id, {
-      assignedParentId: undefined,
-      assignmentStatus: undefined,
-      assignmentRequestedBy: undefined,
-      assignmentRequestedByName: undefined,
-      assignmentRequestToParentId: undefined,
-    })
+    await clearPendingEventAssignment(event.id)
     await createNotification({
       userId: event.assignmentRequestToParentId,
       childId: event.childId,
