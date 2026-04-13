@@ -23,6 +23,14 @@
   --red: #EF4444;
   --violet: #8B5CF6;
   --pink: #EC4899;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+  --control-height-sm: 32px;
+  --control-height-md: 38px;
+  --control-height-lg: 44px;
 }
 
 :root[data-theme='light'] {
@@ -167,3 +175,121 @@ input, textarea { -webkit-appearance: none; appearance: none; }
 input[type="date"]::-webkit-calendar-picker-indicator { filter: opacity(0.7); cursor: pointer; }
 :root[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); }
 select option { background: var(--bg-card); color: var(--text-strong); }
+
+/* Consistency pass */
+.card, .req-card, .invite-pending, .modal {
+  border-radius: var(--radius-xl);
+}
+
+.popup-menu-item,
+.floating-more-item,
+.notification-item,
+.type-btn,
+.theme-segment button,
+.parent-chip,
+.child-item,
+.quick-btn,
+.btn-primary,
+.req-action-btn,
+.btn-accept-invite,
+.calendar-nav-btn,
+.notif-btn,
+.modal-close {
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.quick-input,
+.settings-input,
+.settings-select,
+.settings-textarea {
+  border-radius: var(--radius-lg);
+}
+
+.quick-input,
+.settings-input,
+.settings-select {
+  min-height: var(--control-height-md);
+  padding: 10px 12px;
+}
+
+.settings-textarea {
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+}
+
+.quick-btn,
+.btn-primary,
+.req-action-btn,
+.btn-accept-invite,
+.type-btn,
+.theme-segment button,
+.parent-chip,
+.child-item {
+  min-height: var(--control-height-md);
+}
+
+.quick-btn,
+.btn-primary {
+  border-radius: var(--radius-lg);
+}
+
+.req-action-btn,
+.btn-accept-invite,
+.calendar-nav-btn,
+.notif-btn,
+.modal-close {
+  border-radius: var(--radius-md);
+}
+
+.popup-menu-item,
+.floating-more-item,
+.notification-item,
+.parent-chip,
+.child-item,
+.theme-segment button,
+.type-btn {
+  border-radius: var(--radius-lg);
+}
+
+.bottom-nav,
+.floating-more-menu,
+.header-popup-menu {
+  border-radius: 22px;
+}
+
+.calendar-nav-btn,
+.notif-btn,
+.modal-close {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+}
+
+.parent-chip,
+.child-item {
+  padding: 10px 12px;
+}
+
+.popup-menu-item:hover,
+.floating-more-item:hover,
+.notification-item:hover,
+.req-action-btn:hover,
+.btn-primary:hover,
+.quick-btn:hover,
+.theme-segment button:hover,
+.parent-chip:hover,
+.child-item:hover,
+.calendar-nav-btn:hover,
+.notif-btn:hover,
+.modal-close:hover {
+  transform: translateY(-1px);
+}
+
+.req-date,
+.nav-badge,
+.notif-count,
+.color-swatch,
+.legend-dot,
+.cal-modified-dot,
+.cal-today-dot {
+  border-radius: var(--radius-pill);
+}
