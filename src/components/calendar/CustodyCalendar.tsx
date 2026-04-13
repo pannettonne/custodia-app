@@ -162,15 +162,15 @@ export function CustodyCalendar() {
     return (
       <div style={{ marginTop: 16, display:'grid', gap:12 }}>
         <div className="card" style={{ padding:18, borderRadius:22, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', border:'1px solid var(--border)' }}>
-          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-            <div>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'nowrap' }}>
+            <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:12, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.5, marginBottom:6 }}>Vista del día</div>
               <div style={{ fontSize:18, fontWeight:900, color:'var(--text-strong)' }}>{formatDate(selectedDate)}</div>
               {selectedParentInfo && <div style={{ fontSize:13, color:'var(--text-secondary)', marginTop:6 }}>Corresponde a <strong style={{ color:selectedParentInfo.color }}>{selectedParentInfo.name}</strong>{selectedParentInfo.isMe ? ' (tú)' : ''}</div>}
             </div>
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
-              <button onClick={() => setModalOpen(true)} style={{ padding:'10px 13px', borderRadius:12, border:'none', background:'#3B82F6', color:'#fff', fontSize:12, fontWeight:800, cursor:'pointer', boxShadow:'0 8px 24px rgba(59,130,246,0.28)' }}>Solicitar cambio</button>
-              <button onClick={closeDayDetail} aria-label="Cerrar detalle del día" title="Cerrar" style={{ width:38, height:38, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--text-secondary)', fontSize:18, fontWeight:800, lineHeight:1, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+            <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0, marginLeft:8 }}>
+              <button onClick={() => setModalOpen(true)} style={{ padding:'10px 13px', borderRadius:12, border:'none', background:'#3B82F6', color:'#fff', fontSize:12, fontWeight:800, cursor:'pointer', boxShadow:'0 8px 24px rgba(59,130,246,0.28)', whiteSpace:'nowrap' }}>Solicitar cambio</button>
+              <button onClick={closeDayDetail} aria-label="Cerrar detalle del día" title="Cerrar" style={{ width:38, height:38, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--text-secondary)', fontSize:18, fontWeight:800, lineHeight:1, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
             </div>
           </div>
         </div>
