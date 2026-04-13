@@ -4,9 +4,11 @@ import { collection, deleteDoc, getDocs, query, serverTimestamp, addDoc, where }
 import { deleteToken, getToken, onMessage } from 'firebase/messaging'
 import { auth, db, getWebMessaging } from './firebase'
 
+const PUSH_SW_PATH = '/push-sw.js'
+
 async function getPushServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null
-  return navigator.serviceWorker.register('/firebase-messaging-sw.js')
+  return navigator.serviceWorker.register(PUSH_SW_PATH)
 }
 
 async function getCurrentDeviceToken() {
@@ -84,7 +86,7 @@ export async function disablePushNotifications() {
   } catch {}
 
   try {
-    const sw = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
+    const sw = await navigator.serviceWorker.getRegistration(PUSH_SW_PATH)
     const subscription = await sw?.pushManager.getSubscription()
     if (subscription) await subscription.unsubscribe()
   } catch {}
