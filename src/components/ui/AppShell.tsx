@@ -18,6 +18,15 @@ type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 
 type SearchResultType = 'child' | 'parent' | 'event' | 'note' | 'request' | 'special_period'
 type SearchResult = { id: string; type: SearchResultType; title: string; subtitle: string; childId?: string; date?: string; endDate?: string; targetTab: Tab }
 type FocusTarget = { id: string; seq: number } | null
+type DraftTarget = { date: string; seq: number } | null
+
+type CalendarNavigateDetail = {
+  tab: 'notes' | 'events' | 'requests'
+  childId?: string
+  date?: string
+  focusTargetId?: string
+  openComposer?: 'note' | 'event'
+}
 
 function inferTargetTab(item: AppNotification): Tab {
   if (item.targetTab) return item.targetTab
@@ -43,6 +52,8 @@ export function AppShell() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFilter, setSearchFilter] = useState<'all' | SearchResultType>('all')
   const [focusTarget, setFocusTarget] = useState<FocusTarget>(null)
+  const [noteDraftTarget, setNoteDraftTarget] = useState<DraftTarget>(null)
+  const [eventDraftTarget, setEventDraftTarget] = useState<DraftTarget>(null)
   useDataSubscriptions()
 
   useEffect(() => {
@@ -62,6 +73,25 @@ export function AppShell() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<CalendarNavigateDetail>).detail
+      if (!detail) return
+      if (detail.childId) setSelectedChildId(detail.childId)
+      if (detail.date) {
+        setSelectedCalendarDate(detail.date)
+        setCurrentMonth(new Date(detail.date + 'T12:00:00'))
+      }
+      setTab(detail.tab)
+      if (detail.focusTargetId) setFocusTarget({ id: detail.focusTargetId, seq: Date.now() })
+      if (detail.openComposer === 'note' && detail.date) setNoteDraftTarget({ date: detail.date, seq: Date.now() })
+      if (detail.openComposer === 'event' && detail.date) setEventDraftTarget({ date: detail.date, seq: Date.now() })
+    }
+    window.addEventListener('custodia:navigate', handler as EventListener)
+    return () => window.removeEventListener('custodia:navigate', handler as EventListener)
+  }, [setCurrentMonth, setSelectedCalendarDate, setSelectedChildId])
 
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const pendingReqs = useMemo(() => requests.filter(r => r.status === 'pending' && r.toParentId === user?.uid).length, [requests, user?.uid])
@@ -147,8 +177,8 @@ export function AppShell() {
       <main className="app-main" onClick={e => e.stopPropagation()}>
         {tab === 'calendar'  && <CustodyCalendar />}
         {tab === 'requests'  && <RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
-        {tab === 'notes'     && <NotesPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
-        {tab === 'events'    && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
+        {tab === 'notes'     && <NotesPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={noteDraftTarget?.date} createSeq={noteDraftTarget?.seq} />}
+        {tab === 'events'    && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={eventDraftTarget?.date} createSeq={eventDraftTarget?.seq} />}
         {tab === 'packing'   && <PackingPanel />}
         {tab === 'stats'     && <StatsPanel />}
         {tab === 'settings'  && <><div className="page-title">Configuración</div><SettingsPanel /></>}
