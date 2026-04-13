@@ -119,7 +119,13 @@ export function AppShell() {
   const filteredSearchResults = useMemo(() => allSearchResults.filter(result => (searchFilter === 'all' || result.type === searchFilter) && matchesQuery(searchQuery.trim(), result.title, result.subtitle)).slice(0, 50), [allSearchResults, searchQuery, searchFilter])
   const groupedSearchResults = useMemo(() => { const groups: Record<string, SearchResult[]> = {}; for (const item of filteredSearchResults) { const key = searchGroupLabel(item.type); groups[key] ||= []; groups[key].push(item) } return Object.entries(groups) }, [filteredSearchResults])
 
-  const mainTabs = [ { id: 'calendar' as Tab, label: 'Calendario', emoji: '📅' }, { id: 'requests' as Tab, label: 'Cambios', emoji: '🔄', badge: pendingReqs }, { id: 'notes' as Tab, label: 'Notas', emoji: '📝', badge: unreadNotes }, { id: 'events' as Tab, label: 'Eventos', emoji: '🎓' }, { id: 'settings' as Tab, label: 'Más', emoji: '⋯', badge: pendingInvitations } ]
+  const mainTabs = [
+    { id: 'calendar' as Tab, label: 'Calendario', icon: '/nav-icons/calendar.svg' },
+    { id: 'requests' as Tab, label: 'Cambios', icon: '/nav-icons/changes.svg', badge: pendingReqs },
+    { id: 'notes' as Tab, label: 'Notas', icon: '/nav-icons/notes.svg', badge: unreadNotes },
+    { id: 'events' as Tab, label: 'Eventos', icon: '/nav-icons/events.svg' },
+    { id: 'settings' as Tab, label: 'Más', icon: '/nav-icons/more.svg', badge: pendingInvitations },
+  ]
 
   const openNotification = async (item: AppNotification) => { await markNotificationRead(item.id); if (item.childId) setSelectedChildId(item.childId); if (item.targetDate) { setSelectedCalendarDate(item.targetDate); setCurrentMonth(new Date(item.targetDate + 'T12:00:00')) } setTab(inferTargetTab(item)); setNotifOpen(false) }
   const openSearchResult = (item: SearchResult) => {
@@ -189,7 +195,17 @@ export function AppShell() {
       {moreOpen && <div className="floating-more-menu" onClick={e => e.stopPropagation()}>{[{ id: 'packing' as Tab, label: '🧳 Equipaje' }, { id: 'stats' as Tab, label: '📊 Estadísticas' }, { id: 'settings' as Tab, label: '⚙️ Ajustes' }].map(({ id, label }) => <button key={id} className={`floating-more-item ${tab===id ? 'active' : ''}`} onClick={() => { setTab(id); setMoreOpen(false) }}>{label}</button>)}</div>}
 
       <nav className="bottom-nav" onClick={e => e.stopPropagation()}>
-        {mainTabs.map(({ id, label, emoji, badge }) => <button key={id} className={`nav-btn ${(tab === id || (id === 'settings' && activeMore)) ? 'active' : ''}`} onClick={() => handleTabClick(id)}><span style={{ fontSize: 20, lineHeight: 1 }}>{emoji}</span><span>{label}</span>{badge && badge > 0 ? <span className="nav-badge">{badge}</span> : null}{(tab === id || (id === 'settings' && activeMore)) && <span className="nav-active-line" />}</button>)}
+        {mainTabs.map(({ id, label, icon, badge }) => {
+          const isActive = tab === id || (id === 'settings' && activeMore)
+          return (
+            <button key={id} className={`nav-btn ${isActive ? 'active' : ''}`} onClick={() => handleTabClick(id)}>
+              <img src={icon} alt="" aria-hidden="true" style={{ width: 24, height: 24, objectFit: 'contain', opacity: isActive ? 1 : 0.92 }} />
+              <span>{label}</span>
+              {badge && badge > 0 ? <span className="nav-badge">{badge}</span> : null}
+              {isActive && <span className="nav-active-line" />}
+            </button>
+          )
+        })}
       </nav>
     </div>
   )
