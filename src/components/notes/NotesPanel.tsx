@@ -12,7 +12,7 @@ const TAG_CONFIG: Record<NoteTag, { label: string; color: string; bg: string }> 
   urgente:    { label: 'Urgente',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
 }
 
-export function NotesPanel({ focusTargetId, focusSeq }: { focusTargetId?: string; focusSeq?: number } = {}) {
+export function NotesPanel({ focusTargetId, focusSeq, initialCreateDate, createSeq }: { focusTargetId?: string; focusSeq?: number; initialCreateDate?: string; createSeq?: number } = {}) {
   const { user } = useAuth()
   const { notes, children, selectedChildId } = useAppStore()
   const [showForm, setShowForm] = useState(false)
@@ -37,6 +37,12 @@ export function NotesPanel({ focusTargetId, focusSeq }: { focusTargetId?: string
     }
   }, [focusTargetId, focusSeq, notes.length])
 
+  useEffect(() => {
+    if (!initialCreateDate || !createSeq) return
+    setEditingNote(null)
+    setShowForm(true)
+  }, [initialCreateDate, createSeq])
+
   return (
     <div>
       <div className="card" style={{ marginBottom:16, padding:16, borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
@@ -53,7 +59,7 @@ export function NotesPanel({ focusTargetId, focusSeq }: { focusTargetId?: string
         </div>
       </div>
 
-      {showForm && <NoteForm note={editingNote} onClose={() => { setShowForm(false); setEditingNote(null) }} />}
+      {showForm && <NoteForm note={editingNote} onClose={() => { setShowForm(false); setEditingNote(null) }} initialDate={initialCreateDate} />}
       {notes.length === 0 && !showForm
         ? <div className="empty-state"><div className="empty-state-icon">📝</div><div className="empty-state-title">Sin notas todavía</div><div className="empty-state-sub">Añade notas sobre días concretos para el otro progenitor</div></div>
         : <div style={{ display:'grid', gap:10 }}>
@@ -86,7 +92,7 @@ function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () 
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:10 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           <span style={{ background:tag.bg, color:tag.color, fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>{tag.label}</span>
-          {note.mentionOther && <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>@ Mencionado</span>}
+          {note.mentionOther && <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>Mencionado</span>}
           {!note.read && !isOwn && <span style={{ background:'rgba(239,68,68,0.15)', color:'#f87171', fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>Nueva</span>}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
@@ -104,13 +110,13 @@ function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () 
   )
 }
 
-function NoteForm({ note, onClose }: { note: Note | null; onClose: () => void }) {
+function NoteForm({ note, onClose, initialDate }: { note: Note | null; onClose: () => void; initialDate?: string }) {
   const { user } = useAuth()
   const { children, selectedChildId } = useAppStore()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
 
   const [type, setType] = useState<'single'|'range'>(note?.type ?? 'single')
-  const [date, setDate] = useState(note?.date ?? '')
+  const [date, setDate] = useState(note?.date ?? initialDate ?? '')
   const [startDate, setStartDate] = useState(note?.startDate ?? '')
   const [endDate, setEndDate] = useState(note?.endDate ?? '')
   const [text, setText] = useState(note?.text ?? '')
@@ -143,11 +149,11 @@ function NoteForm({ note, onClose }: { note: Note | null; onClose: () => void })
 
   return (
     <div className="card" style={{ marginBottom:16, borderColor:'rgba(59,130,246,0.3)', borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
-      <div style={{ fontSize:13, fontWeight:800, color:'var(--text-secondary)', marginBottom:12 }}>{note ? '✏️ Editar nota' : '📝 Nueva nota'}</div>
+      <div style={{ fontSize:13, fontWeight:800, color:'var(--text-secondary)', marginBottom:12 }}>{note ? 'Editar nota' : 'Nueva nota'}</div>
       <div style={{ marginBottom:10 }}>
         <div className="settings-label">Tipo</div>
         <div className="type-toggle">
-          {[{v:'single',l:'📅 Día concreto'},{v:'range',l:'↔ Rango'}].map(({v,l}) => (
+          {[{v:'single',l:'Día concreto'},{v:'range',l:'Rango'}].map(({v,l}) => (
             <button key={v} className={`type-btn ${type===v?'active':''}`} onClick={() => setType(v as any)}>{l}</button>
           ))}
         </div>
@@ -175,7 +181,7 @@ function NoteForm({ note, onClose }: { note: Note | null; onClose: () => void })
           </label>
         </div>
       )}
-      {error && <div style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, padding:'8px 12px', marginBottom:10, fontSize:12, color:'#f87171' }}>⚠️ {error}</div>}
+      {error && <div style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:10, padding:'8px 12px', marginBottom:10, fontSize:12, color:'#f87171' }}>{error}</div>}
       <div style={{ display:'flex', gap:8 }}>
         <button style={{ flex:1, padding:11, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-soft)', color:'var(--text-secondary)', fontSize:13, fontWeight:800, cursor:'pointer' }} onClick={onClose}>Cancelar</button>
         <button style={{ flex:1, padding:11, borderRadius:12, border:'none', background: loading ? '#1d4ed8' : '#3B82F6', color:'#fff', fontSize:13, fontWeight:800, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }} onClick={handleSubmit} disabled={loading}>{loading ? 'Guardando...' : (note ? 'Guardar cambios' : 'Guardar nota')}</button>
