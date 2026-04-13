@@ -1,5 +1,5 @@
 "use client"
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, type Unsubscribe, setDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, type Unsubscribe, setDoc, deleteField } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, RequestStatus, UserNotificationSettings, NotificationChannel } from '@/types'
 
@@ -78,6 +78,16 @@ export async function markNoteRead(id: string): Promise<void> { await updateDoc(
 export function subscribeToEvents(childId: string, cb: (events: SchoolEvent[]) => void): Unsubscribe { const q = query(collection(db, 'schoolEvents'), where('childId', '==', childId)); return onSnapshot(q, snap => { const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as SchoolEvent)); cb(items.sort((a, b) => a.date.localeCompare(b.date) || ((a.time || '').localeCompare(b.time || '')))) }) }
 export async function createEvent(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Promise<string> { const ref = await addDoc(collection(db, 'schoolEvents'), compactUndefined({ ...data, time: data.allDay ? undefined : (data.time || undefined), endDate: data.endDate || undefined, notes: data.notes || undefined, customCategory: data.category === 'otro' ? (data.customCategory || undefined) : undefined, cancelledDates: data.cancelledDates || [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() })); return ref.id }
 export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), compactUndefined({ ...data, customCategory: data.category === 'otro' ? data.customCategory : (data.customCategory || undefined), updatedAt: serverTimestamp() })) }
+export async function clearPendingEventAssignment(id: string): Promise<void> {
+  await updateDoc(doc(db, 'schoolEvents', id), {
+    assignedParentId: deleteField(),
+    assignmentStatus: deleteField(),
+    assignmentRequestedBy: deleteField(),
+    assignmentRequestedByName: deleteField(),
+    assignmentRequestToParentId: deleteField(),
+    updatedAt: serverTimestamp(),
+  })
+}
 export async function cancelEventOccurrence(id: string, date: string): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), { cancelledDates: arrayUnion(date), updatedAt: serverTimestamp() }) }
 export async function restoreEventOccurrence(id: string, date: string): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), { cancelledDates: arrayRemove(date), updatedAt: serverTimestamp() }) }
 export async function deleteEvent(id: string): Promise<void> { await deleteDoc(doc(db, 'schoolEvents', id)) }

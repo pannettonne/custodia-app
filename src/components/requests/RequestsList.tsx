@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
-import { respondToRequest, setOverride, cancelRequest, deleteRequest, updateEvent, createNotification } from '@/lib/db'
+import { respondToRequest, setOverride, cancelRequest, deleteRequest, updateEvent, createNotification, clearPendingEventAssignment } from '@/lib/db'
 import { formatDate, getParentForDate } from '@/lib/utils'
 import type { ChangeRequest, SchoolEvent } from '@/types'
 
@@ -101,6 +101,20 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
     if (event.assignmentRequestedBy) await createNotification({ userId: event.assignmentRequestedBy, childId: event.childId, childName: child.name, type: 'event_assignment_response', title: 'Asignación de evento aceptada', body: `${user.displayName || user.email || 'Progenitor'} ha aceptado la asignación del evento “${event.title}”.`, dateKey: event.date })
   }
 
+  const cancelOutgoingEventAssignment = async (event: SchoolEvent) => {
+    if (!user || !child || !event.assignmentRequestToParentId) return
+    await clearPendingEventAssignment(event.id)
+    await createNotification({
+      userId: event.assignmentRequestToParentId,
+      childId: event.childId,
+      childName: child.name,
+      type: 'event_assignment_response',
+      title: 'Asignación de evento cancelada',
+      body: `${user.displayName || user.email || 'Progenitor'} ha cancelado la asignación pendiente del evento “${event.title}”.`,
+      dateKey: `event-assignment-cancel:${event.id}`,
+    })
+  }
+
   if (requests.length === 0 && grouped.incomingEventAssignments.length === 0 && grouped.outgoingEventAssignments.length === 0) {
     return <div className="empty-state"><div className="empty-state-icon">💬</div><div className="empty-state-title">No hay solicitudes de cambio</div><div className="empty-state-sub">Las peticiones aparecerán aquí</div></div>
   }
@@ -166,7 +180,16 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
         <div style={{ color:'var(--text-strong)', fontSize:14, fontWeight:800, marginBottom:6 }}>{incoming ? `${event.assignmentRequestedByName || 'El otro progenitor'} quiere asignarte este evento` : `Has pedido asignar este evento a ${assignedName}`}</div>
         <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text-secondary)', background:'var(--bg-soft)', border:'1px solid var(--border)', padding:'7px 10px', borderRadius:12, marginBottom:10 }}>🎓 <span style={{ fontWeight:700 }}>{event.title}</span> · <span>{formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}</span></div>
         <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.45 }}>{event.allDay ? 'Evento de todo el día' : `Hora: ${event.time || 'Sin hora'}`}</div>
-        {incoming ? <div style={{ display:'flex', gap:8, marginTop:14 }}><button className="req-action-btn btn-reject" onClick={() => respondEventAssignment(event, false)}>✕ Rechazar</button><button className="req-action-btn btn-accept" onClick={() => respondEventAssignment(event, true)}>✓ Aceptar</button></div> : null}
+        {incoming ? (
+          <div style={{ display:'flex', gap:8, marginTop:14 }}>
+            <button className="req-action-btn btn-reject" onClick={() => respondEventAssignment(event, false)}>✕ Rechazar</button>
+            <button className="req-action-btn btn-accept" onClick={() => respondEventAssignment(event, true)}>✓ Aceptar</button>
+          </div>
+        ) : (
+          <div style={{ display:'flex', gap:8, marginTop:14 }}>
+            <button className="req-action-btn btn-reject" onClick={() => cancelOutgoingEventAssignment(event)}>Cancelar asignación</button>
+          </div>
+        )}
       </div>
     )
   }
