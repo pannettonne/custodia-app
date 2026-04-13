@@ -159,7 +159,11 @@ export function AppShell() {
                   {child && <div className="app-subtitle" style={{ fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{child.name}</div>}
                   <div style={{ position:'relative', flexShrink:0 }}>
                     <button onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(v => !v) }} title="Consulta rápida" style={{ width:20, height:20, borderRadius:'50%', border:'1px solid var(--border-hover)', background:'var(--bg-card)', color:'var(--text-secondary)', fontSize:11, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>?</button>
-                    {queryOpen && <div className="header-popup-menu" style={{ left:0, right:'auto', minWidth:280, width:'min(320px, calc(100vw - 32px))', padding:0, overflow:'hidden' }}><QuickDateQuery /></div>}
+                    {queryOpen && (
+                      <div className="header-popup-menu" style={{ position:'fixed', top:74, left:16, right:16, width:'auto', maxWidth:320, margin:'0 auto', padding:0, overflow:'hidden' }}>
+                        <QuickDateQuery />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
