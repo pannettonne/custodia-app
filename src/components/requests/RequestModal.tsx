@@ -23,11 +23,15 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
 
   useEffect(() => {
     if (!open) return
-    if (initialDate) {
-      setDate(initialDate)
-      setStartDate(prev => prev || initialDate)
-      setEndDate(prev => prev || initialDate)
-    }
+
+    const seedDate = initialDate ?? ''
+    setType('single')
+    setDate(seedDate)
+    setStartDate(seedDate)
+    setEndDate(seedDate)
+    setReason('')
+    setLoading(false)
+    setSuccess(false)
   }, [open, initialDate])
 
   if (!open) return null
@@ -35,6 +39,21 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
   const isValid = reason.trim().length > 0 && (type === 'single' ? !!date : !!startDate && !!endDate && startDate <= endDate)
   const summaryDate = type === 'single' ? date : `${startDate}→${endDate}`
   const targetDate = type === 'single' ? date : startDate
+
+  const handleTypeChange = (nextType: 'single' | 'range') => {
+    if (nextType === type) return
+
+    if (nextType === 'range') {
+      const seedDate = date || startDate || endDate || initialDate || ''
+      setStartDate(seedDate)
+      setEndDate(current => (current && current >= seedDate ? current : seedDate))
+    } else {
+      const seedDate = startDate || date || initialDate || ''
+      setDate(seedDate)
+    }
+
+    setType(nextType)
+  }
 
   const handleSubmit = async () => {
     if (!user || !child || !otherParentId || !reason.trim()) return
@@ -71,15 +90,10 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
                 <div className="settings-label">Tipo de cambio</div>
                 <div className="type-toggle">
                   {[{v:'single',l:'📅 Día concreto'},{v:'range',l:'↔ Rango de fechas'}].map(({v,l}) => (
-                    <button key={v} className={`type-btn ${type===v?'active':''}`} onClick={() => {
-                      setType(v as any)
-                      if (v === 'range' && date) {
-                        setStartDate(prev => prev || date)
-                        setEndDate(prev => prev || date)
-                      }
-                    }}>{l}</button>
+                    <button key={v} className={`type-btn ${type===v?'active':''}`} onClick={() => handleTypeChange(v as 'single' | 'range')}>{l}</button>
                   ))}
                 </div>
+                {initialDate && <div style={{ marginTop:8, fontSize:11, color:'var(--text-muted)' }}>Fecha contextual precargada desde el día seleccionado.</div>}
               </div>
 
               <div style={{marginBottom:14}}>
