@@ -4,6 +4,7 @@ import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
 import { respondToRequest, setOverride, cancelRequest, deleteRequest, updateEvent, createNotification, clearPendingEventAssignment } from '@/lib/db'
+import { showToast } from '@/lib/toast'
 import { formatDate, getParentForDate } from '@/lib/utils'
 import type { ChangeRequest, SchoolEvent } from '@/types'
 
@@ -100,6 +101,7 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
   const handleCancelOwn = async (req: ChangeRequest) => {
     await cancelRequest(req.id)
     await createNotification({ userId: req.toParentId, childId: req.childId, childName: child?.name, type: 'pending_request', title: 'Solicitud de cambio cancelada', body: `${user?.displayName || user?.email || 'El otro progenitor'} ha cancelado una solicitud de cambio pendiente.`, dateKey: `change-request-cancel:${req.id}` })
+    showToast({ message: 'Solicitud cancelada.', tone: 'success' })
   }
 
   const respondEventAssignment = async (event: SchoolEvent, accept: boolean) => {
@@ -130,6 +132,7 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
       body: `${user.displayName || user.email || 'Progenitor'} ha cancelado la asignación pendiente del evento “${event.title}”.`,
       dateKey: `event-assignment-cancel:${event.id}`,
     })
+    showToast({ message: 'Asignación cancelada.', tone: 'success' })
   }
 
   if (requests.length === 0 && grouped.incomingEventAssignments.length === 0 && grouped.outgoingEventAssignments.length === 0) {

@@ -11,6 +11,7 @@ import { NotesPanel } from '@/components/notes/NotesPanel'
 import { EventsPanel } from '@/components/events/EventsPanel'
 import { PackingPanel } from '@/components/packing/PackingPanel'
 import { StatsPanel } from '@/components/stats/StatsPanel'
+import { GlobalToasts } from '@/components/ui/GlobalToasts'
 import { markNotificationRead } from '@/lib/db'
 import type { AppNotification } from '@/types'
 
@@ -147,6 +148,7 @@ export function AppShell() {
 
   return (
     <div className="app-shell" onClick={() => { if (moreOpen) setMoreOpen(false); if (userMenuOpen) setUserMenuOpen(false); if (notifOpen) setNotifOpen(false); if (queryOpen) setQueryOpen(false) }}>
+      <GlobalToasts />
       <header className="app-header" onClick={e => e.stopPropagation()} style={{ paddingBottom: 8, marginBottom: 4 }}>
         <div style={{ width:'100%', padding:'10px 12px', borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', border:'1px solid var(--border)', boxShadow:'var(--card-shadow)' }}>
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, flexWrap:'nowrap' }}>

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { disablePushNotifications, enablePushNotifications, getPushStatus, sendTestPush } from '@/lib/push'
+import { showToast } from '@/lib/toast'
 
 export function PushSection() {
   const [available, setAvailable] = useState(false)
@@ -26,9 +27,13 @@ export function PushSection() {
     try {
       await enablePushNotifications()
       await refresh()
-      setMessage('Push activado correctamente en este dispositivo.')
+      const nextMessage = 'Push activado correctamente en este dispositivo.'
+      setMessage(nextMessage)
+      showToast({ message: 'Push activado.', tone: 'success' })
     } catch (e: any) {
-      setMessage(e?.message || 'No se pudo activar push')
+      const nextMessage = e?.message || 'No se pudo activar push'
+      setMessage(nextMessage)
+      showToast({ message: nextMessage, tone: 'error' })
     } finally {
       setLoading(false)
     }
@@ -40,9 +45,13 @@ export function PushSection() {
     try {
       await disablePushNotifications()
       await refresh()
-      setMessage('Push desactivado en este dispositivo.')
+      const nextMessage = 'Push desactivado en este dispositivo.'
+      setMessage(nextMessage)
+      showToast({ message: 'Push desactivado.', tone: 'success' })
     } catch (e: any) {
-      setMessage(e?.message || 'No se pudo desactivar push')
+      const nextMessage = e?.message || 'No se pudo desactivar push'
+      setMessage(nextMessage)
+      showToast({ message: nextMessage, tone: 'error' })
     } finally {
       setLoading(false)
     }

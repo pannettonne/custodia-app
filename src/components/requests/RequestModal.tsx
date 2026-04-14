@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
 import { createChangeRequest, createNotification } from '@/lib/db'
+import { showToast } from '@/lib/toast'
 
 interface Props { open: boolean; onClose: () => void; initialDate?: string | null }
 
@@ -61,9 +62,13 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
     try {
       await createChangeRequest({ childId: child.id, fromParentId: user.uid, fromParentName: user.displayName ?? user.email ?? 'Progenitor', toParentId: otherParentId, type, ...(type === 'single' ? { date } : { startDate, endDate }), reason: reason.trim() })
       await createNotification({ userId: otherParentId, childId: child.id, childName: child.name, type: 'pending_request', title: 'Nueva solicitud de cambio', body: `${user.displayName || user.email || 'El otro progenitor'} ha pedido un cambio de custodia (${summaryDate}).`, dateKey: `change-request:${child.id}:${summaryDate}:${Date.now()}`, targetTab: 'requests', targetDate })
+      showToast({ message: 'Solicitud enviada.', tone: 'success' })
       setSuccess(true)
       setTimeout(() => { onClose(); setSuccess(false) }, 1500)
-    } catch(e) { console.error(e) } finally { setLoading(false) }
+    } catch(e: any) {
+      console.error(e)
+      showToast({ message: e?.message || 'No se pudo enviar la solicitud.', tone: 'error' })
+    } finally { setLoading(false) }
   }
 
   return (
