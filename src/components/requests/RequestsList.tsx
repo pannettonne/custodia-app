@@ -40,23 +40,40 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
   }, [requests, events, user?.uid])
 
   useEffect(() => {
-    if (!focusTargetId || !focusTargetId.startsWith('request-')) return
+    if (!focusTargetId) return
+
+    if (focusTargetId.startsWith('request-')) {
+      const matchedResolved = grouped.resolved.some(r => `request-${r.id}` === focusTargetId)
+      const matchedCancelled = grouped.cancelled.some(r => `request-${r.id}` === focusTargetId)
+
+      if (matchedResolved && !showResolved) {
+        setShowResolved(true)
+        return
+      }
+      if (matchedCancelled && !showCancelled) {
+        setShowCancelled(true)
+        return
+      }
+    }
+
     const target = cardRefs.current[focusTargetId]
     if (!target) return
+
     const timer = window.setTimeout(() => {
       target.scrollIntoView({ behavior: 'smooth', block: 'center' })
       setHighlightedId(focusTargetId)
-      const matchedResolved = grouped.resolved.some(r => `request-${r.id}` === focusTargetId)
-      const matchedCancelled = grouped.cancelled.some(r => `request-${r.id}` === focusTargetId)
-      if (matchedResolved) setShowResolved(true)
-      if (matchedCancelled) setShowCancelled(true)
     }, 80)
     const clearTimer = window.setTimeout(() => setHighlightedId(current => current === focusTargetId ? null : current), 2600)
     return () => {
       window.clearTimeout(timer)
       window.clearTimeout(clearTimer)
     }
-  }, [focusTargetId, focusSeq, grouped])
+  }, [focusTargetId, focusSeq, grouped, showResolved, showCancelled])
+
+  const navigateToTarget = (detail: any) => {
+    if (typeof window === 'undefined') return
+    window.dispatchEvent(new CustomEvent('custodia:navigate', { detail }))
+  }
 
   const notifyRequester = async (req: ChangeRequest, accepted: boolean) => {
     await createNotification({ userId: req.fromParentId, childId: req.childId, childName: child?.name, type: 'pending_request', title: accepted ? 'Solicitud de cambio aceptada' : 'Solicitud de cambio rechazada', body: `${user?.displayName || user?.email || 'El otro progenitor'} ha ${accepted ? 'aceptado' : 'rechazado'} tu solicitud de cambio.`, dateKey: `change-request-response:${req.id}:${accepted ? 'accepted' : 'rejected'}` })
@@ -172,24 +189,37 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
 
   const EventAssignmentCard = ({ event, incoming }: { event: SchoolEvent; incoming: boolean }) => {
     const assignedName = event.assignedParentId && child ? child.parentNames?.[event.assignedParentId] : 'el otro progenitor'
+
+    const openEvent = () => {
+      navigateToTarget({
+        tab: 'events',
+        childId: event.childId,
+        date: event.date,
+        focusTargetId: `event-${event.id}`,
+      })
+    }
+
     return (
       <div style={{ background:'linear-gradient(180deg, rgba(59,130,246,0.10) 0%, var(--bg-card) 30%, var(--bg-soft) 100%)', border:'1px solid rgba(59,130,246,0.26)', borderRadius:22, padding:16, marginBottom:10, boxShadow:'var(--card-shadow)' }}>
         <div style={{ marginBottom:10 }}>
           <span style={{ display:'inline-flex', alignItems:'center', padding:'5px 10px', borderRadius:999, background:'rgba(59,130,246,0.14)', color:'#60a5fa', fontSize:11, fontWeight:800 }}>Asignación de evento pendiente</span>
         </div>
-        <div style={{ color:'var(--text-strong)', fontSize:14, fontWeight:800, marginBottom:6 }}>{incoming ? `${event.assignmentRequestedByName || 'El otro progenitor'} quiere asignarte este evento` : `Has pedido asignar este evento a ${assignedName}`}</div>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text-secondary)', background:'var(--bg-soft)', border:'1px solid var(--border)', padding:'7px 10px', borderRadius:12, marginBottom:10 }}>🎓 <span style={{ fontWeight:700 }}>{event.title}</span> · <span>{formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}</span></div>
-        <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.45 }}>{event.allDay ? 'Evento de todo el día' : `Hora: ${event.time || 'Sin hora'}`}</div>
-        {incoming ? (
-          <div style={{ display:'flex', gap:8, marginTop:14 }}>
-            <button className="req-action-btn btn-reject" onClick={() => respondEventAssignment(event, false)}>✕ Rechazar</button>
-            <button className="req-action-btn btn-accept" onClick={() => respondEventAssignment(event, true)}>✓ Aceptar</button>
-          </div>
-        ) : (
-          <div style={{ display:'flex', gap:8, marginTop:14 }}>
+        <button onClick={openEvent} style={{ width:'100%', textAlign:'left', background:'none', border:'none', padding:0, cursor:'pointer' }}>
+          <div style={{ color:'var(--text-strong)', fontSize:14, fontWeight:800, marginBottom:6 }}>{incoming ? `${event.assignmentRequestedByName || 'El otro progenitor'} quiere asignarte este evento` : `Has pedido asignar este evento a ${assignedName}`}</div>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text-secondary)', background:'var(--bg-soft)', border:'1px solid var(--border)', padding:'7px 10px', borderRadius:12, marginBottom:10 }}>🎓 <span style={{ fontWeight:700 }}>{event.title}</span> · <span>{formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}</span></div>
+          <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.45 }}>{event.allDay ? 'Evento de todo el día' : `Hora: ${event.time || 'Sin hora'}`}</div>
+        </button>
+        <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap' }}>
+          <button className="req-action-btn" style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)' }} onClick={openEvent}>Abrir evento</button>
+          {incoming ? (
+            <>
+              <button className="req-action-btn btn-reject" onClick={() => respondEventAssignment(event, false)}>✕ Rechazar</button>
+              <button className="req-action-btn btn-accept" onClick={() => respondEventAssignment(event, true)}>✓ Aceptar</button>
+            </>
+          ) : (
             <button className="req-action-btn btn-reject" onClick={() => cancelOutgoingEventAssignment(event)}>Cancelar asignación</button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     )
   }
@@ -216,6 +246,11 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
     return <div key={req.id} ref={el => { cardRefs.current[searchId] = el }} style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(245,158,11,0.45), 0 18px 40px rgba(245,158,11,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}><Card req={req} isIncoming={isIncoming} /></div>
   }
 
+  const renderEventAssignmentCard = (event: SchoolEvent, incoming: boolean) => {
+    const searchId = `event-${event.id}`
+    return <div key={event.id} ref={el => { cardRefs.current[searchId] = el }} style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(59,130,246,0.45), 0 18px 40px rgba(59,130,246,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}><EventAssignmentCard event={event} incoming={incoming} /></div>
+  }
+
   const totalPending = grouped.incomingPending.length + grouped.outgoingPending.length + grouped.incomingEventAssignments.length + grouped.outgoingEventAssignments.length
 
   return (
@@ -238,9 +273,9 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
       </div>
 
       <Section title="Pendientes recibidas" count={grouped.incomingPending.length} tone="warning">{grouped.incomingPending.map(r => renderRequestCard(r, true))}</Section>
-      <Section title="Asignaciones de eventos pendientes" count={grouped.incomingEventAssignments.length} tone="info">{grouped.incomingEventAssignments.map(e => <EventAssignmentCard key={e.id} event={e} incoming />)}</Section>
+      <Section title="Asignaciones de eventos pendientes" count={grouped.incomingEventAssignments.length} tone="info">{grouped.incomingEventAssignments.map(e => renderEventAssignmentCard(e, true))}</Section>
       <Section title="Pendientes enviadas" count={grouped.outgoingPending.length} tone="info">{grouped.outgoingPending.map(r => renderRequestCard(r, false))}</Section>
-      <Section title="Asignaciones de eventos enviadas" count={grouped.outgoingEventAssignments.length} tone="info">{grouped.outgoingEventAssignments.map(e => <EventAssignmentCard key={e.id} event={e} incoming={false} />)}</Section>
+      <Section title="Asignaciones de eventos enviadas" count={grouped.outgoingEventAssignments.length} tone="info">{grouped.outgoingEventAssignments.map(e => renderEventAssignmentCard(e, false))}</Section>
       <Section title="Resueltas" count={grouped.resolved.length} collapsible open={showResolved} onToggle={() => setShowResolved(v => !v)} tone="success">{grouped.resolved.map(r => renderRequestCard(r, r.toParentId === user?.uid))}</Section>
       <Section title="Canceladas" count={grouped.cancelled.length} collapsible open={showCancelled} onToggle={() => setShowCancelled(v => !v)}>{grouped.cancelled.map(r => renderRequestCard(r, r.toParentId === user?.uid))}</Section>
     </div>

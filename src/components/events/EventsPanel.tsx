@@ -58,6 +58,28 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
 
   useEffect(() => {
     if (!focusTargetId || !focusTargetId.startsWith('event-')) return
+
+    const targetEventId = focusTargetId.replace('event-', '')
+    const targetEvent = events.find(event => event.id === targetEventId)
+    if (!targetEvent) return
+
+    const today = new Date().toISOString().slice(0, 10)
+
+    if (targetEvent.assignmentStatus === 'pending' && !showPendingAssignments) {
+      setShowPendingAssignments(true)
+      return
+    }
+
+    if (targetEvent.date < today && !showPast) {
+      setShowPast(true)
+      return
+    }
+
+    if (targetEvent.date > today && !showUpcoming) {
+      setShowUpcoming(true)
+      return
+    }
+
     const target = cardRefs.current[focusTargetId]
     if (!target) return
     const timer = window.setTimeout(() => {
@@ -66,7 +88,7 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
     }, 80)
     const clearTimer = window.setTimeout(() => setHighlightedId(current => current === focusTargetId ? null : current), 2600)
     return () => { window.clearTimeout(timer); window.clearTimeout(clearTimer) }
-  }, [focusTargetId, focusSeq, filtered.length])
+  }, [focusTargetId, focusSeq, events, showPast, showUpcoming, showPendingAssignments])
 
   useEffect(() => {
     if (!initialCreateDate || !createSeq) return
