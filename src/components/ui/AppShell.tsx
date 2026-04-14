@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { useDataSubscriptions } from '@/hooks/useDataSubscriptions'
@@ -28,6 +28,12 @@ type CalendarNavigateDetail = {
   focusTargetId?: string
   openComposer?: 'note' | 'event'
 }
+
+const HEADER_SEARCH_ICON = '/shell-icons/search.svg'
+const HEADER_BELL_ICON = '/shell-icons/bell.svg'
+const MORE_PACKING_ICON = '/shell-icons/packing.svg'
+const MORE_STATS_ICON = '/shell-icons/stats.svg'
+const MORE_SETTINGS_ICON = '/shell-icons/settings.svg'
 
 function inferTargetTab(item: AppNotification): Tab {
   if (item.targetTab) return item.targetTab
@@ -161,23 +167,19 @@ export function AppShell() {
                   {child && <div className="app-subtitle" style={{ fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{child.name}</div>}
                   <div style={{ position:'relative', flexShrink:0 }}>
                     <button onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(v => !v) }} title="Consulta rápida" style={{ width:20, height:20, borderRadius:'50%', border:'1px solid var(--border-hover)', background:'var(--bg-card)', color:'var(--text-secondary)', fontSize:11, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>?</button>
-                    {queryOpen && (
-                      <div className="header-popup-menu" style={{ position:'fixed', top:74, left:16, right:16, width:'auto', maxWidth:320, margin:'0 auto', padding:0, overflow:'hidden' }}>
-                        <QuickDateQuery />
-                      </div>
-                    )}
+                    {queryOpen && <div className="header-popup-menu" style={{ position:'fixed', top:74, left:16, right:16, width:'auto', maxWidth:320, margin:'0 auto', padding:0, overflow:'hidden' }}><QuickDateQuery /></div>}
                   </div>
                 </div>
               </div>
             </div>
             <div style={{ display:'flex', alignItems:'flex-start', gap:6, position:'relative', flexWrap:'nowrap', justifyContent:'flex-end', marginLeft:8, flexShrink:0 }}>
-              <button onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(false); setSearchOpen(true) }} title="Buscar" style={{ height:34, width:34, borderRadius:12, border:'1px solid var(--border-hover)', background:'var(--bg-card)', color:'var(--text-secondary)', cursor:'pointer', padding:0, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'var(--card-shadow)', flexShrink:0 }}><span>🔎</span></button>
+              <button onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(false); setSearchOpen(true) }} title="Buscar" style={{ height:34, width:34, borderRadius:12, border:'1px solid var(--border-hover)', background:'var(--bg-card)', color:'var(--text-secondary)', cursor:'pointer', padding:0, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'var(--card-shadow)', flexShrink:0 }}><img src={HEADER_SEARCH_ICON} alt="" aria-hidden="true" style={{ width:18, height:18, objectFit:'contain' }} /></button>
               {children.length > 1 && <select value={selectedChildId ?? ''} onChange={e => setSelectedChildId(e.target.value)} style={{ maxWidth:92, background:'var(--bg-card)', border:'1px solid var(--border-hover)', borderRadius:12, padding:'7px 10px', color:'var(--text-strong)', fontSize:11, outline:'none', boxShadow:'var(--card-shadow)', flexShrink:1 }}><option value={selectedChildId ?? ''}>{children.find(c => c.id === selectedChildId)?.name ?? 'Menor'}</option>{children.filter(c => c.id !== selectedChildId).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
-              <div style={{ position: 'relative', flexShrink:0 }}>
-                <button className="notif-btn" onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setQueryOpen(false); setNotifOpen(v => !v) }} style={{ width:34, height:34, borderRadius:12, background:'var(--bg-card)', border:'1px solid var(--border-hover)' }}>🔔{totalBadge > 0 ? <span className="notif-count">{totalBadge}</span> : null}</button>
+              <div style={{ position:'relative', flexShrink:0 }}>
+                <button className="notif-btn" onClick={() => { setMoreOpen(false); setUserMenuOpen(false); setQueryOpen(false); setNotifOpen(v => !v) }} style={{ width:34, height:34, borderRadius:12, background:'var(--bg-card)', border:'1px solid var(--border-hover)', display:'flex', alignItems:'center', justifyContent:'center' }}><img src={HEADER_BELL_ICON} alt="" aria-hidden="true" style={{ width:18, height:18, objectFit:'contain' }} />{totalBadge > 0 ? <span className="notif-count">{totalBadge}</span> : null}</button>
                 {notifOpen && <div className="header-popup-menu notifications-popup-menu" style={{ right:0, left:'auto', width:'min(300px, calc(100vw - 28px))', maxHeight:'70vh', overflow:'auto' }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:8 }}><div className="popup-menu-label" style={{ margin:0, borderBottom:'none', padding:'0 0 0 2px' }}>Avisos</div><button className="popup-menu-item" style={{ width:'auto', padding:'6px 10px' }} onClick={markAllVisibleAsRead}>Leer todo</button></div><div style={{ display:'flex', gap:6, marginBottom:10 }}><button className="popup-menu-item" style={{ flex:1, justifyContent:'center', textAlign:'center', background: notifFilter === 'unread' ? 'var(--bg-soft)' : 'transparent' }} onClick={() => setNotifFilter('unread')}>No leídos</button><button className="popup-menu-item" style={{ flex:1, justifyContent:'center', textAlign:'center', background: notifFilter === 'all' ? 'var(--bg-soft)' : 'transparent' }} onClick={() => setNotifFilter('all')}>Todos</button></div>{groupedNotifications.length === 0 ? <div className="popup-empty">No hay avisos en esta vista.</div> : groupedNotifications.map(([group, items]) => <div key={group} style={{ marginBottom:10 }}><div style={{ fontSize:11, fontWeight:800, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:0.4, marginBottom:6, padding:'0 4px' }}>{group}</div>{items.map(item => <button key={item.id} className="notification-item" onClick={() => openNotification(item)}><div className="notification-item-title">{item.title}</div><div className="notification-item-body">{item.body}</div>{!item.read && <div className="notification-item-dot" />}</button>)}</div>)}{(pendingReqs > 0 || unreadNotes > 0 || pendingInvitations > 0) && <div style={{ borderTop:'1px solid var(--border)', marginTop:8, paddingTop:8, display:'flex', flexDirection:'column', gap:4 }}>{pendingReqs > 0 && <button className="popup-menu-item" onClick={() => { setTab('requests'); setNotifOpen(false) }}>Ver solicitudes pendientes</button>}{unreadNotes > 0 && <button className="popup-menu-item" onClick={() => { setTab('notes'); setNotifOpen(false) }}>Ver notas no leídas</button>}{pendingInvitations > 0 && <button className="popup-menu-item" onClick={() => { setTab('settings'); setNotifOpen(false) }}>Ver invitaciones pendientes</button>}</div>}</div>}
               </div>
-              <div style={{ position: 'relative', flexShrink:0 }}>
+              <div style={{ position:'relative', flexShrink:0 }}>
                 <button className="user-avatar" onClick={() => { setMoreOpen(false); setNotifOpen(false); setQueryOpen(false); setUserMenuOpen(v => !v) }} title="Usuario" style={{ width:34, height:34, borderRadius:12 }}>{user?.photoURL ? <img src={user.photoURL} alt="" /> : (user?.displayName ?? user?.email ?? 'U')[0].toUpperCase()}</button>
                 {userMenuOpen && <div className="header-popup-menu user-popup-menu" style={{ right:0, left:'auto', width:'min(220px, calc(100vw - 28px))' }}><div className="popup-menu-label">{user?.displayName ?? user?.email}</div><button className="popup-menu-item danger" onClick={signOut}>Cerrar sesión</button></div>}
               </div>
@@ -187,30 +189,27 @@ export function AppShell() {
       </header>
 
       <main className="app-main" onClick={e => e.stopPropagation()}>
-        {tab === 'calendar'  && <CustodyCalendar />}
-        {tab === 'requests'  && <RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
-        {tab === 'notes'     && <NotesPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={noteDraftTarget?.date} createSeq={noteDraftTarget?.seq} />}
-        {tab === 'events'    && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={eventDraftTarget?.date} createSeq={eventDraftTarget?.seq} />}
-        {tab === 'packing'   && <PackingPanel />}
-        {tab === 'stats'     && <StatsPanel />}
-        {tab === 'settings'  && <><div className="page-title">Configuración</div><SettingsPanel /></>}
+        {tab === 'calendar' && <CustodyCalendar />}
+        {tab === 'requests' && <RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
+        {tab === 'notes' && <NotesPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={noteDraftTarget?.date} createSeq={noteDraftTarget?.seq} />}
+        {tab === 'events' && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={eventDraftTarget?.date} createSeq={eventDraftTarget?.seq} />}
+        {tab === 'packing' && <PackingPanel />}
+        {tab === 'stats' && <StatsPanel />}
+        {tab === 'settings' && <><div className="page-title">Configuración</div><SettingsPanel /></>}
       </main>
 
       {searchOpen && <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:90, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'70px 14px 14px' }} onClick={() => setSearchOpen(false)}><div className="card" style={{ width:'100%', maxWidth:680, maxHeight:'80vh', overflow:'auto', padding:14 }} onClick={e => e.stopPropagation()}><div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}><input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar en eventos, notas, cambios, menores, progenitores..." className="settings-input" style={{ marginBottom:0 }} /><button className="btn-primary btn-outline" style={{ padding:'10px 12px' }} onClick={() => setSearchOpen(false)}>Cerrar</button></div><div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:4, marginBottom:10, flexWrap:'wrap' }}>{[['all','Todo'],['event','Eventos'],['note','Notas'],['request','Cambios'],['special_period','Períodos'],['child','Menores'],['parent','Progenitores']].map(([value, label]) => <button key={value} onClick={() => setSearchFilter(value as any)} style={{ padding:'6px 10px', borderRadius:999, border:`1px solid ${searchFilter === value ? 'var(--text-strong)' : 'var(--border)'}`, background: searchFilter === value ? 'var(--bg-soft)' : 'transparent', color:'var(--text-secondary)', fontSize:11, fontWeight:700, cursor:'pointer' }}>{label}</button>)}</div>{groupedSearchResults.length === 0 ? <div className="popup-empty">No hay resultados para esa búsqueda.</div> : groupedSearchResults.map(([group, items]) => <div key={group} style={{ marginBottom:12 }}><div style={{ fontSize:11, fontWeight:800, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:0.4, marginBottom:6 }}>{group}</div><div style={{ display:'grid', gap:6 }}>{items.map(item => <button key={item.id} className="notification-item" onClick={() => openSearchResult(item)} style={{ textAlign:'left' }}><div className="notification-item-title">{item.title}</div><div className="notification-item-body">{item.subtitle}</div></button>)}</div></div>)}</div></div>}
 
-      {moreOpen && <div className="floating-more-menu" onClick={e => e.stopPropagation()}>{[{ id: 'packing' as Tab, label: '🧳 Equipaje' }, { id: 'stats' as Tab, label: '📊 Estadísticas' }, { id: 'settings' as Tab, label: '⚙️ Ajustes' }].map(({ id, label }) => <button key={id} className={`floating-more-item ${tab===id ? 'active' : ''}`} onClick={() => { setTab(id); setMoreOpen(false) }}>{label}</button>)}</div>}
+      {moreOpen && <div className="floating-more-menu" onClick={e => e.stopPropagation()}>{[
+        { id: 'packing' as Tab, label: 'Equipaje', icon: MORE_PACKING_ICON },
+        { id: 'stats' as Tab, label: 'Estadísticas', icon: MORE_STATS_ICON },
+        { id: 'settings' as Tab, label: 'Ajustes', icon: MORE_SETTINGS_ICON },
+      ].map(({ id, label, icon }) => <button key={id} className={`floating-more-item ${tab===id ? 'active' : ''}`} onClick={() => { setTab(id); setMoreOpen(false) }} style={{ display:'flex', alignItems:'center', gap:10 }}><img src={icon} alt="" aria-hidden="true" style={{ width:20, height:20, objectFit:'contain', flexShrink:0 }} /><span>{label}</span></button>)}</div>}
 
       <nav className="bottom-nav" onClick={e => e.stopPropagation()}>
         {mainTabs.map(({ id, label, icon, badge }) => {
           const isActive = tab === id || (id === 'settings' && activeMore)
-          return (
-            <button key={id} className={`nav-btn ${isActive ? 'active' : ''}`} onClick={() => handleTabClick(id)}>
-              <img src={icon} alt="" aria-hidden="true" style={{ width: 24, height: 24, objectFit: 'contain', opacity: isActive ? 1 : 0.92 }} />
-              <span>{label}</span>
-              {badge && badge > 0 ? <span className="nav-badge">{badge}</span> : null}
-              {isActive && <span className="nav-active-line" />}
-            </button>
-          )
+          return <button key={id} className={`nav-btn ${isActive ? 'active' : ''}`} onClick={() => handleTabClick(id)}><img src={icon} alt="" aria-hidden="true" style={{ width:24, height:24, objectFit:'contain', opacity:isActive ? 1 : 0.92 }} /><span>{label}</span>{badge && badge > 0 ? <span className="nav-badge">{badge}</span> : null}{isActive && <span className="nav-active-line" />}</button>
         })}
       </nav>
     </div>
