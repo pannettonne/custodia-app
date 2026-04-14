@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
 import { createChangeRequest, createNotification } from '@/lib/db'
+import { showToast } from '@/lib/toast'
 
 interface Props { open: boolean; onClose: () => void; initialDate?: string | null }
 
@@ -23,11 +24,15 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
 
   useEffect(() => {
     if (!open) return
-    if (initialDate) {
-      setDate(initialDate)
-      setStartDate(prev => prev || initialDate)
-      setEndDate(prev => prev || initialDate)
-    }
+
+    const seedDate = initialDate ?? ''
+    setType('single')
+    setDate(seedDate)
+    setStartDate(seedDate)
+    setEndDate(seedDate)
+    setReason('')
+    setLoading(false)
+    setSuccess(false)
   }, [open, initialDate])
 
   if (!open) return null
@@ -36,15 +41,34 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
   const summaryDate = type === 'single' ? date : `${startDate}→${endDate}`
   const targetDate = type === 'single' ? date : startDate
 
+  const handleTypeChange = (nextType: 'single' | 'range') => {
+    if (nextType === type) return
+
+    if (nextType === 'range') {
+      const seedDate = date || startDate || endDate || initialDate || ''
+      setStartDate(seedDate)
+      setEndDate(current => (current && current >= seedDate ? current : seedDate))
+    } else {
+      const seedDate = startDate || date || initialDate || ''
+      setDate(seedDate)
+    }
+
+    setType(nextType)
+  }
+
   const handleSubmit = async () => {
     if (!user || !child || !otherParentId || !reason.trim()) return
     setLoading(true)
     try {
       await createChangeRequest({ childId: child.id, fromParentId: user.uid, fromParentName: user.displayName ?? user.email ?? 'Progenitor', toParentId: otherParentId, type, ...(type === 'single' ? { date } : { startDate, endDate }), reason: reason.trim() })
       await createNotification({ userId: otherParentId, childId: child.id, childName: child.name, type: 'pending_request', title: 'Nueva solicitud de cambio', body: `${user.displayName || user.email || 'El otro progenitor'} ha pedido un cambio de custodia (${summaryDate}).`, dateKey: `change-request:${child.id}:${summaryDate}:${Date.now()}`, targetTab: 'requests', targetDate })
+      showToast({ message: 'Solicitud enviada.', tone: 'success' })
       setSuccess(true)
       setTimeout(() => { onClose(); setSuccess(false) }, 1500)
-    } catch(e) { console.error(e) } finally { setLoading(false) }
+    } catch(e: any) {
+      console.error(e)
+      showToast({ message: e?.message || 'No se pudo enviar la solicitud.', tone: 'error' })
+    } finally { setLoading(false) }
   }
 
   return (
@@ -71,15 +95,10 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
                 <div className="settings-label">Tipo de cambio</div>
                 <div className="type-toggle">
                   {[{v:'single',l:'📅 Día concreto'},{v:'range',l:'↔ Rango de fechas'}].map(({v,l}) => (
-                    <button key={v} className={`type-btn ${type===v?'active':''}`} onClick={() => {
-                      setType(v as any)
-                      if (v === 'range' && date) {
-                        setStartDate(prev => prev || date)
-                        setEndDate(prev => prev || date)
-                      }
-                    }}>{l}</button>
+                    <button key={v} className={`type-btn ${type===v?'active':''}`} onClick={() => handleTypeChange(v as 'single' | 'range')}>{l}</button>
                   ))}
                 </div>
+                {initialDate && <div style={{ marginTop:8, fontSize:11, color:'var(--text-muted)' }}>Fecha contextual precargada desde el día seleccionado.</div>}
               </div>
 
               <div style={{marginBottom:14}}>

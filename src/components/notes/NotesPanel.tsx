@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createNote, deleteNote, markNoteRead, updateNote } from '@/lib/db'
+import { showToast } from '@/lib/toast'
 import { formatDate } from '@/lib/utils'
 import type { Note, NoteTag } from '@/types'
 
@@ -139,11 +140,17 @@ function NoteForm({ note, onClose, initialDate }: { note: Note | null; onClose: 
         type, tag, text: text.trim(), mentionOther, read: note?.read ?? false,
         ...(type === 'single' ? { date, startDate: undefined, endDate: undefined } : { startDate, endDate, date: undefined }),
       }
-      if (note) await updateNote(note.id, payload)
-      else await createNote(payload as any)
+      if (note) {
+        await updateNote(note.id, payload)
+        showToast({ message: 'Nota guardada.', tone: 'success' })
+      } else {
+        await createNote(payload as any)
+        showToast({ message: 'Nota guardada.', tone: 'success' })
+      }
       onClose()
     } catch(e: any) {
       setError(e?.message ?? 'Error guardando')
+      showToast({ message: e?.message ?? 'No se pudo guardar la nota.', tone: 'error' })
     } finally { setLoading(false) }
   }
 
