@@ -131,13 +131,18 @@ export interface SchoolEvent {
   recurrence?: EventRecurrence
   recurrenceUntil?: string
   recurrenceWeekdays?: number[]
-  cancelledDates?: string[]
+  cancelledDates?: number[]
   recurrenceGroupId?: string
   assignedParentId?: string
   assignmentStatus?: EventAssignmentStatus
   assignmentRequestedBy?: string
   assignmentRequestedByName?: string
   assignmentRequestToParentId?: string
+  custodyOverrideReason?: string
+  deletionRequestStatus?: 'pending' | 'rejected'
+  deletionRequestedBy?: string
+  deletionRequestedByName?: string
+  deletionRequestToParentId?: string
   reminderEnabled?: boolean
   reminderDaysBefore?: number
   reminderAudience?: EventReminderAudience
