@@ -131,7 +131,7 @@ export interface SchoolEvent {
   recurrence?: EventRecurrence
   recurrenceUntil?: string
   recurrenceWeekdays?: number[]
-  cancelledDates?: number[]
+  cancelledDates?: string[]
   recurrenceGroupId?: string
   assignedParentId?: string
   assignmentStatus?: EventAssignmentStatus
