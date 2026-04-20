@@ -8,6 +8,8 @@ type EventsPanelProps = {
   createSeq?: number
 }
 
+const EventsPanelComponent = EventsPanelImpl as any
+
 export function EventsPanel(props: EventsPanelProps) {
-  return <EventsPanelImpl {...props} />
+  return <EventsPanelComponent {...props} />
 }
