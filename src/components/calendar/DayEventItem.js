@@ -37,7 +37,8 @@ export function DayEventItem({
         position: 'relative',
         width: '100%',
         boxSizing: 'border-box',
-        overflow: 'hidden',
+        overflow: 'visible',
+        zIndex: menuOpen ? 40 : 1,
         padding: '10px 12px',
         borderRadius: 14,
         background: cancelled ? 'rgba(239,68,68,0.10)' : 'rgba(16,185,129,0.10)',
@@ -52,6 +53,7 @@ export function DayEventItem({
           alignItems: 'start',
           gap: 10,
           width: '100%',
+          minWidth: 0,
         }}
       >
         <button
@@ -114,7 +116,7 @@ export function DayEventItem({
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
           {hasLocation && (
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', zIndex: 50 }}>
               <button
                 type="button"
                 onClick={e => {
@@ -145,13 +147,13 @@ export function DayEventItem({
                     position: 'absolute',
                     top: 'calc(100% + 8px)',
                     right: 0,
-                    minWidth: 150,
+                    minWidth: 156,
                     padding: 8,
                     borderRadius: 14,
                     border: '1px solid var(--border)',
                     background: 'var(--bg-card)',
                     boxShadow: '0 14px 30px rgba(15,23,42,0.16)',
-                    zIndex: 30,
+                    zIndex: 999,
                     display: 'grid',
                     gap: 6,
                   }}
