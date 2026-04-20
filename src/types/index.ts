@@ -138,6 +138,11 @@ export interface SchoolEvent {
   assignmentRequestedBy?: string
   assignmentRequestedByName?: string
   assignmentRequestToParentId?: string
+  custodyOverrideReason?: string
+  deletionRequestStatus?: 'pending' | 'rejected'
+  deletionRequestedBy?: string
+  deletionRequestedByName?: string
+  deletionRequestToParentId?: string
   reminderEnabled?: boolean
   reminderDaysBefore?: number
   reminderAudience?: EventReminderAudience

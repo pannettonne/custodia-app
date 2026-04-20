@@ -42,6 +42,8 @@ export function EventForm({ event, onClose, initialDate }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const custodyChangeLocked = !!event && event.assignmentStatus === 'accepted' && !!event.assignedParentId
+
   const isValid = !!user && !!child && !!title.trim() && !!date &&
     (category !== 'otro' || !!customCategory.trim()) &&
     (recurrence === 'none' || !!recurrenceUntil) &&
@@ -107,7 +109,7 @@ export function EventForm({ event, onClose, initialDate }) {
     try {
       const finalDate = recurrence === 'monthly' ? buildMonthlyDate(date, monthlyDay) : date
       const otherParentId = child.parents.find(pid => pid !== user.uid)
-      const wantsAssignment = !!assignedParentId && !!otherParentId
+      const wantsAssignment = !custodyChangeLocked && !!assignedParentId && !!otherParentId
       const payload = {
         childId: child.id,
         createdBy: event?.createdBy ?? user.uid,
@@ -122,11 +124,12 @@ export function EventForm({ event, onClose, initialDate }) {
         recurrence,
         recurrenceUntil: recurrence === 'none' ? undefined : recurrenceUntil,
         recurrenceWeekdays: recurrence === 'weekly' ? recurrenceWeekdays : undefined,
-        assignedParentId: wantsAssignment ? assignedParentId : undefined,
-        assignmentStatus: wantsAssignment ? 'pending' : undefined,
-        assignmentRequestedBy: wantsAssignment ? user.uid : undefined,
-        assignmentRequestedByName: wantsAssignment ? (user.displayName || user.email || 'Progenitor') : undefined,
-        assignmentRequestToParentId: wantsAssignment ? otherParentId : undefined,
+        assignedParentId: custodyChangeLocked ? event?.assignedParentId : (wantsAssignment ? assignedParentId : undefined),
+        assignmentStatus: custodyChangeLocked ? event?.assignmentStatus : (wantsAssignment ? 'pending' : undefined),
+        assignmentRequestedBy: custodyChangeLocked ? event?.assignmentRequestedBy : (wantsAssignment ? user.uid : undefined),
+        assignmentRequestedByName: custodyChangeLocked ? event?.assignmentRequestedByName : (wantsAssignment ? (user.displayName || user.email || 'Progenitor') : undefined),
+        assignmentRequestToParentId: custodyChangeLocked ? event?.assignmentRequestToParentId : (wantsAssignment ? otherParentId : undefined),
+        custodyOverrideReason: event?.custodyOverrideReason,
         reminderEnabled,
         reminderDaysBefore: reminderEnabled ? reminderDaysBefore : undefined,
         reminderAudience: reminderEnabled ? reminderAudience : undefined,
@@ -208,7 +211,15 @@ export function EventForm({ event, onClose, initialDate }) {
       {!allDay && <div style={{ marginBottom: 10 }}><div className="settings-label">Hora (opcional)</div><input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" /></div>}
 
       <RecurrenceFields event={event} recurrence={recurrence} setRecurrence={setRecurrence} recurrenceWeekdays={recurrenceWeekdays} toggleWeekday={toggleWeekday} recurrenceUntil={recurrenceUntil} setRecurrenceUntil={setRecurrenceUntil} monthlyDay={monthlyDay} setMonthlyDay={setMonthlyDay} date={date} />
-      <AssignmentSelector child={child} assignedParentId={assignedParentId} setAssignedParentId={setAssignedParentId} />
+
+      {custodyChangeLocked ? (
+        <div style={{ marginBottom: 14, padding: '12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-soft)', fontSize: 12, color: 'var(--text-muted)' }}>
+          Este evento ya implicó un cambio de custodia. La parte de asignación/custodia queda bloqueada.
+        </div>
+      ) : (
+        <AssignmentSelector child={child} assignedParentId={assignedParentId} setAssignedParentId={setAssignedParentId} />
+      )}
+
       <LocationField locationQuery={locationQuery} setLocationQuery={setLocationQuery} locationName={locationName} setLocationName={setLocationName} locationAddress={locationAddress} setLocationAddress={setLocationAddress} setLocationLatitude={setLocationLatitude} setLocationLongitude={setLocationLongitude} setLocationPlaceId={setLocationPlaceId} locationResults={locationResults} locationLoading={locationLoading} clearLocation={clearLocation} selectLocation={selectLocation} />
       <ReminderSettings reminderEnabled={reminderEnabled} setReminderEnabled={setReminderEnabled} reminderDaysBefore={reminderDaysBefore} setReminderDaysBefore={setReminderDaysBefore} reminderAudience={reminderAudience} setReminderAudience={setReminderAudience} />
 
