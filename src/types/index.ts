@@ -126,6 +126,11 @@ export interface SchoolEvent {
   reminderEnabled?: boolean
   reminderDaysBefore?: number
   reminderAudience?: EventReminderAudience
+  locationName?: string
+  locationAddress?: string
+  locationLat?: number
+  locationLng?: number
+  locationPlaceId?: string
   createdAt: Date
   updatedAt?: Date
 }
