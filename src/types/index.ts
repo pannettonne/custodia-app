@@ -85,11 +85,26 @@ export interface Note {
   updatedAt?: Date
 }
 
-export type EventCategory = 'reunion' | 'excursion' | 'examen' | 'extraescolar' | 'festivo' | 'vacaciones' | 'otro'
+export type EventCategory =
+  | 'reunion'
+  | 'excursion'
+  | 'examen'
+  | 'extraescolar'
+  | 'festivo'
+  | 'vacaciones'
+  | 'otro'
+
 export type EventRecurrence = 'none' | 'weekly' | 'monthly'
 export type EventAssignmentStatus = 'pending' | 'accepted' | 'rejected'
 export type EventReminderAudience = 'self' | 'both'
-export type NotificationTargetTab = 'calendar' | 'requests' | 'notes' | 'events' | 'packing' | 'stats' | 'settings'
+export type NotificationTargetTab =
+  | 'calendar'
+  | 'requests'
+  | 'notes'
+  | 'events'
+  | 'packing'
+  | 'stats'
+  | 'settings'
 export type NotificationChannel = 'off' | 'in_app' | 'push' | 'both'
 
 export interface UserNotificationSettings {
@@ -126,6 +141,11 @@ export interface SchoolEvent {
   reminderEnabled?: boolean
   reminderDaysBefore?: number
   reminderAudience?: EventReminderAudience
+  locationName?: string
+  locationAddress?: string
+  locationLatitude?: number
+  locationLongitude?: number
+  locationPlaceId?: string
   createdAt: Date
   updatedAt?: Date
 }
@@ -135,7 +155,12 @@ export interface AppNotification {
   userId: string
   childId?: string
   childName?: string
-  type: 'event_reminder' | 'pending_request' | 'special_period_start' | 'event_assignment_pending' | 'event_assignment_response'
+  type:
+    | 'event_reminder'
+    | 'pending_request'
+    | 'special_period_start'
+    | 'event_assignment_pending'
+    | 'event_assignment_response'
   title: string
   body: string
   dateKey: string
