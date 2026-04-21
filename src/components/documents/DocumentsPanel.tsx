@@ -16,6 +16,13 @@ function formatBytes(bytes: number) {
   return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
 }
 
+function documentThumbLabel(mimeType: string) {
+  if (mimeType.startsWith('image/')) return 'IMG'
+  if (mimeType === 'application/pdf') return 'PDF'
+  if (mimeType.includes('word') || mimeType.includes('document')) return 'DOC'
+  return 'FILE'
+}
+
 export function DocumentsPanel() {
   const { user } = useAuth()
   const { children, selectedChildId, documents, documentFolders } = useAppStore()
@@ -27,6 +34,7 @@ export function DocumentsPanel() {
   const [selectedFolderId, setSelectedFolderId] = useState('root')
   const [filterFolderId, setFilterFolderId] = useState('all')
   const [newFolderName, setNewFolderName] = useState('')
+  const [deleteMenuId, setDeleteMenuId] = useState<string | null>(null)
 
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
   const visibleDocuments = useMemo(() => documents.filter(doc => filterFolderId === 'all' ? true : (filterFolderId === 'root' ? !doc.folderId : doc.folderId === filterFolderId)), [documents, filterFolderId])
@@ -44,7 +52,7 @@ export function DocumentsPanel() {
     if (!user || !child || !newFolderName.trim()) return
     setBusy('folder')
     try {
-      await createDocumentFolder({ childId: child.id, name: newFolderName.trim(), createdBy: user.uid, createdByName: user.displayName || user.email || 'Progenitor', shareScope })
+      await createDocumentFolder({ childId: child.id, name: newFolderName.trim(), createdBy: user.uid, createdByName: user.displayName || user.email || 'Progenitor', shareScope, hiddenForUserIds: [] })
       setNewFolderName('')
       showMessage('Carpeta creada.', 'success')
     } catch (error: unknown) {
@@ -73,7 +81,8 @@ export function DocumentsPanel() {
       const uploadResponse = await fetch('/api/documents/upload', { method: 'POST', headers: { Authorization: `Bearer ${idToken}` }, body: formData })
       const uploadPayload = await uploadResponse.json()
       if (!uploadResponse.ok) throw new Error(uploadPayload.error || 'No se pudo subir el documento cifrado')
-      await createDocumentRecord({
+
+      const record = {
         childId: child.id,
         createdBy: user.uid,
         createdByName: user.displayName || user.email || 'Progenitor',
@@ -88,9 +97,10 @@ export function DocumentsPanel() {
         encryptedFileKeys: encrypted.metadata.encryptedFileKeys,
         pendingRecipientIds: encrypted.metadata.pendingRecipientIds,
         shareScope,
-        folderId: selectedFolderId === 'root' ? undefined : selectedFolderId,
         hiddenForUserIds: [],
-      })
+        ...(selectedFolderId !== 'root' ? { folderId: selectedFolderId } : {}),
+      }
+      await createDocumentRecord(record)
       showMessage(encrypted.metadata.pendingRecipientIds.length > 0 ? `Documento subido. Pendiente de compartirse con ${encrypted.metadata.pendingRecipientIds.length} progenitor(es).` : `Documento subido: ${file.name}`, 'success')
     } catch (error: unknown) {
       console.error('Documents upload failed', error)
@@ -119,6 +129,8 @@ export function DocumentsPanel() {
     if (!user) return
     const document = documents.find(item => item.id === documentId)
     if (!document) return
+    if (!window.confirm('¿Seguro que quieres borrar este documento para todos?')) return
+    setDeleteMenuId(null)
     setBusy(documentId)
     try {
       const idToken = await user.getIdToken()
@@ -134,6 +146,8 @@ export function DocumentsPanel() {
 
   const handleHideForMe = async (documentId: string) => {
     if (!user?.uid) return
+    if (!window.confirm('¿Seguro que quieres ocultar este documento solo para ti?')) return
+    setDeleteMenuId(null)
     setBusy(documentId)
     try { await hideDocumentForUser(documentId, user.uid); showMessage('Documento ocultado solo para ti.', 'success') }
     catch (error: unknown) { showMessage(error instanceof Error ? error.message : 'No se pudo ocultar el documento', 'error') }
@@ -170,18 +184,25 @@ export function DocumentsPanel() {
           const canOpen = !!document.encryptedFileKeys?.[user?.uid || '']
           const unavailableForOthers = Array.isArray(document.pendingRecipientIds) ? document.pendingRecipientIds.length : 0
           const folderName = document.folderId ? documentFolders.find(folder => folder.id === document.folderId)?.name : 'Sin carpeta'
+          const thumb = documentThumbLabel(document.mimeType || '')
           return <div key={document.id} style={{ display: 'grid', gap: 10, padding: 16, borderBottom: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>Documento cifrado</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{folderName} · {document.shareScope === 'only_me' ? 'Solo para mi' : 'Para todos'}</div>
-                {unavailableForOthers > 0 ? <div style={{ fontSize: 11, color: '#9a3412' }}>Pendiente de compartirse con {unavailableForOthers} progenitor(es).</div> : null}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ display:'flex', gap:12, minWidth:0 }}>
+                <div style={{ width:56, height:72, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-soft)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'var(--text-secondary)', flexShrink:0 }}>{thumb}</div>
+                <div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>Documento cifrado</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{folderName} · {document.shareScope === 'only_me' ? 'Solo para mi' : 'Para todos'}</div>
+                  {unavailableForOthers > 0 ? <div style={{ fontSize: 11, color: '#9a3412' }}>Pendiente de compartirse con {unavailableForOthers} progenitor(es).</div> : null}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', position:'relative' }}>
                 <button className="btn-primary btn-outline" onClick={() => handleDownload(document.id)} disabled={busy === document.id || !canOpen}>{busy === document.id ? 'Abriendo...' : 'Abrir'}</button>
-                <button className="btn-primary btn-outline" onClick={() => handleHideForMe(document.id)} disabled={busy === document.id}>Solo para mi</button>
-                <button className="btn-primary btn-outline" onClick={() => handleDeleteForEveryone(document.id)} disabled={busy === document.id}>Para todos</button>
+                <button className="btn-primary btn-outline" onClick={() => setDeleteMenuId(deleteMenuId === document.id ? null : document.id)} disabled={busy === document.id} title="Borrar" aria-label="Borrar">🗑️</button>
+                {deleteMenuId === document.id ? <div style={{ position:'absolute', top:'calc(100% + 6px)', right:0, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12, boxShadow:'var(--card-shadow)', padding:8, display:'grid', gap:6, minWidth:170, zIndex:5 }}>
+                  <button className="btn-primary btn-outline" onClick={() => handleHideForMe(document.id)} disabled={busy === document.id}>Solo para mi</button>
+                  <button className="btn-primary btn-outline" onClick={() => handleDeleteForEveryone(document.id)} disabled={busy === document.id}>Para todos</button>
+                </div> : null}
               </div>
             </div>
           </div>
