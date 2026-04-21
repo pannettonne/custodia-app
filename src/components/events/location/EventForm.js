@@ -9,10 +9,11 @@ import { AssignmentSelector } from './AssignmentSelector'
 import { LocationField } from './LocationField'
 import { RecurrenceFields } from './RecurrenceFields'
 import { ReminderSettings } from './ReminderSettings'
+import { DocumentAssociations } from '@/components/documents/DocumentAssociations'
 
 export function EventForm({ event, onClose, initialDate }) {
   const { user } = useAuth()
-  const { children, selectedChildId } = useAppStore()
+  const { children, selectedChildId, documents } = useAppStore()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
 
   const [title, setTitle] = useState(event?.title ?? '')
@@ -23,6 +24,7 @@ export function EventForm({ event, onClose, initialDate }) {
   const [allDay, setAllDay] = useState(event?.allDay ?? true)
   const [time, setTime] = useState(event?.time ?? '')
   const [notes, setNotes] = useState(event?.notes ?? '')
+  const [documentIds, setDocumentIds] = useState(event?.documentIds ?? [])
   const [recurrence, setRecurrence] = useState(event?.recurrence ?? 'none')
   const [recurrenceUntil, setRecurrenceUntil] = useState(event?.recurrenceUntil ?? '')
   const [recurrenceWeekdays, setRecurrenceWeekdays] = useState(event?.recurrenceWeekdays ?? [])
@@ -43,6 +45,7 @@ export function EventForm({ event, onClose, initialDate }) {
   const [error, setError] = useState('')
 
   const custodyChangeLocked = !!event && event.assignmentStatus === 'accepted' && !!event.assignedParentId
+  const linkedDocuments = (documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
 
   const isValid = !!user && !!child && !!title.trim() && !!date &&
     (category !== 'otro' || !!customCategory.trim()) &&
@@ -121,6 +124,7 @@ export function EventForm({ event, onClose, initialDate }) {
         allDay,
         time: allDay ? undefined : time || undefined,
         notes: notes.trim() || undefined,
+        documentIds,
         recurrence,
         recurrenceUntil: recurrence === 'none' ? undefined : recurrenceUntil,
         recurrenceWeekdays: recurrence === 'weekly' ? recurrenceWeekdays : undefined,
@@ -227,6 +231,9 @@ export function EventForm({ event, onClose, initialDate }) {
         <div className="settings-label">Observaciones (opcional)</div>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={2} className="settings-textarea" />
       </div>
+
+      {child ? <DocumentAssociations childId={child.id} value={documentIds} onChange={setDocumentIds} /> : null}
+      {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:14 }}>{linkedDocuments.map(doc => <span key={doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999 }}>📎 {doc.title || 'Documento'}</span>)}</div> : null}
 
       {error && <div style={{ marginBottom: 10, padding: '8px 10px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', color: '#fca5a5', fontSize: 12 }}>{error}</div>}
 
