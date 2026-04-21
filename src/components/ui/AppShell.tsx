@@ -50,7 +50,7 @@ function searchGroupLabel(type: SearchResultType) { if (type === 'event') return
 
 export function AppShell() {
   const { user, signOut } = useAuth()
-  const { children, selectedChildId, setSelectedChildId, requests, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate, events, specialPeriods, documents, documentFolders } = useAppStore()
+  const { children, selectedChildId, setSelectedChildId, requests, collaboratorAssignments, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate, events, specialPeriods, documents, documentFolders } = useAppStore()
   const [tab, setTab] = useState<Tab>('calendar')
   const [moreOpen, setMoreOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -107,7 +107,9 @@ export function AppShell() {
   const isCollaboratorForSelectedChild = !!child && !!user?.uid && !!child.collaborators?.includes(user.uid)
   const allowedTabs: Tab[] = isParentForSelectedChild
     ? ['calendar', 'requests', 'notes', 'events', 'documents', 'packing', 'stats', 'settings']
-    : ['calendar', 'settings']
+    : isCollaboratorForSelectedChild
+      ? ['calendar', 'requests', 'settings']
+      : ['calendar', 'settings']
 
   useEffect(() => {
     if (!allowedTabs.includes(tab)) {
@@ -116,7 +118,12 @@ export function AppShell() {
     }
   }, [tab, allowedTabs.join('|')])
 
-  const pendingReqs = useMemo(() => isParentForSelectedChild ? requests.filter(r => r.status === 'pending' && r.toParentId === user?.uid).length : 0, [requests, user?.uid, isParentForSelectedChild])
+  const pendingReqs = useMemo(() => {
+    if (!user?.uid) return 0
+    const incomingChanges = isParentForSelectedChild ? requests.filter(r => r.status === 'pending' && r.toParentId === user.uid).length : 0
+    const incomingCollaboratorAssignments = collaboratorAssignments.filter(a => a.status === 'pending' && ((isParentForSelectedChild && a.createdByParentId === user.uid) || (isCollaboratorForSelectedChild && a.collaboratorId === user.uid))).length
+    return incomingChanges + incomingCollaboratorAssignments
+  }, [requests, collaboratorAssignments, user?.uid, isParentForSelectedChild, isCollaboratorForSelectedChild])
   const unreadNotes = useMemo(() => isParentForSelectedChild ? notes.filter(n => !n.read && n.createdBy !== user?.uid && n.mentionOther).length : 0, [notes, user?.uid, isParentForSelectedChild])
   const pendingInvitations = useMemo(() => { const myEmail = (user?.email ?? '').trim().toLowerCase(); return invitations.filter(i => i.status === 'pending' && i.toEmail === myEmail).length }, [invitations, user?.email])
   const unreadNotifications = useMemo(() => notifications.filter(n => !n.read).length, [notifications])
@@ -158,6 +165,10 @@ export function AppShell() {
     { id: 'requests' as Tab, label: 'Cambios', icon: '/nav-icons/changes.svg', badge: pendingReqs },
     { id: 'notes' as Tab, label: 'Notas', icon: '/nav-icons/notes.svg', badge: unreadNotes },
     { id: 'events' as Tab, label: 'Eventos', icon: '/nav-icons/events.svg' },
+    { id: 'settings' as Tab, label: 'Más', icon: '/nav-icons/more.svg', badge: pendingInvitations },
+  ] : isCollaboratorForSelectedChild ? [
+    { id: 'calendar' as Tab, label: 'Calendario', icon: '/nav-icons/calendar.svg' },
+    { id: 'requests' as Tab, label: 'Cambios', icon: '/nav-icons/changes.svg', badge: pendingReqs },
     { id: 'settings' as Tab, label: 'Más', icon: '/nav-icons/more.svg', badge: pendingInvitations },
   ] : [
     { id: 'calendar' as Tab, label: 'Calendario', icon: '/nav-icons/calendar.svg' },
@@ -228,7 +239,7 @@ export function AppShell() {
 
       <main className="app-main" onClick={e => e.stopPropagation()}>
         {tab === 'calendar' && <CustodyCalendar />}
-        {tab === 'requests' && isParentForSelectedChild && <RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
+        {tab === 'requests' && (isParentForSelectedChild || isCollaboratorForSelectedChild) && <RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
         {tab === 'notes' && isParentForSelectedChild && <NotesPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={noteDraftTarget?.date} createSeq={noteDraftTarget?.seq} />}
         {tab === 'events' && isParentForSelectedChild && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={eventDraftTarget?.date} createSeq={eventDraftTarget?.seq} />}
         {tab === 'documents' && isParentForSelectedChild && <DocumentsPanel />}
