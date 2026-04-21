@@ -16,6 +16,7 @@ export function SettingsPanel() {
   const { invitations, children, selectedChildId } = useAppStore()
   const { user } = useAuth()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
+  const isParentForSelectedChild = !!child && !!user?.uid && child.parents.includes(user.uid)
   const receivedInvitations = useMemo(() => invitations.filter(i => i.toEmail === (user?.email ?? '').toLowerCase() && i.status === 'pending'), [invitations, user?.email])
   const sentInvitations = useMemo(() => child ? invitations.filter(i => i.childId === child.id && i.fromEmail === (user?.email ?? '').toLowerCase()) : [], [invitations, child, user?.email])
 
@@ -26,13 +27,13 @@ export function SettingsPanel() {
       <NotificationPreferencesSection />
       {receivedInvitations.length > 0 && <PendingInvitations invitations={receivedInvitations} />}
       <ChildSection child={child} />
-      {child && <PatternSection child={child} />}
-      {child && <SpecialPeriodsManager />}
-      {child && child.parents.length < 2 && <InviteSection child={child} sentInvitations={sentInvitations} />}
-      {child && child.parents.length >= 2 && <ParentsInfo child={child} />}
-      {child && child.parents.length >= 2 && <CollaboratorInviteSection child={child} invitations={invitations} />}
-      {child && child.parents.length >= 2 && <ActiveCollaboratorsSection child={child} />}
-      {child && <DangerZone child={child} />}
+      {child && isParentForSelectedChild && <PatternSection child={child} />}
+      {child && isParentForSelectedChild && <SpecialPeriodsManager />}
+      {child && isParentForSelectedChild && child.parents.length < 2 && <InviteSection child={child} sentInvitations={sentInvitations} />}
+      {child && <ParentsInfo child={child} />}
+      {child && isParentForSelectedChild && child.parents.length >= 2 && <CollaboratorInviteSection child={child} invitations={invitations} />}
+      {child && isParentForSelectedChild && child.parents.length >= 2 && <ActiveCollaboratorsSection child={child} />}
+      {child && isParentForSelectedChild && <DangerZone child={child} />}
     </div>
   )
 }
