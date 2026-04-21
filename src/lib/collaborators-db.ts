@@ -6,10 +6,21 @@ import {
   collection,
   doc,
   getDoc,
+  onSnapshot,
+  query,
   updateDoc,
+  where,
+  type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Child, Invitation } from '@/types'
+
+export function subscribeToCollaboratorChildren(uid: string, cb: (children: Child[]) => void): Unsubscribe {
+  const q = query(collection(db, 'children'), where('collaborators', 'array-contains', uid))
+  return onSnapshot(q, snap => {
+    cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as Child)))
+  })
+}
 
 export async function createCollaboratorInvitation(data: Omit<Invitation, 'id' | 'createdAt' | 'status'>): Promise<string> {
   const childRef = doc(db, 'children', data.childId)
@@ -40,8 +51,13 @@ export async function acceptCollaboratorInvitation(inv: Invitation, uid: string,
   const childSnap = await getDoc(childRef)
   if (!childSnap.exists()) throw new Error('Menor no encontrado')
 
+  const childData = childSnap.data() as Child
+  const collaboratorEmails = Array.isArray(childData.collaboratorEmails) ? [...childData.collaboratorEmails] : []
+  if (!collaboratorEmails.includes(inv.toEmail)) collaboratorEmails.push(inv.toEmail)
+
   await updateDoc(childRef, {
     collaborators: arrayUnion(uid),
+    collaboratorEmails,
     [`collaboratorNames.${uid}`]: displayName,
     [`collaboratorLabels.${uid}`]: inv.collaboratorLabel || 'other',
     [`collaboratorDocumentAccess.${uid}`]: false,
