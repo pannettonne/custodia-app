@@ -2,6 +2,7 @@
 
 import {
   addDoc,
+  arrayRemove,
   arrayUnion,
   collection,
   doc,
@@ -90,5 +91,14 @@ export async function setCollaboratorGlobalCalendarApproval(childId: string, col
   await updateDoc(childRef, {
     [`collaboratorCalendarApprovedBy.${collaboratorId}`]: nextApprovals,
     [`collaboratorCalendarAccess.${collaboratorId}`]: allApproved ? 'all' : 'assigned_only',
+  })
+}
+
+export async function revokeCollaborator(childId: string, collaboratorId: string): Promise<void> {
+  await updateDoc(doc(db, 'children', childId), {
+    collaborators: arrayRemove(collaboratorId),
+    [`collaboratorDocumentAccess.${collaboratorId}`]: false,
+    [`collaboratorCalendarAccess.${collaboratorId}`]: 'assigned_only',
+    [`collaboratorCalendarApprovedBy.${collaboratorId}`]: [],
   })
 }
