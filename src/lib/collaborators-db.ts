@@ -51,3 +51,28 @@ export async function acceptCollaboratorInvitation(inv: Invitation, uid: string,
 
   await updateDoc(doc(db, 'invitations', inv.id), { status: 'accepted' })
 }
+
+export async function setCollaboratorDocumentAccess(childId: string, collaboratorId: string, enabled: boolean): Promise<void> {
+  await updateDoc(doc(db, 'children', childId), {
+    [`collaboratorDocumentAccess.${collaboratorId}`]: enabled,
+  })
+}
+
+export async function setCollaboratorGlobalCalendarApproval(childId: string, collaboratorId: string, parentId: string, enabled: boolean): Promise<void> {
+  const childRef = doc(db, 'children', childId)
+  const childSnap = await getDoc(childRef)
+  if (!childSnap.exists()) throw new Error('Menor no encontrado')
+
+  const child = childSnap.data() as Child
+  const currentApprovals = child.collaboratorCalendarApprovedBy?.[collaboratorId] || []
+  const nextApprovals = enabled
+    ? Array.from(new Set([...currentApprovals, parentId]))
+    : currentApprovals.filter(id => id !== parentId)
+
+  const allApproved = nextApprovals.length >= (child.parents?.length || 0) && (child.parents?.length || 0) > 0
+
+  await updateDoc(childRef, {
+    [`collaboratorCalendarApprovedBy.${collaboratorId}`]: nextApprovals,
+    [`collaboratorCalendarAccess.${collaboratorId}`]: allApproved ? 'all' : 'assigned_only',
+  })
+}
