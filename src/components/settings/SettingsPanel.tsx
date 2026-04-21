@@ -4,10 +4,12 @@ import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
 import { useTheme, type ThemeMode } from '@/lib/theme-context'
 import { createChild, createInvitation, acceptInvitation, setPattern, forgetChild, resendInvitation, cancelInvitation, subscribeToUserNotificationSettings, updateUserNotificationSettings } from '@/lib/db'
+import { acceptCollaboratorInvitation } from '@/lib/collaborators-db'
 import { PARENT_COLORS, PATTERN_LABELS } from '@/lib/utils'
 import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManager'
 import { PushSection } from '@/components/settings/PushSection'
 import { CollaboratorInviteSection } from '@/components/settings/CollaboratorInviteSection'
+import { ActiveCollaboratorsSection } from '@/components/settings/ActiveCollaboratorsSection'
 import type { Child, Invitation, NotificationChannel, UserNotificationSettings } from '@/types'
 
 export function SettingsPanel() {
@@ -29,6 +31,7 @@ export function SettingsPanel() {
       {child && child.parents.length < 2 && <InviteSection child={child} sentInvitations={sentInvitations} />}
       {child && child.parents.length >= 2 && <ParentsInfo child={child} />}
       {child && child.parents.length >= 2 && <CollaboratorInviteSection child={child} invitations={invitations} />}
+      {child && child.parents.length >= 2 && <ActiveCollaboratorsSection child={child} />}
       {child && <DangerZone child={child} />}
     </div>
   )
@@ -117,8 +120,13 @@ function PendingInvitations({ invitations }: { invitations: Invitation[] }) {
   const handleAccept = async (inv: Invitation) => {
     if (!user) return
     setLoading(inv.id); setError('')
-    try { await acceptInvitation(inv, user.uid, user.displayName ?? user.email ?? 'Progenitor') }
-    catch (e: any) { setError(e?.message || 'No se pudo aceptar la invitación') }
+    try {
+      if (inv.inviteType === 'collaborator') {
+        await acceptCollaboratorInvitation(inv, user.uid, user.displayName ?? user.email ?? 'Colaborador')
+      } else {
+        await acceptInvitation(inv, user.uid, user.displayName ?? user.email ?? 'Progenitor')
+      }
+    } catch (e: any) { setError(e?.message || 'No se pudo aceptar la invitación') }
     finally { setLoading(null) }
   }
   return (
@@ -126,7 +134,10 @@ function PendingInvitations({ invitations }: { invitations: Invitation[] }) {
       <div className="invite-pending-title">📨 Invitaciones recibidas</div>
       {invitations.map(inv => (
         <div key={inv.id} className="invite-pending-row">
-          <div><div className="invite-pending-text">{inv.fromName} te invita a gestionar a <strong>{inv.childName}</strong></div><div className="invite-pending-sub">{inv.fromEmail}</div></div>
+          <div>
+            <div className="invite-pending-text">{inv.fromName} te invita a {inv.inviteType === 'collaborator' ? 'colaborar con' : 'gestionar a'} <strong>{inv.childName}</strong></div>
+            <div className="invite-pending-sub">{inv.fromEmail}{inv.inviteType === 'collaborator' ? ` · ${inv.collaboratorLabel === 'caregiver' ? 'Cuidador' : inv.collaboratorLabel === 'family' ? 'Familiar' : 'Colaborador'}` : ''}</div>
+          </div>
           <button className="btn-accept-invite" disabled={loading === inv.id} onClick={() => handleAccept(inv)}>{loading === inv.id ? '...' : 'Aceptar'}</button>
         </div>
       ))}
