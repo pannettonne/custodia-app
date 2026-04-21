@@ -12,6 +12,7 @@ import { EventsPanel } from '@/components/events/EventsPanel'
 import { DocumentsPanel } from '@/components/documents/DocumentsPanel'
 import { PackingPanel } from '@/components/packing/PackingPanel'
 import { MedicationsPanel } from '@/components/medications/MedicationsPanel'
+import { CalendarMedicationAgenda } from '@/components/medications/CalendarMedicationAgenda'
 import { StatsPanel } from '@/components/stats/StatsPanel'
 import { GlobalToasts } from '@/components/ui/GlobalToasts'
 import { markNotificationRead } from '@/lib/db'
@@ -245,7 +246,7 @@ export function AppShell() {
       </header>
 
       <main className="app-main" onClick={e => e.stopPropagation()}>
-        {tab === 'calendar' && <CustodyCalendar />}
+        {tab === 'calendar' && <><CustodyCalendar /><CalendarMedicationAgenda /></>}
         {tab === 'requests' && (isParentForSelectedChild || isCollaboratorForSelectedChild) && <RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />}
         {tab === 'notes' && isParentForSelectedChild && <NotesPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={noteDraftTarget?.date} createSeq={noteDraftTarget?.seq} />}
         {tab === 'events' && isParentForSelectedChild && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={eventDraftTarget?.date} createSeq={eventDraftTarget?.seq} />}
