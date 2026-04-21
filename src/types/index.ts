@@ -65,6 +65,8 @@ export interface Invitation {
   fromEmail: string
   fromName: string
   toEmail: string
+  inviteType?: 'parent' | 'collaborator'
+  collaboratorLabel?: CollaboratorLabel
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
   createdAt: Date
 }
