@@ -10,6 +10,7 @@ import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManag
 import { PushSection } from '@/components/settings/PushSection'
 import { CollaboratorInviteSection } from '@/components/settings/CollaboratorInviteSection'
 import { ActiveCollaboratorsSection } from '@/components/settings/ActiveCollaboratorsSection'
+import { CollaboratorAssignmentsSection } from '@/components/settings/CollaboratorAssignmentsSection'
 import type { Child, Invitation, NotificationChannel, UserNotificationSettings } from '@/types'
 
 export function SettingsPanel() {
@@ -32,6 +33,7 @@ export function SettingsPanel() {
       {child && isParentForSelectedChild && child.parents.length < 2 && <InviteSection child={child} sentInvitations={sentInvitations} />}
       {child && <ParentsInfo child={child} />}
       {child && isParentForSelectedChild && child.parents.length >= 2 && <CollaboratorInviteSection child={child} invitations={invitations} />}
+      {child && <CollaboratorAssignmentsSection child={child} isParent={isParentForSelectedChild} />}
       {child && isParentForSelectedChild && child.parents.length >= 2 && <ActiveCollaboratorsSection child={child} />}
       {child && isParentForSelectedChild && <DangerZone child={child} />}
     </div>
