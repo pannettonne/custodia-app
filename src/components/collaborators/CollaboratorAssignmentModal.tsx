@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/app'
 import { createCollaboratorAssignment } from '@/lib/collaborator-assignments-db'
 import { createNotification } from '@/lib/db'
 import { showToast } from '@/lib/toast'
+import { LocationField } from '@/components/events/location/LocationField'
 import type { CollaboratorAssignmentType } from '@/types'
 
 interface Props {
@@ -27,8 +28,14 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('14:00')
   const [notes, setNotes] = useState('')
+  const [locationQuery, setLocationQuery] = useState('')
   const [locationName, setLocationName] = useState('')
   const [locationAddress, setLocationAddress] = useState('')
+  const [locationLatitude, setLocationLatitude] = useState<number | undefined>(undefined)
+  const [locationLongitude, setLocationLongitude] = useState<number | undefined>(undefined)
+  const [locationPlaceId, setLocationPlaceId] = useState('')
+  const [locationResults, setLocationResults] = useState<any[]>([])
+  const [locationLoading, setLocationLoading] = useState(false)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -37,8 +44,14 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
     setDate(nextDate)
     setType('full_day')
     setNotes('')
+    setLocationQuery('')
     setLocationName('')
     setLocationAddress('')
+    setLocationLatitude(undefined)
+    setLocationLongitude(undefined)
+    setLocationPlaceId('')
+    setLocationResults([])
+    setLocationLoading(false)
     const firstCollaborator = child?.collaborators?.[0] || ''
     setCollaboratorId(firstCollaborator)
     setStartTime('09:00')
@@ -46,11 +59,59 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
     setLoading(false)
   }, [open, initialDate, child?.id])
 
+  useEffect(() => {
+    const query = locationQuery.trim()
+    if (query.length < 3) {
+      setLocationResults([])
+      setLocationLoading(false)
+      return
+    }
+    if (locationPlaceId && query === (locationName.trim() || query)) {
+      setLocationResults([])
+      setLocationLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    const timer = window.setTimeout(async () => {
+      try {
+        setLocationLoading(true)
+        const response = await fetch(`/api/location-search?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+        const data = await response.json()
+        setLocationResults(Array.isArray(data.results) ? data.results : [])
+      } catch {
+        setLocationResults([])
+      } finally {
+        setLocationLoading(false)
+      }
+    }, 300)
+    return () => { controller.abort(); window.clearTimeout(timer) }
+  }, [locationName, locationPlaceId, locationQuery])
+
   if (!open) return null
 
   const selectedCollaboratorName = collaboratorId ? child?.collaboratorNames?.[collaboratorId] || 'Colaborador' : ''
   const isValid = !!user && !!child && !!baseParentId && !!date && !!collaboratorId && (type === 'full_day' || (startTime && endTime && startTime < endTime))
   const summaryLocation = locationName.trim() || locationAddress.trim()
+
+  const clearLocation = () => {
+    setLocationQuery('')
+    setLocationName('')
+    setLocationAddress('')
+    setLocationLatitude(undefined)
+    setLocationLongitude(undefined)
+    setLocationPlaceId('')
+    setLocationResults([])
+  }
+
+  const selectLocation = (item: any) => {
+    setLocationQuery(item.name)
+    setLocationName(item.name)
+    setLocationAddress(item.address)
+    setLocationLatitude(item.latitude)
+    setLocationLongitude(item.longitude)
+    setLocationPlaceId(item.placeId)
+    setLocationResults([])
+  }
 
   const handleSubmit = async () => {
     if (!user || !child || !baseParentId || !collaboratorId) return
@@ -71,22 +132,25 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
         notes: notes.trim() || undefined,
         locationName: locationName.trim() || undefined,
         locationAddress: locationAddress.trim() || undefined,
+        locationLatitude,
+        locationLongitude,
+        locationPlaceId: locationPlaceId || undefined,
       })
       await createNotification({
         userId: collaboratorId,
         childId: child.id,
         childName: child.name,
         type: 'event_assignment_pending',
-        title: 'Nueva asignacion recibida',
-        body: `${user.displayName || user.email || 'Un progenitor'} te ha enviado una asignacion para ${child.name}${summaryLocation ? ` · ${summaryLocation}` : ''}.`,
+        title: 'Nueva asignación recibida',
+        body: `${user.displayName || user.email || 'Un progenitor'} te ha enviado una asignación para ${child.name}${summaryLocation ? ` · ${summaryLocation}` : ''}.`,
         dateKey: `collaborator-assignment:${child.id}:${date}:${Date.now()}`,
         targetTab: 'requests',
         targetDate: date,
       })
-      showToast({ message: `Asignacion enviada a ${selectedCollaboratorName}.`, tone: 'success' })
+      showToast({ message: `Asignación enviada a ${selectedCollaboratorName}.`, tone: 'success' })
       onClose()
     } catch (error: any) {
-      showToast({ message: error?.message || 'No se pudo crear la asignacion.', tone: 'error' })
+      showToast({ message: error?.message || 'No se pudo crear la asignación.', tone: 'error' })
     } finally {
       setLoading(false)
     }
@@ -98,7 +162,7 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
         <div className="modal-header">
           <div>
             <div className="modal-title">Asignar colaborador</div>
-            <div className="modal-sub">Envia una asignacion puntual a un familiar o cuidador</div>
+            <div className="modal-sub">Envía una asignación puntual a un familiar o cuidador</div>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
@@ -116,8 +180,8 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
           <div style={{ marginBottom: 14 }}>
             <div className="settings-label">Tipo</div>
             <div className="type-toggle">
-              <button className={`type-btn ${type === 'full_day' ? 'active' : ''}`} onClick={() => setType('full_day')}>Dia completo</button>
-              <button className={`type-btn ${type === 'partial_slot' ? 'active' : ''}`} onClick={() => setType('partial_slot')}>Tramo parcial</button>
+              <button className={`type-btn ${type === 'full_day' ? 'active' : ''}`} onClick={() => setType('full_day')}>📅 Día completo</button>
+              <button className={`type-btn ${type === 'partial_slot' ? 'active' : ''}`} onClick={() => setType('partial_slot')}>⏰ Tramo parcial</button>
             </div>
           </div>
 
@@ -142,11 +206,21 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
             </div>
           )}
 
-          <div style={{ marginBottom: 14 }}>
-            <div className="settings-label">Localizacion (opcional)</div>
-            <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="Nombre del lugar o punto de encuentro" className="settings-input" style={{ marginBottom:8 }} />
-            <input value={locationAddress} onChange={e => setLocationAddress(e.target.value)} placeholder="Direccion o referencia" className="settings-input" />
-          </div>
+          <LocationField
+            locationQuery={locationQuery}
+            setLocationQuery={setLocationQuery}
+            locationName={locationName}
+            setLocationName={setLocationName}
+            locationAddress={locationAddress}
+            setLocationAddress={setLocationAddress}
+            setLocationLatitude={setLocationLatitude}
+            setLocationLongitude={setLocationLongitude}
+            setLocationPlaceId={setLocationPlaceId}
+            locationResults={locationResults}
+            locationLoading={locationLoading}
+            clearLocation={clearLocation}
+            selectLocation={selectLocation}
+          />
 
           <div>
             <div className="settings-label">Observaciones</div>
@@ -156,7 +230,7 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
 
         <div className="modal-footer">
           <button className="btn-primary btn-outline" style={{ flex:1 }} onClick={onClose}>Cancelar</button>
-          <button style={{ flex:1,padding:'11px',borderRadius:12,border:'none',background:(!isValid||loading)?'rgba(255,255,255,0.08)':'#8B5CF6',color:(!isValid||loading)?'#6b7280':'#fff',fontSize:13,fontWeight:700,cursor:(!isValid||loading)?'not-allowed':'pointer' }} onClick={handleSubmit} disabled={!isValid || loading}>{loading ? 'Enviando...' : 'Enviar asignacion'}</button>
+          <button style={{ flex:1,padding:'11px',borderRadius:12,border:'none',background:(!isValid||loading)?'rgba(255,255,255,0.08)':'#8B5CF6',color:(!isValid||loading)?'#6b7280':'#fff',fontSize:13,fontWeight:700,cursor:(!isValid||loading)?'not-allowed':'pointer' }} onClick={handleSubmit} disabled={!isValid || loading}>{loading ? 'Enviando...' : 'Enviar asignación'}</button>
         </div>
       </div>
     </div>
