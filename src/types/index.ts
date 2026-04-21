@@ -5,6 +5,9 @@ export interface User {
   photoURL?: string
 }
 
+export type CollaboratorLabel = 'caregiver' | 'family' | 'other'
+export type CollaboratorCalendarAccess = 'assigned_only' | 'all'
+
 export interface Child {
   id: string
   name: string
