@@ -102,6 +102,7 @@ export type NotificationTargetTab =
   | 'requests'
   | 'notes'
   | 'events'
+  | 'documents'
   | 'packing'
   | 'stats'
   | 'settings'
@@ -202,4 +203,29 @@ export interface SpecialPeriod {
   notes?: string
   createdBy: string
   createdAt: Date
+}
+
+export interface UserDocumentKey {
+  uid: string
+  publicKey: string
+  algorithm: 'RSA-OAEP-256'
+  updatedAt?: Date
+}
+
+export interface DocumentFile {
+  id: string
+  childId: string
+  createdBy: string
+  createdByName: string
+  filenameEncrypted: string
+  filenameIv: string
+  mimeType: string
+  sizeBytes: number
+  blobUrl: string
+  blobPath: string
+  contentHash: string
+  iv: string
+  encryptedFileKeys: Record<string, string>
+  createdAt: Date
+  updatedAt?: Date
 }
