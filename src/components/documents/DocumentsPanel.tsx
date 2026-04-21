@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
-import { createDocumentFolder, createDocumentRecord, deleteDocumentRecord, ensureUserDocumentKey, getChildParentIds, getUserDocumentKeys, hideDocumentForUser } from '@/lib/documents-db'
+import { createDocumentFolder, createDocumentRecord, deleteDocumentFolder, deleteDocumentRecord, ensureUserDocumentKey, getChildParentIds, getUserDocumentKeys, hideDocumentForUser } from '@/lib/documents-db'
 import { decryptDocumentToFile, encryptFileForUsers, ensureLocalDocumentKeyPair } from '@/lib/document-crypto'
-import type { DocumentFile, DocumentShareScope } from '@/types'
+import type { DocumentFile, DocumentFolder, DocumentShareScope } from '@/types'
 
 function formatBytes(bytes: number) {
   if (!bytes) return '0 B'
@@ -25,6 +25,19 @@ function documentThumbLabel(mimeType: string) {
 
 function normalize(value: string) {
   return (value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+}
+
+function collectDescendantFolderIds(folders: DocumentFolder[], folderId: string): string[] {
+  const directChildren = folders.filter(folder => folder.parentFolderId === folderId)
+  return directChildren.flatMap(folder => [folder.id, ...collectDescendantFolderIds(folders, folder.id)])
+}
+
+function buildFolderOptions(folders: DocumentFolder[], parentFolderId?: string, depth = 0): Array<{ id: string; label: string }> {
+  const items = folders.filter(folder => (folder.parentFolderId || '') === (parentFolderId || ''))
+  return items.flatMap(folder => [
+    { id: folder.id, label: `${'— '.repeat(depth)}${folder.name}` },
+    ...buildFolderOptions(folders, folder.id, depth + 1),
+  ])
 }
 
 function DocumentRow({ document, folderName, busy, userId, deleteMenuId, setDeleteMenuId, onOpen, onHideForMe, onDeleteForEveryone }: {
@@ -74,6 +87,7 @@ export function DocumentsPanel() {
   const [shareScope, setShareScope] = useState<DocumentShareScope>('all_parents')
   const [selectedFolderId, setSelectedFolderId] = useState('root')
   const [newFolderName, setNewFolderName] = useState('')
+  const [newFolderParentId, setNewFolderParentId] = useState('root')
   const [documentTitle, setDocumentTitle] = useState('')
   const [deleteMenuId, setDeleteMenuId] = useState<string | null>(null)
   const [documentQuery, setDocumentQuery] = useState('')
@@ -81,16 +95,25 @@ export function DocumentsPanel() {
 
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
   const normalizedQuery = normalize(documentQuery)
-  const visibleFolders = useMemo(() => documentFolders.filter(folder => !normalizedQuery || normalize(folder.name).includes(normalizedQuery)), [documentFolders, normalizedQuery])
+  const folderOptions = useMemo(() => buildFolderOptions(documentFolders), [documentFolders])
   const visibleDocuments = useMemo(() => documents.filter(doc => {
     if (!normalizedQuery) return true
     const folderName = doc.folderId ? documentFolders.find(folder => folder.id === doc.folderId)?.name || '' : 'sin carpeta'
     return [doc.title || '', folderName, doc.mimeType || ''].some(field => normalize(field).includes(normalizedQuery))
   }), [documents, documentFolders, normalizedQuery])
-  const rootDocuments = useMemo(() => visibleDocuments.filter(doc => !doc.folderId), [visibleDocuments])
 
   function showMessage(text: string, tone: 'info' | 'success' | 'error' = 'info') { setMessage(text); setMessageTone(tone) }
   function toggleFolder(folderId: string) { setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] })) }
+  function getFolderPath(folderId?: string) {
+    if (!folderId) return 'Sin carpeta'
+    const parts: string[] = []
+    let current = documentFolders.find(folder => folder.id === folderId)
+    while (current) {
+      parts.unshift(current.name)
+      current = current.parentFolderId ? documentFolders.find(folder => folder.id === current?.parentFolderId) : undefined
+    }
+    return parts.join(' / ')
+  }
 
   useEffect(() => {
     if (!user?.uid) return
@@ -99,18 +122,29 @@ export function DocumentsPanel() {
       .catch((error: unknown) => showMessage(error instanceof Error ? error.message : 'No se pudo inicializar el cifrado local', 'error'))
   }, [user?.uid])
 
-  const handleCreateFolder = async () => {
+  const handleCreateFolder = async (parentId = newFolderParentId) => {
     if (!user || !child || !newFolderName.trim()) return
     setBusy('folder')
     try {
-      await createDocumentFolder({ childId: child.id, name: newFolderName.trim(), createdBy: user.uid, createdByName: user.displayName || user.email || 'Progenitor', shareScope, hiddenForUserIds: [] })
+      const actualParentId = parentId === 'root' ? undefined : parentId
+      await createDocumentFolder({ childId: child.id, name: newFolderName.trim(), createdBy: user.uid, createdByName: user.displayName || user.email || 'Progenitor', shareScope, hiddenForUserIds: [], ...(actualParentId ? { parentFolderId: actualParentId } : {}) })
       setNewFolderName('')
+      setNewFolderParentId('root')
+      if (actualParentId) setExpandedFolders(prev => ({ ...prev, [actualParentId]: true }))
       showMessage('Carpeta creada.', 'success')
     } catch (error: unknown) {
       showMessage(error instanceof Error ? error.message : 'No se pudo crear la carpeta', 'error')
     } finally {
       setBusy(null)
     }
+  }
+
+  const handleCreateChildFolder = async (parentFolderId: string) => {
+    const name = window.prompt('Nombre de la subcarpeta')?.trim()
+    if (!name) return
+    setNewFolderName(name)
+    await handleCreateFolder(parentFolderId)
+    setNewFolderName('')
   }
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,6 +213,14 @@ export function DocumentsPanel() {
     } finally { setBusy(null) }
   }
 
+  const deleteBlobByPath = async (pathname: string) => {
+    if (!user) return
+    const idToken = await user.getIdToken()
+    const response = await fetch('/api/documents/delete', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` }, body: JSON.stringify({ pathname }) })
+    const payload = await response.json()
+    if (!response.ok) throw new Error(payload.error || 'No se pudo borrar el blob cifrado')
+  }
+
   const handleDeleteForEveryone = async (documentId: string) => {
     if (!user) return
     const document = documents.find(item => item.id === documentId)
@@ -187,15 +229,37 @@ export function DocumentsPanel() {
     setDeleteMenuId(null)
     setBusy(documentId)
     try {
-      const idToken = await user.getIdToken()
-      const response = await fetch('/api/documents/delete', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` }, body: JSON.stringify({ pathname: document.blobPath }) })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || 'No se pudo borrar el blob cifrado')
+      await deleteBlobByPath(document.blobPath)
       await deleteDocumentRecord(documentId)
       showMessage('Documento eliminado para todos.', 'success')
     } catch (error: unknown) {
       showMessage(error instanceof Error ? error.message : 'No se pudo eliminar el documento', 'error')
     } finally { setBusy(null) }
+  }
+
+  const handleDeleteFolderTree = async (folderId: string) => {
+    if (!user) return
+    const descendantFolderIds = collectDescendantFolderIds(documentFolders, folderId)
+    const allFolderIds = [folderId, ...descendantFolderIds]
+    const affectedDocuments = documents.filter(document => document.folderId && allFolderIds.includes(document.folderId))
+    const rootFolder = documentFolders.find(folder => folder.id === folderId)
+    const confirmText = `Se eliminarán ${allFolderIds.length} carpeta(s) y ${affectedDocuments.length} documento(s) dentro de "${rootFolder?.name || 'carpeta'}". Esta acción afecta también a subcarpetas. ¿Continuar?`
+    if (!window.confirm(confirmText)) return
+    setBusy(`folder-delete-${folderId}`)
+    try {
+      for (const document of affectedDocuments) {
+        await deleteBlobByPath(document.blobPath)
+        await deleteDocumentRecord(document.id)
+      }
+      for (const id of [...descendantFolderIds.reverse(), folderId]) {
+        await deleteDocumentFolder(id)
+      }
+      showMessage('Carpeta y contenido eliminados.', 'success')
+    } catch (error: unknown) {
+      showMessage(error instanceof Error ? error.message : 'No se pudo eliminar la carpeta', 'error')
+    } finally {
+      setBusy(null)
+    }
   }
 
   const handleHideForMe = async (documentId: string) => {
@@ -206,6 +270,55 @@ export function DocumentsPanel() {
     try { await hideDocumentForUser(documentId, user.uid); showMessage('Documento ocultado solo para ti.', 'success') }
     catch (error: unknown) { showMessage(error instanceof Error ? error.message : 'No se pudo ocultar el documento', 'error') }
     finally { setBusy(null) }
+  }
+
+  const renderFolderBranch = (parentFolderId?: string, depth = 0): React.ReactNode => {
+    const foldersHere = documentFolders.filter(folder => (folder.parentFolderId || '') === (parentFolderId || '')).filter(folder => !normalizedQuery || normalize(folder.name).includes(normalizedQuery) || visibleDocuments.some(doc => doc.folderId === folder.id))
+    const documentsHere = visibleDocuments.filter(doc => (doc.folderId || '') === (parentFolderId || ''))
+    if (foldersHere.length === 0 && documentsHere.length === 0 && parentFolderId) return null
+
+    return (
+      <>
+        {parentFolderId === undefined ? (
+          <div style={{ borderBottom: (documentsHere.length > 0 || foldersHere.length > 0) ? '1px solid var(--border)' : 'none' }}>
+            <div style={{ width:'100%', textAlign:'left', padding:'14px 16px', display:'flex', alignItems:'center', gap:10, color:'var(--text-strong)', fontWeight:800 }}>
+              <button onClick={() => toggleFolder('root')} style={{ background:'transparent', border:'none', cursor:'pointer', color:'inherit', font: 'inherit', display:'flex', alignItems:'center', gap:10, padding:0 }}>
+                <span style={{ fontSize:18 }}>📁</span><span>Sin carpeta</span><span style={{ color:'var(--text-muted)', fontWeight:600 }}>({documentsHere.length})</span>
+              </button>
+              <button className="btn-primary btn-outline" style={{ marginLeft:'auto', padding:'6px 10px' }} onClick={() => { setSelectedFolderId('root'); setExpandedFolders(prev => ({ ...prev, root: true })) }}>Subir aquí</button>
+            </div>
+            {expandedFolders.root !== false ? documentsHere.map(document => <DocumentRow key={document.id} document={document} folderName="Sin carpeta" busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />) : null}
+          </div>
+        ) : null}
+        {foldersHere.map(folder => {
+          const childFolders = documentFolders.filter(item => item.parentFolderId === folder.id)
+          const docsInFolder = visibleDocuments.filter(document => document.folderId === folder.id)
+          const isOpen = expandedFolders[folder.id] !== false
+          const totalCount = docsInFolder.length + childFolders.length
+          return <div key={folder.id} style={{ borderBottom: '1px solid var(--border)' }}>
+            <div style={{ width:'100%', textAlign:'left', padding:`14px 16px 14px ${16 + depth * 18}px`, display:'flex', alignItems:'center', gap:10, color:'var(--text-strong)', fontWeight:800 }}>
+              <button onClick={() => toggleFolder(folder.id)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'inherit', font: 'inherit', display:'flex', alignItems:'center', gap:10, padding:0, textAlign:'left' }}>
+                <span style={{ fontSize:18 }}>📁</span>
+                <span>{folder.name}</span>
+                <span style={{ color:'var(--text-muted)', fontWeight:600 }}>({totalCount})</span>
+              </button>
+              <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap' }}>
+                <button className="btn-primary btn-outline" style={{ padding:'6px 10px' }} onClick={() => { setSelectedFolderId(folder.id); setExpandedFolders(prev => ({ ...prev, [folder.id]: true })) }}>Subir aquí</button>
+                <button className="btn-primary btn-outline" style={{ padding:'6px 10px' }} onClick={() => handleCreateChildFolder(folder.id)}>＋</button>
+                <button className="btn-primary btn-outline" style={{ padding:'6px 10px' }} onClick={() => handleDeleteFolderTree(folder.id)} disabled={busy === `folder-delete-${folder.id}`}>🗑️</button>
+              </div>
+            </div>
+            {isOpen ? (
+              <>
+                {docsInFolder.map(document => <DocumentRow key={document.id} document={document} folderName={getFolderPath(folder.id)} busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />)}
+                {renderFolderBranch(folder.id, depth + 1)}
+                {docsInFolder.length === 0 && childFolders.length === 0 ? <div style={{ padding:`0 16px 14px ${50 + depth * 18}px`, color:'var(--text-muted)', fontSize:13 }}>No hay contenido en esta carpeta.</div> : null}
+              </>
+            ) : null}
+          </div>
+        })}
+      </>
+    )
   }
 
   if (!child) return <div className="card" style={{ padding: 16 }}>Selecciona un menor para gestionar documentos.</div>
@@ -219,12 +332,15 @@ export function DocumentsPanel() {
           <div style={{ fontWeight: 800, color: 'var(--text-strong)' }}>Subidas y carpetas</div>
           <input className="settings-input" value={documentTitle} onChange={e => setDocumentTitle(e.target.value)} placeholder="Nombre del documento" />
           <select className="settings-input" value={shareScope} onChange={e => setShareScope(e.target.value as DocumentShareScope)}><option value="all_parents">Para todos</option><option value="only_me">Solo para mi</option></select>
-          <select className="settings-input" value={selectedFolderId} onChange={e => setSelectedFolderId(e.target.value)}><option value="root">Sin carpeta</option>{documentFolders.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
+          <select className="settings-input" value={selectedFolderId} onChange={e => setSelectedFolderId(e.target.value)}><option value="root">Sin carpeta</option>{folderOptions.map(folder => <option key={folder.id} value={folder.id}>{folder.label}</option>)}</select>
           <label className="btn-primary" style={{ justifySelf:'start', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy === 'upload' ? 'Procesando...' : 'Subir PDF o imagen'}<input hidden type="file" accept="application/pdf,image/*" onChange={handleUpload} disabled={!!busy} /></label>
         </div>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          <input className="settings-input" style={{ marginBottom:0, flex:'1 1 220px' }} value={newFolderName} onChange={e => setNewFolderName(e.target.value)} placeholder="Nueva carpeta" />
-          <button className="btn-primary btn-outline" onClick={handleCreateFolder} disabled={busy === 'folder' || !newFolderName.trim()}>{busy === 'folder' ? 'Creando...' : 'Crear carpeta'}</button>
+        <div style={{ display:'grid', gap:8 }}>
+          <input className="settings-input" value={newFolderName} onChange={e => setNewFolderName(e.target.value)} placeholder="Nueva carpeta" />
+          <div style={{ display:'grid', gap:8, gridTemplateColumns:'1fr auto' }}>
+            <select className="settings-input" value={newFolderParentId} onChange={e => setNewFolderParentId(e.target.value)} style={{ marginBottom:0 }}><option value="root">Crear en raíz</option>{folderOptions.map(folder => <option key={folder.id} value={folder.id}>{folder.label}</option>)}</select>
+            <button className="btn-primary btn-outline" onClick={() => handleCreateFolder()} disabled={busy === 'folder' || !newFolderName.trim()}>{busy === 'folder' ? 'Creando...' : 'Crear carpeta'}</button>
+          </div>
         </div>
         {uploadStage ? <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{uploadStage}</div> : null}
         {message ? <div style={{ fontSize: 13, color: toneColor }}>{message}</div> : null}
@@ -237,28 +353,7 @@ export function DocumentsPanel() {
 
       <div className="card" style={{ padding: 0, overflow: 'visible' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontWeight: 800 }}>Documentos de {child.name}</div>
-        {visibleFolders.length === 0 && rootDocuments.length === 0 ? <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos en esta vista.</div> : <div style={{ display: 'grid', overflow: 'visible' }}>
-          <div style={{ borderBottom: rootDocuments.length > 0 ? '1px solid var(--border)' : 'none' }}>
-            <button onClick={() => toggleFolder('root')} style={{ width:'100%', textAlign:'left', padding:'14px 16px', background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:10, color:'var(--text-strong)', fontWeight:800 }}>
-              <span style={{ fontSize:18 }}>📁</span>
-              <span>Sin carpeta</span>
-              <span style={{ color:'var(--text-muted)', fontWeight:600 }}>({rootDocuments.length})</span>
-            </button>
-            {expandedFolders.root !== false ? rootDocuments.map(document => <DocumentRow key={document.id} document={document} folderName="Sin carpeta" busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />) : null}
-          </div>
-          {visibleFolders.map(folder => {
-            const folderDocs = visibleDocuments.filter(doc => doc.folderId === folder.id)
-            const isOpen = expandedFolders[folder.id] !== false
-            return <div key={folder.id} style={{ borderBottom: '1px solid var(--border)' }}>
-              <button onClick={() => toggleFolder(folder.id)} style={{ width:'100%', textAlign:'left', padding:'14px 16px', background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:10, color:'var(--text-strong)', fontWeight:800 }}>
-                <span style={{ fontSize:18 }}>📁</span>
-                <span>{folder.name}</span>
-                <span style={{ color:'var(--text-muted)', fontWeight:600 }}>({folderDocs.length})</span>
-              </button>
-              {isOpen ? folderDocs.length > 0 ? folderDocs.map(document => <DocumentRow key={document.id} document={document} folderName={folder.name} busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />) : <div style={{ padding:'0 16px 14px 50px', color:'var(--text-muted)', fontSize:13 }}>No hay documentos en esta carpeta.</div> : null}
-            </div>
-          })}
-        </div>}
+        {visibleDocuments.length === 0 && documentFolders.length === 0 ? <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos en esta vista.</div> : <div style={{ display: 'grid', overflow: 'visible' }}>{renderFolderBranch(undefined, 0)}</div>}
       </div>
     </div>
   )
