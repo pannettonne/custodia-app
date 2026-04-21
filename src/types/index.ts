@@ -212,6 +212,20 @@ export interface UserDocumentKey {
   updatedAt?: Date
 }
 
+export type DocumentShareScope = 'all_parents' | 'only_me'
+
+export interface DocumentFolder {
+  id: string
+  childId: string
+  name: string
+  createdBy: string
+  createdByName: string
+  shareScope: DocumentShareScope
+  hiddenForUserIds?: string[]
+  createdAt: Date
+  updatedAt?: Date
+}
+
 export interface DocumentFile {
   id: string
   childId: string
@@ -226,6 +240,9 @@ export interface DocumentFile {
   contentHash: string
   iv: string
   encryptedFileKeys: Record<string, string>
+  shareScope: DocumentShareScope
+  folderId?: string
+  hiddenForUserIds?: string[]
   pendingRecipientIds?: string[]
   createdAt: Date
   updatedAt?: Date
