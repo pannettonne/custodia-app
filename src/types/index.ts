@@ -223,6 +223,7 @@ export interface DocumentFolder {
   createdBy: string
   createdByName: string
   shareScope: DocumentShareScope
+  parentFolderId?: string
   hiddenForUserIds?: string[]
   createdAt: Date
   updatedAt?: Date
