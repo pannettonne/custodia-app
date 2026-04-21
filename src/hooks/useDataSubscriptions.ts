@@ -9,23 +9,38 @@ import {
   subscribeToNotifications,
 } from '@/lib/db'
 import { subscribeToDocumentFolders, subscribeToDocuments } from '@/lib/documents-db'
+import { subscribeToCollaboratorChildren } from '@/lib/collaborators-db'
 
 export function useDataSubscriptions() {
   const { user } = useAuth()
   const {
     selectedChildId,
+    children,
     setChildren, setPattern, setOverrides, setRequests,
     setInvitations, setNotes, setEvents, setPackingItems, setSpecialPeriods,
     setSelectedChildId, setNotifications, setDocuments, setDocumentFolders,
   } = useAppStore()
 
   useEffect(() => {
-    if (!user) return
-    return subscribeToChildren(user.uid, kids => {
-      setChildren(kids)
-      if (kids.length > 0 && !selectedChildId) setSelectedChildId(kids[0].id)
+    if (!user?.uid) return
+    let parentChildren: any[] = []
+    let collaboratorChildren: any[] = []
+    const syncChildren = () => {
+      const merged = Array.from(new Map([...parentChildren, ...collaboratorChildren].map(item => [item.id, item])).values())
+      setChildren(merged)
+      if (merged.length > 0 && !selectedChildId) setSelectedChildId(merged[0].id)
+    }
+
+    const u1 = subscribeToChildren(user.uid, kids => {
+      parentChildren = kids
+      syncChildren()
     })
-  }, [user?.uid])
+    const u2 = subscribeToCollaboratorChildren(user.uid, kids => {
+      collaboratorChildren = kids
+      syncChildren()
+    })
+    return () => { u1(); u2() }
+  }, [user?.uid, selectedChildId, setChildren, setSelectedChildId])
 
   useEffect(() => {
     if (!user?.email) return
@@ -38,7 +53,10 @@ export function useDataSubscriptions() {
   }, [user?.uid])
 
   useEffect(() => {
-    if (!selectedChildId || !user?.uid) {
+    const selectedChild = children.find(child => child.id === selectedChildId)
+    const isParent = !!selectedChild && selectedChild.parents.includes(user?.uid || '')
+
+    if (!selectedChildId || !user?.uid || !isParent) {
       setPattern(null); setOverrides([]); setRequests([])
       setNotes([]); setEvents([]); setDocuments([]); setDocumentFolders([]); setPackingItems([]); setSpecialPeriods([])
       return
@@ -53,5 +71,5 @@ export function useDataSubscriptions() {
     const u8 = subscribeToPackingItems(selectedChildId, setPackingItems)
     const u9 = subscribeToSpecialPeriods(selectedChildId, setSpecialPeriods)
     return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9() }
-  }, [selectedChildId, user?.uid])
+  }, [selectedChildId, user?.uid, children])
 }
