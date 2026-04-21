@@ -19,6 +19,8 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
   const [startDate, setStartDate] = useState(initialDate ?? '')
   const [endDate, setEndDate] = useState(initialDate ?? '')
   const [reason, setReason] = useState('')
+  const [locationName, setLocationName] = useState('')
+  const [locationAddress, setLocationAddress] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -31,6 +33,8 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
     setStartDate(seedDate)
     setEndDate(seedDate)
     setReason('')
+    setLocationName('')
+    setLocationAddress('')
     setLoading(false)
     setSuccess(false)
   }, [open, initialDate])
@@ -40,6 +44,7 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
   const isValid = reason.trim().length > 0 && (type === 'single' ? !!date : !!startDate && !!endDate && startDate <= endDate)
   const summaryDate = type === 'single' ? date : `${startDate}→${endDate}`
   const targetDate = type === 'single' ? date : startDate
+  const summaryLocation = locationName.trim() || locationAddress.trim()
 
   const handleTypeChange = (nextType: 'single' | 'range') => {
     if (nextType === type) return
@@ -60,8 +65,28 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
     if (!user || !child || !otherParentId || !reason.trim()) return
     setLoading(true)
     try {
-      await createChangeRequest({ childId: child.id, fromParentId: user.uid, fromParentName: user.displayName ?? user.email ?? 'Progenitor', toParentId: otherParentId, type, ...(type === 'single' ? { date } : { startDate, endDate }), reason: reason.trim() })
-      await createNotification({ userId: otherParentId, childId: child.id, childName: child.name, type: 'pending_request', title: 'Nueva solicitud de cambio', body: `${user.displayName || user.email || 'El otro progenitor'} ha pedido un cambio de custodia (${summaryDate}).`, dateKey: `change-request:${child.id}:${summaryDate}:${Date.now()}`, targetTab: 'requests', targetDate })
+      await createChangeRequest({
+        childId: child.id,
+        fromParentId: user.uid,
+        fromParentName: user.displayName ?? user.email ?? 'Progenitor',
+        toParentId: otherParentId,
+        type,
+        ...(type === 'single' ? { date } : { startDate, endDate }),
+        reason: reason.trim(),
+        locationName: locationName.trim() || undefined,
+        locationAddress: locationAddress.trim() || undefined,
+      })
+      await createNotification({
+        userId: otherParentId,
+        childId: child.id,
+        childName: child.name,
+        type: 'pending_request',
+        title: 'Nueva solicitud de cambio',
+        body: `${user.displayName || user.email || 'El otro progenitor'} ha pedido un cambio de custodia (${summaryDate})${summaryLocation ? ` · ${summaryLocation}` : ''}.`,
+        dateKey: `change-request:${child.id}:${summaryDate}:${Date.now()}`,
+        targetTab: 'requests',
+        targetDate,
+      })
       showToast({ message: 'Solicitud enviada.', tone: 'success' })
       setSuccess(true)
       setTimeout(() => { onClose(); setSuccess(false) }, 1500)
@@ -111,6 +136,12 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
                     <div><div className="date-pair-label">Hasta</div><input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} className="settings-input" /></div>
                   </div>
                 )}
+              </div>
+
+              <div style={{ marginBottom:14 }}>
+                <div className="settings-label">📍 Localización (opcional)</div>
+                <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="Nombre del lugar o punto de encuentro" className="settings-input" style={{ marginBottom:8 }} />
+                <input value={locationAddress} onChange={e => setLocationAddress(e.target.value)} placeholder="Dirección o referencia" className="settings-input" />
               </div>
 
               <div>
