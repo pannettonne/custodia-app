@@ -81,6 +81,7 @@ export interface Note {
   tag: NoteTag
   mentionOther: boolean
   read: boolean
+  documentIds?: string[]
   createdAt: Date
   updatedAt?: Date
 }
@@ -152,6 +153,7 @@ export interface SchoolEvent {
   locationLatitude?: number
   locationLongitude?: number
   locationPlaceId?: string
+  documentIds?: string[]
   createdAt: Date
   updatedAt?: Date
 }
