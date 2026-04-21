@@ -56,13 +56,13 @@ export function DocumentsPanel() {
       setUploadStage('Comprobando claves de los progenitores...')
       const parentIds = await getChildParentIds(child.id)
       const keyRegistry = await getUserDocumentKeys(parentIds)
-      const missing = parentIds.filter(uid => !keyRegistry[uid])
-      if (missing.length > 0) {
-        throw new Error('Falta inicializar Documentos en alguno de los progenitores. Haz que entren una vez en la pestaña Documentos para generar su clave publica.')
+      const availableKeys = Object.keys(keyRegistry)
+      if (!availableKeys.includes(user.uid)) {
+        throw new Error('No se ha podido preparar tu clave local para cifrar este documento')
       }
 
       setUploadStage('Cifrando archivo en este dispositivo...')
-      const encrypted = await encryptFileForUsers(file, keyRegistry)
+      const encrypted = await encryptFileForUsers(file, keyRegistry, parentIds)
       const idToken = await user.getIdToken()
       const formData = new FormData()
       formData.append('file', encrypted.encryptedBlob, `${child.id}-${Date.now()}.bin`)
@@ -92,9 +92,14 @@ export function DocumentsPanel() {
         contentHash: encrypted.metadata.contentHash,
         iv: encrypted.metadata.iv,
         encryptedFileKeys: encrypted.metadata.encryptedFileKeys,
+        pendingRecipientIds: encrypted.metadata.pendingRecipientIds,
       })
 
-      showMessage(`Documento cifrado y sincronizado correctamente: ${file.name}`, 'success')
+      if (encrypted.metadata.pendingRecipientIds.length > 0) {
+        showMessage(`Documento subido. Queda pendiente de compartirse con ${encrypted.metadata.pendingRecipientIds.length} progenitor(es) cuando inicialicen Documentos.`, 'success')
+      } else {
+        showMessage(`Documento cifrado y sincronizado correctamente: ${file.name}`, 'success')
+      }
     } catch (error: unknown) {
       console.error('Documents upload failed', error)
       showMessage(error instanceof Error ? error.message : 'Error subiendo documento', 'error')
@@ -183,7 +188,7 @@ export function DocumentsPanel() {
         </label>
 
         <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-          Consejo: el otro progenitor debe entrar al menos una vez en esta pestaña para generar su clave publica local.
+          Puedes subir documentos aunque el otro progenitor todavía no haya inicializado esta pestaña.
         </div>
 
         {uploadStage ? <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{uploadStage}</div> : null}
@@ -196,30 +201,35 @@ export function DocumentsPanel() {
           <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos.</div>
         ) : (
           <div style={{ display: 'grid' }}>
-            {documents.map(document => (
-              <div key={document.id} style={{ display: 'grid', gap: 10, padding: 16, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>Documento cifrado</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      {formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}
+            {documents.map(document => {
+              const unavailableForOthers = Array.isArray(document.pendingRecipientIds) ? document.pendingRecipientIds.length : 0
+              const canOpen = !!document.encryptedFileKeys?.[user?.uid || '']
+              return (
+                <div key={document.id} style={{ display: 'grid', gap: 10, padding: 16, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>Documento cifrado</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                        {formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{document.mimeType || 'application/octet-stream'}</div>
+                      {unavailableForOthers > 0 ? <div style={{ fontSize: 11, color: '#9a3412' }}>Pendiente de compartirse con {unavailableForOthers} progenitor(es).</div> : null}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{document.mimeType || 'application/octet-stream'}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <button className="btn-primary btn-outline" onClick={() => handleDownload(document.id)} disabled={busy === document.id || !canOpen}>
+                        {busy === document.id ? 'Abriendo...' : 'Abrir'}
+                      </button>
+                      <button className="btn-primary btn-outline" onClick={() => handleDelete(document.id)} disabled={busy === document.id}>
+                        Borrar
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <button className="btn-primary btn-outline" onClick={() => handleDownload(document.id)} disabled={busy === document.id}>
-                      {busy === document.id ? 'Abriendo...' : 'Abrir'}
-                    </button>
-                    <button className="btn-primary btn-outline" onClick={() => handleDelete(document.id)} disabled={busy === document.id}>
-                      Borrar
-                    </button>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                    hash {document.contentHash.slice(0, 16)}...
                   </div>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-                  hash {document.contentHash.slice(0, 16)}...
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
