@@ -1,15 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function childForId(childId) {
+      return get(/databases/$(database)/documents/children/$(childId));
+    }
+
+    function isParentForChild(childId) {
+      return request.auth != null && exists(/databases/$(database)/documents/children/$(childId)) && request.auth.uid in childForId(childId).data.parents;
+    }
+
+    function isCollaboratorForChild(childId) {
+      return request.auth != null && exists(/databases/$(database)/documents/children/$(childId)) && childForId(childId).data.collaborators != null && request.auth.uid in childForId(childId).data.collaborators;
+    }
+
+    function collaboratorHasFullCalendar(childId) {
+      return isCollaboratorForChild(childId) && childForId(childId).data.collaboratorCalendarAccess[request.auth.uid] == 'all';
+    }
+
     match /children/{childId} {
       allow read: if request.auth != null && (
         request.auth.uid in resource.data.parents ||
-        request.auth.uid in resource.data.collaborators
+        (resource.data.collaborators != null && request.auth.uid in resource.data.collaborators)
       );
       allow create: if request.auth != null && request.auth.uid in request.resource.data.parents;
       allow update: if request.auth != null && (
         request.auth.uid in resource.data.parents ||
         (
+          resource.data.collaboratorEmails != null &&
           request.auth.token.email in resource.data.collaboratorEmails &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'collaborators',
@@ -25,12 +42,14 @@ service cloud.firestore {
       );
     }
     match /custodyPatterns/{patternId} {
-      allow read, update, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
-      allow create: if request.auth != null && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow read: if isParentForChild(resource.data.childId) || collaboratorHasFullCalendar(resource.data.childId);
+      allow update, delete: if isParentForChild(resource.data.childId);
+      allow create: if isParentForChild(request.resource.data.childId);
     }
     match /custodyOverrides/{overrideId} {
-      allow read, update, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
-      allow create: if request.auth != null && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow read: if isParentForChild(resource.data.childId) || collaboratorHasFullCalendar(resource.data.childId);
+      allow update, delete: if isParentForChild(resource.data.childId);
+      allow create: if isParentForChild(request.resource.data.childId);
     }
     match /changeRequests/{requestId} {
       allow read: if request.auth != null && (request.auth.uid == resource.data.fromParentId || request.auth.uid == resource.data.toParentId);
@@ -44,19 +63,25 @@ service cloud.firestore {
         request.auth.uid == resource.data.fromParentId || request.auth.uid == resource.data.toParentId
       ) && resource.data.status == 'cancelled';
     }
+    match /collaboratorAssignments/{assignmentId} {
+      allow read: if isParentForChild(resource.data.childId) || (request.auth != null && request.auth.uid == resource.data.collaboratorId && isCollaboratorForChild(resource.data.childId));
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdByParentId && isParentForChild(request.resource.data.childId);
+      allow update: if isParentForChild(resource.data.childId) || (request.auth != null && request.auth.uid == resource.data.collaboratorId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']));
+      allow delete: if false;
+    }
     match /invitations/{invitationId} {
       allow read: if request.auth != null && (request.auth.token.email == resource.data.toEmail || request.auth.token.email == resource.data.fromEmail);
       allow create: if request.auth != null && request.auth.token.email == request.resource.data.fromEmail;
       allow update: if request.auth != null && ((request.auth.token.email == resource.data.toEmail) || (request.auth.token.email == resource.data.fromEmail)) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'createdAt']);
     }
     match /notes/{noteId} {
-      allow read, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
-      allow update: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
+      allow read, delete: if isParentForChild(resource.data.childId);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy && isParentForChild(request.resource.data.childId);
+      allow update: if isParentForChild(resource.data.childId);
     }
     match /schoolEvents/{eventId} {
-      allow read, update, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow read, update, delete: if isParentForChild(resource.data.childId);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy && isParentForChild(request.resource.data.childId);
     }
     match /notifications/{notificationId} {
       allow read, update: if request.auth != null && request.auth.uid == resource.data.userId;
@@ -64,20 +89,21 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /documents/{documentId} {
-      allow read, update, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow read, update, delete: if isParentForChild(resource.data.childId);
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy && isParentForChild(request.resource.data.childId);
     }
     match /userDocumentKeys/{userId} {
       allow read: if request.auth != null;
       allow create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
     match /packingItems/{itemId} {
-      allow read, update, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
-      allow create: if request.auth != null && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow read, update, delete: if isParentForChild(resource.data.childId);
+      allow create: if isParentForChild(request.resource.data.childId);
     }
     match /specialPeriods/{periodId} {
-      allow read, update, delete: if request.auth != null && exists(/databases/$(database)/documents/children/$(resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(resource.data.childId)).data.parents;
-      allow create: if request.auth != null && exists(/databases/$(database)/documents/children/$(request.resource.data.childId)) && request.auth.uid in get(/databases/$(database)/documents/children/$(request.resource.data.childId)).data.parents;
+      allow read: if isParentForChild(resource.data.childId) || collaboratorHasFullCalendar(resource.data.childId);
+      allow update, delete: if isParentForChild(resource.data.childId);
+      allow create: if isParentForChild(request.resource.data.childId);
     }
   }
 }
