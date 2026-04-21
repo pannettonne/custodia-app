@@ -9,6 +9,8 @@ export type CollaboratorLabel = 'caregiver' | 'family' | 'other'
 export type CollaboratorCalendarAccess = 'assigned_only' | 'all'
 export type CollaboratorAssignmentStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
 export type CollaboratorAssignmentType = 'full_day' | 'partial_slot'
+export type MedicationPlanStatus = 'active' | 'paused' | 'completed'
+export type MedicationLogStatus = 'administered' | 'skipped'
 
 export interface Child {
   id: string
@@ -96,6 +98,44 @@ export interface CollaboratorAssignment {
   respondedAt?: Date
 }
 
+export interface MedicationPlan {
+  id: string
+  childId: string
+  createdBy: string
+  createdByName: string
+  name: string
+  dosage: string
+  dosageUnit?: string
+  route?: string
+  intervalHours: number
+  firstDoseTime: string
+  startDate: string
+  endDate: string
+  instructions?: string
+  observations?: string
+  status: MedicationPlanStatus
+  reminderEnabled?: boolean
+  reminderMinutesBefore?: number
+  createdAt: Date
+  updatedAt?: Date
+}
+
+export interface MedicationLog {
+  id: string
+  childId: string
+  medicationId: string
+  medicationName: string
+  scheduledAt: string
+  scheduledDate: string
+  scheduledTime: string
+  status: MedicationLogStatus
+  actedBy: string
+  actedByName: string
+  note?: string
+  actedAt?: Date
+  updatedAt?: Date
+}
+
 export interface Invitation {
   id: string
   childId: string
@@ -148,6 +188,7 @@ export type NotificationTargetTab =
   | 'events'
   | 'documents'
   | 'packing'
+  | 'medications'
   | 'stats'
   | 'settings'
 export type NotificationChannel = 'off' | 'in_app' | 'push' | 'both'
@@ -208,6 +249,7 @@ export interface AppNotification {
   childName?: string
   type:
     | 'event_reminder'
+    | 'medication_reminder'
     | 'pending_request'
     | 'special_period_start'
     | 'event_assignment_pending'
