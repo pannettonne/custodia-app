@@ -7,6 +7,7 @@ import { createChild, createInvitation, acceptInvitation, setPattern, forgetChil
 import { PARENT_COLORS, PATTERN_LABELS } from '@/lib/utils'
 import { SpecialPeriodsManager } from '@/components/settings/SpecialPeriodsManager'
 import { PushSection } from '@/components/settings/PushSection'
+import { CollaboratorInviteSection } from '@/components/settings/CollaboratorInviteSection'
 import type { Child, Invitation, NotificationChannel, UserNotificationSettings } from '@/types'
 
 export function SettingsPanel() {
@@ -27,6 +28,7 @@ export function SettingsPanel() {
       {child && <SpecialPeriodsManager />}
       {child && child.parents.length < 2 && <InviteSection child={child} sentInvitations={sentInvitations} />}
       {child && child.parents.length >= 2 && <ParentsInfo child={child} />}
+      {child && child.parents.length >= 2 && <CollaboratorInviteSection child={child} invitations={invitations} />}
       {child && <DangerZone child={child} />}
     </div>
   )
