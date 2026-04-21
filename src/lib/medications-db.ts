@@ -5,6 +5,10 @@ import { db } from './firebase'
 import type { MedicationLog, MedicationPlan, MedicationLogStatus } from '@/types'
 import { buildMedicationLogId } from './medications'
 
+function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T>
+}
+
 function byCreatedAtDesc<T extends { createdAt?: any }>(items: T[]) {
   return [...items].sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))
 }
@@ -20,19 +24,19 @@ export function subscribeToMedicationLogs(childId: string, cb: (items: Medicatio
 }
 
 export async function createMedicationPlan(data: Omit<MedicationPlan, 'id' | 'createdAt' | 'updatedAt'>) {
-  const ref = await addDoc(collection(db, 'medications'), {
+  const ref = await addDoc(collection(db, 'medications'), compactUndefined({
     ...data,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  })
+  }))
   return ref.id
 }
 
 export async function updateMedicationPlan(id: string, data: Partial<MedicationPlan>) {
-  await updateDoc(doc(db, 'medications', id), {
+  await updateDoc(doc(db, 'medications', id), compactUndefined({
     ...data,
     updatedAt: serverTimestamp(),
-  })
+  }))
 }
 
 export async function deleteMedicationPlan(id: string) {
@@ -50,7 +54,7 @@ export async function setMedicationLog(input: {
   note?: string
 }) {
   const logId = buildMedicationLogId(input.medicationId, input.scheduledAt)
-  await setDoc(doc(db, 'medicationLogs', logId), {
+  await setDoc(doc(db, 'medicationLogs', logId), compactUndefined({
     childId: input.childId,
     medicationId: input.medicationId,
     medicationName: input.medicationName,
@@ -60,8 +64,8 @@ export async function setMedicationLog(input: {
     status: input.status,
     actedBy: input.actedBy,
     actedByName: input.actedByName,
-    note: input.note || undefined,
+    note: input.note,
     actedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  }, { merge: true })
+  }), { merge: true })
 }
