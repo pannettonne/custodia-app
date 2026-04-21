@@ -27,6 +27,8 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('14:00')
   const [notes, setNotes] = useState('')
+  const [locationName, setLocationName] = useState('')
+  const [locationAddress, setLocationAddress] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -35,6 +37,8 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
     setDate(nextDate)
     setType('full_day')
     setNotes('')
+    setLocationName('')
+    setLocationAddress('')
     const firstCollaborator = child?.collaborators?.[0] || ''
     setCollaboratorId(firstCollaborator)
     setStartTime('09:00')
@@ -46,6 +50,7 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
 
   const selectedCollaboratorName = collaboratorId ? child?.collaboratorNames?.[collaboratorId] || 'Colaborador' : ''
   const isValid = !!user && !!child && !!baseParentId && !!date && !!collaboratorId && (type === 'full_day' || (startTime && endTime && startTime < endTime))
+  const summaryLocation = locationName.trim() || locationAddress.trim()
 
   const handleSubmit = async () => {
     if (!user || !child || !baseParentId || !collaboratorId) return
@@ -64,22 +69,24 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
         startTime: type === 'partial_slot' ? startTime : undefined,
         endTime: type === 'partial_slot' ? endTime : undefined,
         notes: notes.trim() || undefined,
+        locationName: locationName.trim() || undefined,
+        locationAddress: locationAddress.trim() || undefined,
       })
       await createNotification({
         userId: collaboratorId,
         childId: child.id,
         childName: child.name,
         type: 'event_assignment_pending',
-        title: 'Nueva asignación recibida',
-        body: `${user.displayName || user.email || 'Un progenitor'} te ha enviado una asignación para ${child.name}.`,
+        title: 'Nueva asignacion recibida',
+        body: `${user.displayName || user.email || 'Un progenitor'} te ha enviado una asignacion para ${child.name}${summaryLocation ? ` · ${summaryLocation}` : ''}.`,
         dateKey: `collaborator-assignment:${child.id}:${date}:${Date.now()}`,
-        targetTab: 'settings',
+        targetTab: 'requests',
         targetDate: date,
       })
-      showToast({ message: `Asignación enviada a ${selectedCollaboratorName}.`, tone: 'success' })
+      showToast({ message: `Asignacion enviada a ${selectedCollaboratorName}.`, tone: 'success' })
       onClose()
     } catch (error: any) {
-      showToast({ message: error?.message || 'No se pudo crear la asignación.', tone: 'error' })
+      showToast({ message: error?.message || 'No se pudo crear la asignacion.', tone: 'error' })
     } finally {
       setLoading(false)
     }
@@ -91,7 +98,7 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
         <div className="modal-header">
           <div>
             <div className="modal-title">Asignar colaborador</div>
-            <div className="modal-sub">Envía una asignación puntual a un familiar o cuidador</div>
+            <div className="modal-sub">Envia una asignacion puntual a un familiar o cuidador</div>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
@@ -109,8 +116,8 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
           <div style={{ marginBottom: 14 }}>
             <div className="settings-label">Tipo</div>
             <div className="type-toggle">
-              <button className={`type-btn ${type === 'full_day' ? 'active' : ''}`} onClick={() => setType('full_day')}>📅 Día completo</button>
-              <button className={`type-btn ${type === 'partial_slot' ? 'active' : ''}`} onClick={() => setType('partial_slot')}>⏰ Tramo parcial</button>
+              <button className={`type-btn ${type === 'full_day' ? 'active' : ''}`} onClick={() => setType('full_day')}>Dia completo</button>
+              <button className={`type-btn ${type === 'partial_slot' ? 'active' : ''}`} onClick={() => setType('partial_slot')}>Tramo parcial</button>
             </div>
           </div>
 
@@ -135,6 +142,12 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
             </div>
           )}
 
+          <div style={{ marginBottom: 14 }}>
+            <div className="settings-label">Localizacion (opcional)</div>
+            <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="Nombre del lugar o punto de encuentro" className="settings-input" style={{ marginBottom:8 }} />
+            <input value={locationAddress} onChange={e => setLocationAddress(e.target.value)} placeholder="Direccion o referencia" className="settings-input" />
+          </div>
+
           <div>
             <div className="settings-label">Observaciones</div>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Recoger del cole, llevar mochila, etc." rows={3} className="settings-textarea" />
@@ -143,7 +156,7 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
 
         <div className="modal-footer">
           <button className="btn-primary btn-outline" style={{ flex:1 }} onClick={onClose}>Cancelar</button>
-          <button style={{ flex:1,padding:'11px',borderRadius:12,border:'none',background:(!isValid||loading)?'rgba(255,255,255,0.08)':'#8B5CF6',color:(!isValid||loading)?'#6b7280':'#fff',fontSize:13,fontWeight:700,cursor:(!isValid||loading)?'not-allowed':'pointer' }} onClick={handleSubmit} disabled={!isValid || loading}>{loading ? 'Enviando...' : 'Enviar asignación'}</button>
+          <button style={{ flex:1,padding:'11px',borderRadius:12,border:'none',background:(!isValid||loading)?'rgba(255,255,255,0.08)':'#8B5CF6',color:(!isValid||loading)?'#6b7280':'#fff',fontSize:13,fontWeight:700,cursor:(!isValid||loading)?'not-allowed':'pointer' }} onClick={handleSubmit} disabled={!isValid || loading}>{loading ? 'Enviando...' : 'Enviar asignacion'}</button>
         </div>
       </div>
     </div>
