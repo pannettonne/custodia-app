@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createDocumentFolder, createDocumentRecord, deleteDocumentFolder, deleteDocumentRecord, ensureUserDocumentKey, getChildParentIds, getUserDocumentKeys, hideDocumentForUser } from '@/lib/documents-db'
@@ -43,7 +43,7 @@ function buildFolderOptions(folders: DocumentFolder[], parentFolderId?: string, 
   ])
 }
 
-const compactButtonBase: React.CSSProperties = {
+const compactButtonBase: CSSProperties = {
   height: 34,
   borderRadius: 10,
   border: '1px solid var(--border)',
@@ -59,14 +59,14 @@ const compactButtonBase: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
-const dangerButtonStyle: React.CSSProperties = {
+const dangerButtonStyle: CSSProperties = {
   ...compactButtonBase,
   border: '1px solid rgba(239,68,68,0.28)',
   background: 'rgba(239,68,68,0.08)',
   color: '#dc2626',
 }
 
-const iconButtonStyle: React.CSSProperties = {
+const iconButtonStyle: CSSProperties = {
   ...compactButtonBase,
   width: 34,
   padding: 0,
@@ -360,7 +360,7 @@ export function DocumentsPanel() {
     }
   }
 
-  const renderFolderBranch = (parentFolderId?: string, depth = 0): JSX.Element | null => {
+  const renderFolderBranch = (parentFolderId?: string, depth = 0): ReactNode => {
     const foldersHere = documentFolders
       .filter(folder => (folder.parentFolderId || '') === (parentFolderId || ''))
       .filter(folder => !normalizedQuery || normalize(folder.name).includes(normalizedQuery) || visibleDocuments.some(doc => doc.folderId === folder.id))
