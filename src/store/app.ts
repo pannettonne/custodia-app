@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, DocumentFile, DocumentFolder, CollaboratorAssignment } from '@/types'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, DocumentFile, DocumentFolder, CollaboratorAssignment, MedicationPlan, MedicationLog } from '@/types'
 
 interface AppState {
   selectedChildId: string | null
@@ -20,6 +20,10 @@ interface AppState {
   setNotes: (n: Note[]) => void
   events: SchoolEvent[]
   setEvents: (e: SchoolEvent[]) => void
+  medications: MedicationPlan[]
+  setMedications: (m: MedicationPlan[]) => void
+  medicationLogs: MedicationLog[]
+  setMedicationLogs: (l: MedicationLog[]) => void
   notifications: AppNotification[]
   setNotifications: (n: AppNotification[]) => void
   documents: DocumentFile[]
@@ -57,6 +61,10 @@ export const useAppStore = create<AppState>((set) => ({
   setNotes: notes => set({ notes }),
   events: [],
   setEvents: events => set({ events }),
+  medications: [],
+  setMedications: medications => set({ medications }),
+  medicationLogs: [],
+  setMedicationLogs: medicationLogs => set({ medicationLogs }),
   notifications: [],
   setNotifications: notifications => set({ notifications }),
   documents: [],
