@@ -6,9 +6,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  getDocs,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -19,8 +17,19 @@ import { db } from './firebase'
 import type { DocumentFile, UserDocumentKey } from '@/types'
 
 export function subscribeToDocuments(childId: string, cb: (documents: DocumentFile[]) => void): Unsubscribe {
-  const q = query(collection(db, 'documents'), where('childId', '==', childId), orderBy('createdAt', 'desc'))
-  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentFile))))
+  const q = query(collection(db, 'documents'), where('childId', '==', childId))
+  return onSnapshot(
+    q,
+    snap => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as DocumentFile))
+      items.sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))
+      cb(items)
+    },
+    error => {
+      console.error('Documents subscription failed', error)
+      cb([])
+    }
+  )
 }
 
 export async function createDocumentRecord(data: Omit<DocumentFile, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
@@ -62,9 +71,4 @@ export async function getUserDocumentKeys(userIds: string[]): Promise<Record<str
       return [data.uid, data] as const
     })
   return Object.fromEntries(entries)
-}
-
-export async function listMissingDocumentKeys(userIds: string[]): Promise<string[]> {
-  const keys = await getUserDocumentKeys(userIds)
-  return userIds.filter(uid => !keys[uid])
 }
