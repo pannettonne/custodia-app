@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const sanitizedChildId = childId || 'shared'
     const pathname = `documents/${sanitizedChildId}/${user.uid}-${Date.now()}-${file.name}`
     const blob = await put(pathname, file, {
-      access: 'public',
+      access: 'private',
       addRandomSuffix: false,
       token: process.env.BLOB_READ_WRITE_TOKEN,
     })
