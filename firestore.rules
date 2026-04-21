@@ -14,7 +14,9 @@ service cloud.firestore {
     }
 
     function collaboratorHasFullCalendar(childId) {
-      return isCollaboratorForChild(childId) && childForId(childId).data.collaboratorCalendarAccess[request.auth.uid] == 'all';
+      return isCollaboratorForChild(childId)
+        && childForId(childId).data.collaboratorCalendarAccess != null
+        && childForId(childId).data.collaboratorCalendarAccess[request.auth.uid] == 'all';
     }
 
     match /children/{childId} {
