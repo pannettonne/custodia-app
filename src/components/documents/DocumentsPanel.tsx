@@ -22,15 +22,22 @@ export function DocumentsPanel() {
   const { user } = useAuth()
   const { children, selectedChildId, documents } = useAppStore()
   const [busy, setBusy] = useState<string | null>(null)
-  const [message, setMessage] = useState<string>('')
+  const [message, setMessage] = useState('')
+  const [messageTone, setMessageTone] = useState<'info' | 'success' | 'error'>('info')
+  const [uploadStage, setUploadStage] = useState('')
 
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
+
+  function showMessage(text: string, tone: 'info' | 'success' | 'error' = 'info') {
+    setMessage(text)
+    setMessageTone(tone)
+  }
 
   useEffect(() => {
     if (!user?.uid) return
     ensureLocalDocumentKeyPair(user.uid)
       .then(keys => ensureUserDocumentKey(user.uid, keys.publicKey))
-      .catch((error: unknown) => setMessage(error instanceof Error ? error.message : 'No se pudo inicializar el cifrado local'))
+      .catch((error: unknown) => showMessage(error instanceof Error ? error.message : 'No se pudo inicializar el cifrado local', 'error'))
   }, [user?.uid])
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,24 +46,29 @@ export function DocumentsPanel() {
     if (!file || !user || !child) return
 
     setBusy('upload')
-    setMessage('')
+    setUploadStage('Preparando cifrado...')
+    showMessage(`Archivo seleccionado: ${file.name}`, 'info')
+
     try {
       const localKeys = await ensureLocalDocumentKeyPair(user.uid)
       await ensureUserDocumentKey(user.uid, localKeys.publicKey)
 
+      setUploadStage('Comprobando claves de los progenitores...')
       const parentIds = await getChildParentIds(child.id)
       const keyRegistry = await getUserDocumentKeys(parentIds)
       const missing = parentIds.filter(uid => !keyRegistry[uid])
       if (missing.length > 0) {
-        throw new Error('Falta inicializar Documentos en alguno de los progenitores. Haz que entren una vez en la pestaña Documentos para generar su clave pública.')
+        throw new Error('Falta inicializar Documentos en alguno de los progenitores. Haz que entren una vez en la pestaña Documentos para generar su clave publica.')
       }
 
+      setUploadStage('Cifrando archivo en este dispositivo...')
       const encrypted = await encryptFileForUsers(file, keyRegistry)
       const idToken = await user.getIdToken()
       const formData = new FormData()
       formData.append('file', encrypted.encryptedBlob, `${child.id}-${Date.now()}.bin`)
       formData.append('childId', child.id)
 
+      setUploadStage('Subiendo blob cifrado...')
       const uploadResponse = await fetch('/api/documents/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${idToken}` },
@@ -66,6 +78,7 @@ export function DocumentsPanel() {
       const uploadPayload = await uploadResponse.json()
       if (!uploadResponse.ok) throw new Error(uploadPayload.error || 'No se pudo subir el documento cifrado')
 
+      setUploadStage('Guardando metadatos...')
       await createDocumentRecord({
         childId: child.id,
         createdBy: user.uid,
@@ -81,11 +94,13 @@ export function DocumentsPanel() {
         encryptedFileKeys: encrypted.metadata.encryptedFileKeys,
       })
 
-      setMessage('Documento cifrado y sincronizado correctamente.')
+      showMessage(`Documento cifrado y sincronizado correctamente: ${file.name}`, 'success')
     } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : 'Error subiendo documento')
+      console.error('Documents upload failed', error)
+      showMessage(error instanceof Error ? error.message : 'Error subiendo documento', 'error')
     } finally {
       setBusy(null)
+      setUploadStage('')
     }
   }
 
@@ -95,17 +110,20 @@ export function DocumentsPanel() {
     if (!document) return
 
     setBusy(documentId)
-    setMessage('')
+    showMessage('Descargando y descifrando documento...', 'info')
     try {
-      const decrypted = await decryptDocumentToFile(document, user.uid)
+      const idToken = await user.getIdToken()
+      const decrypted = await decryptDocumentToFile(document, user.uid, idToken)
       const url = URL.createObjectURL(decrypted.blob)
       const anchor = window.document.createElement('a')
       anchor.href = url
       anchor.download = decrypted.filename
       anchor.click()
       URL.revokeObjectURL(url)
+      showMessage(`Documento listo: ${decrypted.filename}`, 'success')
     } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : 'No se pudo abrir el documento')
+      console.error('Documents download failed', error)
+      showMessage(error instanceof Error ? error.message : 'No se pudo abrir el documento', 'error')
     } finally {
       setBusy(null)
     }
@@ -118,7 +136,7 @@ export function DocumentsPanel() {
     if (!window.confirm('¿Eliminar este documento para ambos progenitores?')) return
 
     setBusy(documentId)
-    setMessage('')
+    showMessage('Eliminando documento...', 'info')
     try {
       const idToken = await user.getIdToken()
       const response = await fetch('/api/documents/delete', {
@@ -132,9 +150,10 @@ export function DocumentsPanel() {
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error || 'No se pudo borrar el blob cifrado')
       await deleteDocumentRecord(documentId)
-      setMessage('Documento eliminado.')
+      showMessage('Documento eliminado.', 'success')
     } catch (error: unknown) {
-      setMessage(error instanceof Error ? error.message : 'No se pudo eliminar el documento')
+      console.error('Documents delete failed', error)
+      showMessage(error instanceof Error ? error.message : 'No se pudo eliminar el documento', 'error')
     } finally {
       setBusy(null)
     }
@@ -144,6 +163,8 @@ export function DocumentsPanel() {
     return <div className="card" style={{ padding: 16 }}>Selecciona un menor para gestionar documentos.</div>
   }
 
+  const toneColor = messageTone === 'error' ? '#b91c1c' : messageTone === 'success' ? '#047857' : 'var(--text-secondary)'
+
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       <div className="page-title">Documentos</div>
@@ -152,26 +173,27 @@ export function DocumentsPanel() {
         <div>
           <div style={{ fontWeight: 800, color: 'var(--text-strong)', marginBottom: 4 }}>Archivos cifrados antes de subir</div>
           <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-            Los PDFs e imágenes se cifran en este dispositivo antes de enviarse al almacenamiento remoto.
+            Los PDFs e imágenes se cifran en este dispositivo antes de enviarse al almacenamiento remoto privado.
           </div>
         </div>
 
         <label className="btn-primary" style={{ justifySelf: 'start', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
-          {busy === 'upload' ? 'Subiendo…' : 'Subir PDF o imagen'}
+          {busy === 'upload' ? 'Procesando...' : 'Subir PDF o imagen'}
           <input hidden type="file" accept="application/pdf,image/*" onChange={handleUpload} disabled={!!busy} />
         </label>
 
         <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-          Consejo: el otro progenitor debe entrar al menos una vez en esta pestaña para generar su clave pública local.
+          Consejo: el otro progenitor debe entrar al menos una vez en esta pestaña para generar su clave publica local.
         </div>
 
-        {message ? <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{message}</div> : null}
+        {uploadStage ? <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{uploadStage}</div> : null}
+        {message ? <div style={{ fontSize: 13, color: toneColor }}>{message}</div> : null}
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontWeight: 800 }}>Documentos de {child.name}</div>
         {documents.length === 0 ? (
-          <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavía no hay documentos.</div>
+          <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos.</div>
         ) : (
           <div style={{ display: 'grid' }}>
             {documents.map(document => (
@@ -182,10 +204,11 @@ export function DocumentsPanel() {
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                       {formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}
                     </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{document.mimeType || 'application/octet-stream'}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <button className="btn-primary btn-outline" onClick={() => handleDownload(document.id)} disabled={busy === document.id}>
-                      {busy === document.id ? 'Abriendo…' : 'Abrir'}
+                      {busy === document.id ? 'Abriendo...' : 'Abrir'}
                     </button>
                     <button className="btn-primary btn-outline" onClick={() => handleDelete(document.id)} disabled={busy === document.id}>
                       Borrar
@@ -193,7 +216,7 @@ export function DocumentsPanel() {
                   </div>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-                  hash {document.contentHash.slice(0, 16)}…
+                  hash {document.contentHash.slice(0, 16)}...
                 </div>
               </div>
             ))}
