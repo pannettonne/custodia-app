@@ -6,6 +6,7 @@ import { createNote, deleteNote, markNoteRead, updateNote } from '@/lib/db'
 import { showToast } from '@/lib/toast'
 import { formatDate } from '@/lib/utils'
 import { DocumentAssociations } from '@/components/documents/DocumentAssociations'
+import { decryptDocumentToFile } from '@/lib/document-crypto'
 import type { Note, NoteTag } from '@/types'
 
 const TAG_CONFIG: Record<NoteTag, { label: string; color: string; bg: string }> = {
@@ -86,11 +87,32 @@ export function NotesPanel({ focusTargetId, focusSeq, initialCreateDate, createS
 function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () => void }) {
   const { user } = useAuth()
   const { documents } = useAppStore()
+  const [openingDocId, setOpeningDocId] = useState<string | null>(null)
   const tag = TAG_CONFIG[note.tag]
   const isOwn = note.createdBy === user?.uid
   const dateText = note.type === 'single' ? formatDate(note.date!) : `${formatDate(note.startDate!)} → ${formatDate(note.endDate!)}`
   const authorColor = child?.parentColors?.[note.createdBy] ?? '#6b7280'
   const linkedDocuments = (note.documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
+
+  const openDocument = async (doc: any) => {
+    if (!user?.uid) return
+    setOpeningDocId(doc.id)
+    try {
+      const idToken = await user.getIdToken()
+      const decrypted = await decryptDocumentToFile(doc, user.uid, idToken)
+      const url = URL.createObjectURL(decrypted.blob)
+      const anchor = window.document.createElement('a')
+      anchor.href = url
+      anchor.download = decrypted.filename
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (error: any) {
+      showToast({ message: error?.message || 'No se pudo abrir el documento.', tone: 'error' })
+    } finally {
+      setOpeningDocId(null)
+    }
+  }
+
   return (
     <div className="card" style={{ border:`1px solid ${tag.color}33`, borderRadius:20, marginBottom:0, padding:16, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:10 }}>
@@ -98,6 +120,7 @@ function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () 
           <span style={{ background:tag.bg, color:tag.color, fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>{tag.label}</span>
           {note.mentionOther && <span style={{ background:'rgba(139,92,246,0.15)', color:'#a78bfa', fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>Mencionado</span>}
           {!note.read && !isOwn && <span style={{ background:'rgba(239,68,68,0.15)', color:'#f87171', fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>Nueva</span>}
+          {linkedDocuments.length > 0 && <span style={{ background:'rgba(16,185,129,0.15)', color:'#10b981', fontSize:10, fontWeight:800, padding:'4px 9px', borderRadius:999 }}>📎 {linkedDocuments.length} documento(s)</span>}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
           {!isOwn && !note.read && <button onClick={() => markNoteRead(note.id)} style={{ background:'rgba(59,130,246,0.12)', border:'1px solid rgba(59,130,246,0.22)', color:'#93c5fd', cursor:'pointer', fontSize:11, fontWeight:800, padding:'6px 10px', borderRadius:10 }}>Marcar leída</button>}
@@ -110,7 +133,7 @@ function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () 
         <span style={{ fontSize:11, color:'var(--text-secondary)' }}>{note.createdByName} · {dateText}</span>
       </div>
       <p style={{ color:'var(--text-strong)', fontSize:13, lineHeight:1.6, margin:'0 0 8px 0' }}>{note.text}</p>
-      {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>{linkedDocuments.map((doc: any) => <span key={doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999 }}>📎 {doc.title || 'Documento'}</span>)}</div> : null}
+      {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>{linkedDocuments.map((doc: any) => <button key={doc.id} onClick={() => openDocument(doc)} disabled={openingDocId === doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999, cursor:'pointer' }}>📎 {openingDocId === doc.id ? 'Abriendo...' : (doc.title || 'Documento')}</button>)}</div> : null}
     </div>
   )
 }
