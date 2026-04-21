@@ -31,11 +31,15 @@ export function subscribeToCollaboratorAssignmentsForCollaborator(childId: strin
 }
 
 export async function createCollaboratorAssignment(data: Omit<CollaboratorAssignment, 'id' | 'createdAt' | 'respondedAt' | 'status'>): Promise<string> {
-  const ref = await addDoc(collection(db, 'collaboratorAssignments'), {
-    ...data,
-    status: 'pending',
-    createdAt: serverTimestamp(),
-  })
+  const payload = Object.fromEntries(
+    Object.entries({
+      ...data,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    }).filter(([, value]) => value !== undefined)
+  )
+
+  const ref = await addDoc(collection(db, 'collaboratorAssignments'), payload)
   return ref.id
 }
 
