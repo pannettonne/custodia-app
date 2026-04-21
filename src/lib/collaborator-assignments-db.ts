@@ -5,7 +5,6 @@ import {
   collection,
   doc,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -15,19 +14,34 @@ import {
 import { db } from './firebase'
 import type { CollaboratorAssignment } from '@/types'
 
+function sortAssignments(items: CollaboratorAssignment[]) {
+  return [...items].sort((a, b) => {
+    const left = typeof (a as any).createdAt?.toMillis === 'function' ? (a as any).createdAt.toMillis() : new Date((a as any).createdAt || 0).getTime()
+    const right = typeof (b as any).createdAt?.toMillis === 'function' ? (b as any).createdAt.toMillis() : new Date((b as any).createdAt || 0).getTime()
+    return right - left
+  })
+}
+
 export function subscribeToCollaboratorAssignmentsForParent(childId: string, cb: (items: CollaboratorAssignment[]) => void): Unsubscribe {
-  const q = query(collection(db, 'collaboratorAssignments'), where('childId', '==', childId), orderBy('createdAt', 'desc'))
-  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as CollaboratorAssignment))))
+  const q = query(collection(db, 'collaboratorAssignments'), where('childId', '==', childId))
+  return onSnapshot(
+    q,
+    snap => cb(sortAssignments(snap.docs.map(d => ({ id: d.id, ...d.data() } as CollaboratorAssignment)))),
+    () => cb([])
+  )
 }
 
 export function subscribeToCollaboratorAssignmentsForCollaborator(childId: string, collaboratorId: string, cb: (items: CollaboratorAssignment[]) => void): Unsubscribe {
   const q = query(
     collection(db, 'collaboratorAssignments'),
     where('childId', '==', childId),
-    where('collaboratorId', '==', collaboratorId),
-    orderBy('createdAt', 'desc')
+    where('collaboratorId', '==', collaboratorId)
   )
-  return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as CollaboratorAssignment))))
+  return onSnapshot(
+    q,
+    snap => cb(sortAssignments(snap.docs.map(d => ({ id: d.id, ...d.data() } as CollaboratorAssignment)))),
+    () => cb([])
+  )
 }
 
 export async function createCollaboratorAssignment(data: Omit<CollaboratorAssignment, 'id' | 'createdAt' | 'respondedAt' | 'status'>): Promise<string> {
