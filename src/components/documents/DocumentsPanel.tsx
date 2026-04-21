@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createDocumentFolder, createDocumentRecord, deleteDocumentRecord, ensureUserDocumentKey, getChildParentIds, getUserDocumentKeys, hideDocumentForUser } from '@/lib/documents-db'
 import { decryptDocumentToFile, encryptFileForUsers, ensureLocalDocumentKeyPair } from '@/lib/document-crypto'
-import type { DocumentShareScope } from '@/types'
+import type { DocumentFile, DocumentShareScope } from '@/types'
 
 function formatBytes(bytes: number) {
   if (!bytes) return '0 B'
@@ -23,6 +23,47 @@ function documentThumbLabel(mimeType: string) {
   return 'FILE'
 }
 
+function normalize(value: string) {
+  return (value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+}
+
+function DocumentRow({ document, folderName, busy, userId, deleteMenuId, setDeleteMenuId, onOpen, onHideForMe, onDeleteForEveryone }: {
+  document: DocumentFile
+  folderName: string
+  busy: string | null
+  userId?: string
+  deleteMenuId: string | null
+  setDeleteMenuId: (id: string | null) => void
+  onOpen: (id: string) => void
+  onHideForMe: (id: string) => void
+  onDeleteForEveryone: (id: string) => void
+}) {
+  const canOpen = !!document.encryptedFileKeys?.[userId || '']
+  const unavailableForOthers = Array.isArray(document.pendingRecipientIds) ? document.pendingRecipientIds.length : 0
+  const thumb = documentThumbLabel(document.mimeType || '')
+  return <div style={{ display: 'grid', gap: 10, padding: '12px 16px 12px 24px', borderBottom: '1px solid var(--border)', overflow: 'visible', position: 'relative' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', overflow: 'visible' }}>
+      <div style={{ display:'flex', gap:12, minWidth:0 }}>
+        <div style={{ width:48, height:62, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-soft)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'var(--text-secondary)', flexShrink:0 }}>{thumb}</div>
+        <div>
+          <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>{document.title || 'Documento cifrado'}</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{folderName} · {document.shareScope === 'only_me' ? 'Solo para mi' : 'Para todos'}</div>
+          {unavailableForOthers > 0 ? <div style={{ fontSize: 11, color: '#9a3412' }}>Pendiente de compartirse con {unavailableForOthers} progenitor(es).</div> : null}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', position:'relative', overflow: 'visible' }}>
+        <button className="btn-primary btn-outline" onClick={() => onOpen(document.id)} disabled={busy === document.id || !canOpen}>{busy === document.id ? 'Abriendo...' : 'Abrir'}</button>
+        <button className="btn-primary btn-outline" onClick={() => setDeleteMenuId(deleteMenuId === document.id ? null : document.id)} disabled={busy === document.id} title="Borrar" aria-label="Borrar">🗑️</button>
+        {deleteMenuId === document.id ? <div style={{ position:'absolute', top:'calc(100% + 6px)', right:0, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12, boxShadow:'var(--card-shadow)', padding:8, display:'grid', gap:6, minWidth:170, zIndex:50 }}>
+          <button className="btn-primary btn-outline" onClick={() => onHideForMe(document.id)} disabled={busy === document.id}>Solo para mi</button>
+          <button className="btn-primary btn-outline" onClick={() => onDeleteForEveryone(document.id)} disabled={busy === document.id}>Para todos</button>
+        </div> : null}
+      </div>
+    </div>
+  </div>
+}
+
 export function DocumentsPanel() {
   const { user } = useAuth()
   const { children, selectedChildId, documents, documentFolders } = useAppStore()
@@ -32,14 +73,24 @@ export function DocumentsPanel() {
   const [uploadStage, setUploadStage] = useState('')
   const [shareScope, setShareScope] = useState<DocumentShareScope>('all_parents')
   const [selectedFolderId, setSelectedFolderId] = useState('root')
-  const [filterFolderId, setFilterFolderId] = useState('all')
   const [newFolderName, setNewFolderName] = useState('')
+  const [documentTitle, setDocumentTitle] = useState('')
   const [deleteMenuId, setDeleteMenuId] = useState<string | null>(null)
+  const [documentQuery, setDocumentQuery] = useState('')
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({ root: true })
 
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
-  const visibleDocuments = useMemo(() => documents.filter(doc => filterFolderId === 'all' ? true : (filterFolderId === 'root' ? !doc.folderId : doc.folderId === filterFolderId)), [documents, filterFolderId])
+  const normalizedQuery = normalize(documentQuery)
+  const visibleFolders = useMemo(() => documentFolders.filter(folder => !normalizedQuery || normalize(folder.name).includes(normalizedQuery)), [documentFolders, normalizedQuery])
+  const visibleDocuments = useMemo(() => documents.filter(doc => {
+    if (!normalizedQuery) return true
+    const folderName = doc.folderId ? documentFolders.find(folder => folder.id === doc.folderId)?.name || '' : 'sin carpeta'
+    return [doc.title || '', folderName, doc.mimeType || ''].some(field => normalize(field).includes(normalizedQuery))
+  }), [documents, documentFolders, normalizedQuery])
+  const rootDocuments = useMemo(() => visibleDocuments.filter(doc => !doc.folderId), [visibleDocuments])
 
   function showMessage(text: string, tone: 'info' | 'success' | 'error' = 'info') { setMessage(text); setMessageTone(tone) }
+  function toggleFolder(folderId: string) { setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] })) }
 
   useEffect(() => {
     if (!user?.uid) return
@@ -86,6 +137,7 @@ export function DocumentsPanel() {
         childId: child.id,
         createdBy: user.uid,
         createdByName: user.displayName || user.email || 'Progenitor',
+        title: documentTitle.trim() || file.name,
         filenameEncrypted: encrypted.metadata.filenameEncrypted,
         filenameIv: encrypted.metadata.filenameIv,
         mimeType: encrypted.metadata.mimeType,
@@ -101,7 +153,9 @@ export function DocumentsPanel() {
         ...(selectedFolderId !== 'root' ? { folderId: selectedFolderId } : {}),
       }
       await createDocumentRecord(record)
-      showMessage(encrypted.metadata.pendingRecipientIds.length > 0 ? `Documento subido. Pendiente de compartirse con ${encrypted.metadata.pendingRecipientIds.length} progenitor(es).` : `Documento subido: ${file.name}`, 'success')
+      setDocumentTitle('')
+      if (selectedFolderId !== 'root') setExpandedFolders(prev => ({ ...prev, [selectedFolderId]: true }))
+      showMessage(encrypted.metadata.pendingRecipientIds.length > 0 ? `Documento subido. Pendiente de compartirse con ${encrypted.metadata.pendingRecipientIds.length} progenitor(es).` : `Documento subido: ${record.title}`, 'success')
     } catch (error: unknown) {
       console.error('Documents upload failed', error)
       showMessage(error instanceof Error ? error.message : 'Error subiendo documento', 'error')
@@ -163,6 +217,7 @@ export function DocumentsPanel() {
       <div className="card" style={{ padding: 16, display: 'grid', gap: 12 }}>
         <div style={{ display:'grid', gap:8 }}>
           <div style={{ fontWeight: 800, color: 'var(--text-strong)' }}>Subidas y carpetas</div>
+          <input className="settings-input" value={documentTitle} onChange={e => setDocumentTitle(e.target.value)} placeholder="Nombre del documento" />
           <select className="settings-input" value={shareScope} onChange={e => setShareScope(e.target.value as DocumentShareScope)}><option value="all_parents">Para todos</option><option value="only_me">Solo para mi</option></select>
           <select className="settings-input" value={selectedFolderId} onChange={e => setSelectedFolderId(e.target.value)}><option value="root">Sin carpeta</option>{documentFolders.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
           <label className="btn-primary" style={{ justifySelf:'start', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy === 'upload' ? 'Procesando...' : 'Subir PDF o imagen'}<input hidden type="file" accept="application/pdf,image/*" onChange={handleUpload} disabled={!!busy} /></label>
@@ -174,39 +229,36 @@ export function DocumentsPanel() {
         {uploadStage ? <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{uploadStage}</div> : null}
         {message ? <div style={{ fontSize: 13, color: toneColor }}>{message}</div> : null}
       </div>
+
       <div className="card" style={{ padding: 12, display:'grid', gap:8 }}>
-        <div style={{ fontWeight:800 }}>Carpetas</div>
-        <select className="settings-input" value={filterFolderId} onChange={e => setFilterFolderId(e.target.value)}><option value="all">Todas</option><option value="root">Sin carpeta</option>{documentFolders.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
+        <div style={{ fontWeight:800 }}>Explorar documentos</div>
+        <input className="settings-input" value={documentQuery} onChange={e => setDocumentQuery(e.target.value)} placeholder="Buscar por nombre, carpeta o tipo..." />
       </div>
+
       <div className="card" style={{ padding: 0, overflow: 'visible' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontWeight: 800 }}>Documentos de {child.name}</div>
-        {visibleDocuments.length === 0 ? <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos en esta vista.</div> : <div style={{ display: 'grid', overflow: 'visible' }}>{visibleDocuments.map(document => {
-          const canOpen = !!document.encryptedFileKeys?.[user?.uid || '']
-          const unavailableForOthers = Array.isArray(document.pendingRecipientIds) ? document.pendingRecipientIds.length : 0
-          const folderName = document.folderId ? documentFolders.find(folder => folder.id === document.folderId)?.name : 'Sin carpeta'
-          const thumb = documentThumbLabel(document.mimeType || '')
-          return <div key={document.id} style={{ display: 'grid', gap: 10, padding: 16, borderBottom: '1px solid var(--border)', overflow: 'visible', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', overflow: 'visible' }}>
-              <div style={{ display:'flex', gap:12, minWidth:0 }}>
-                <div style={{ width:56, height:72, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-soft)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'var(--text-secondary)', flexShrink:0 }}>{thumb}</div>
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>Documento cifrado</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{folderName} · {document.shareScope === 'only_me' ? 'Solo para mi' : 'Para todos'}</div>
-                  {unavailableForOthers > 0 ? <div style={{ fontSize: 11, color: '#9a3412' }}>Pendiente de compartirse con {unavailableForOthers} progenitor(es).</div> : null}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', position:'relative', overflow: 'visible' }}>
-                <button className="btn-primary btn-outline" onClick={() => handleDownload(document.id)} disabled={busy === document.id || !canOpen}>{busy === document.id ? 'Abriendo...' : 'Abrir'}</button>
-                <button className="btn-primary btn-outline" onClick={() => setDeleteMenuId(deleteMenuId === document.id ? null : document.id)} disabled={busy === document.id} title="Borrar" aria-label="Borrar">🗑️</button>
-                {deleteMenuId === document.id ? <div style={{ position:'absolute', top:'calc(100% + 6px)', right:0, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12, boxShadow:'var(--card-shadow)', padding:8, display:'grid', gap:6, minWidth:170, zIndex:50 }}>
-                  <button className="btn-primary btn-outline" onClick={() => handleHideForMe(document.id)} disabled={busy === document.id}>Solo para mi</button>
-                  <button className="btn-primary btn-outline" onClick={() => handleDeleteForEveryone(document.id)} disabled={busy === document.id}>Para todos</button>
-                </div> : null}
-              </div>
-            </div>
+        {visibleFolders.length === 0 && rootDocuments.length === 0 ? <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos en esta vista.</div> : <div style={{ display: 'grid', overflow: 'visible' }}>
+          <div style={{ borderBottom: rootDocuments.length > 0 ? '1px solid var(--border)' : 'none' }}>
+            <button onClick={() => toggleFolder('root')} style={{ width:'100%', textAlign:'left', padding:'14px 16px', background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:10, color:'var(--text-strong)', fontWeight:800 }}>
+              <span style={{ fontSize:18 }}>📁</span>
+              <span>Sin carpeta</span>
+              <span style={{ color:'var(--text-muted)', fontWeight:600 }}>({rootDocuments.length})</span>
+            </button>
+            {expandedFolders.root !== false ? rootDocuments.map(document => <DocumentRow key={document.id} document={document} folderName="Sin carpeta" busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />) : null}
           </div>
-        })}</div>}
+          {visibleFolders.map(folder => {
+            const folderDocs = visibleDocuments.filter(doc => doc.folderId === folder.id)
+            const isOpen = expandedFolders[folder.id] !== false
+            return <div key={folder.id} style={{ borderBottom: '1px solid var(--border)' }}>
+              <button onClick={() => toggleFolder(folder.id)} style={{ width:'100%', textAlign:'left', padding:'14px 16px', background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:10, color:'var(--text-strong)', fontWeight:800 }}>
+                <span style={{ fontSize:18 }}>📁</span>
+                <span>{folder.name}</span>
+                <span style={{ color:'var(--text-muted)', fontWeight:600 }}>({folderDocs.length})</span>
+              </button>
+              {isOpen ? folderDocs.length > 0 ? folderDocs.map(document => <DocumentRow key={document.id} document={document} folderName={folder.name} busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />) : <div style={{ padding:'0 16px 14px 50px', color:'var(--text-muted)', fontSize:13 }}>No hay documentos en esta carpeta.</div> : null}
+            </div>
+          })}
+        </div>}
       </div>
     </div>
   )
