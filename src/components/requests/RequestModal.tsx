@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
 import { createChangeRequest, createNotification } from '@/lib/db'
 import { showToast } from '@/lib/toast'
+import { LocationField } from '@/components/events/location/LocationField'
 
 interface Props { open: boolean; onClose: () => void; initialDate?: string | null }
 
@@ -19,8 +20,14 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
   const [startDate, setStartDate] = useState(initialDate ?? '')
   const [endDate, setEndDate] = useState(initialDate ?? '')
   const [reason, setReason] = useState('')
+  const [locationQuery, setLocationQuery] = useState('')
   const [locationName, setLocationName] = useState('')
   const [locationAddress, setLocationAddress] = useState('')
+  const [locationLatitude, setLocationLatitude] = useState<number | undefined>(undefined)
+  const [locationLongitude, setLocationLongitude] = useState<number | undefined>(undefined)
+  const [locationPlaceId, setLocationPlaceId] = useState('')
+  const [locationResults, setLocationResults] = useState<any[]>([])
+  const [locationLoading, setLocationLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -33,11 +40,45 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
     setStartDate(seedDate)
     setEndDate(seedDate)
     setReason('')
+    setLocationQuery('')
     setLocationName('')
     setLocationAddress('')
+    setLocationLatitude(undefined)
+    setLocationLongitude(undefined)
+    setLocationPlaceId('')
+    setLocationResults([])
+    setLocationLoading(false)
     setLoading(false)
     setSuccess(false)
   }, [open, initialDate])
+
+  useEffect(() => {
+    const query = locationQuery.trim()
+    if (query.length < 3) {
+      setLocationResults([])
+      setLocationLoading(false)
+      return
+    }
+    if (locationPlaceId && query === (locationName.trim() || query)) {
+      setLocationResults([])
+      setLocationLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    const timer = window.setTimeout(async () => {
+      try {
+        setLocationLoading(true)
+        const response = await fetch(`/api/location-search?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+        const data = await response.json()
+        setLocationResults(Array.isArray(data.results) ? data.results : [])
+      } catch {
+        setLocationResults([])
+      } finally {
+        setLocationLoading(false)
+      }
+    }, 300)
+    return () => { controller.abort(); window.clearTimeout(timer) }
+  }, [locationName, locationPlaceId, locationQuery])
 
   if (!open) return null
 
@@ -45,6 +86,26 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
   const summaryDate = type === 'single' ? date : `${startDate}→${endDate}`
   const targetDate = type === 'single' ? date : startDate
   const summaryLocation = locationName.trim() || locationAddress.trim()
+
+  const clearLocation = () => {
+    setLocationQuery('')
+    setLocationName('')
+    setLocationAddress('')
+    setLocationLatitude(undefined)
+    setLocationLongitude(undefined)
+    setLocationPlaceId('')
+    setLocationResults([])
+  }
+
+  const selectLocation = (item: any) => {
+    setLocationQuery(item.name)
+    setLocationName(item.name)
+    setLocationAddress(item.address)
+    setLocationLatitude(item.latitude)
+    setLocationLongitude(item.longitude)
+    setLocationPlaceId(item.placeId)
+    setLocationResults([])
+  }
 
   const handleTypeChange = (nextType: 'single' | 'range') => {
     if (nextType === type) return
@@ -75,6 +136,9 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
         reason: reason.trim(),
         locationName: locationName.trim() || undefined,
         locationAddress: locationAddress.trim() || undefined,
+        locationLatitude,
+        locationLongitude,
+        locationPlaceId: locationPlaceId || undefined,
       })
       await createNotification({
         userId: otherParentId,
@@ -138,11 +202,21 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
                 )}
               </div>
 
-              <div style={{ marginBottom:14 }}>
-                <div className="settings-label">📍 Localización (opcional)</div>
-                <input value={locationName} onChange={e => setLocationName(e.target.value)} placeholder="Nombre del lugar o punto de encuentro" className="settings-input" style={{ marginBottom:8 }} />
-                <input value={locationAddress} onChange={e => setLocationAddress(e.target.value)} placeholder="Dirección o referencia" className="settings-input" />
-              </div>
+              <LocationField
+                locationQuery={locationQuery}
+                setLocationQuery={setLocationQuery}
+                locationName={locationName}
+                setLocationName={setLocationName}
+                locationAddress={locationAddress}
+                setLocationAddress={setLocationAddress}
+                setLocationLatitude={setLocationLatitude}
+                setLocationLongitude={setLocationLongitude}
+                setLocationPlaceId={setLocationPlaceId}
+                locationResults={locationResults}
+                locationLoading={locationLoading}
+                clearLocation={clearLocation}
+                selectLocation={selectLocation}
+              />
 
               <div>
                 <div className="settings-label">📝 Motivo / Observaciones</div>
