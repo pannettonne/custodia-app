@@ -71,6 +71,16 @@ service cloud.firestore {
       allow update: if isParentForChild(resource.data.childId) || (request.auth != null && request.auth.uid == resource.data.collaboratorId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']));
       allow delete: if false;
     }
+    match /medications/{medicationId} {
+      allow read: if isParentForChild(resource.data.childId) || isCollaboratorForChild(resource.data.childId);
+      allow create: if isParentForChild(request.resource.data.childId) && request.auth.uid == request.resource.data.createdBy;
+      allow update, delete: if isParentForChild(resource.data.childId);
+    }
+    match /medicationLogs/{logId} {
+      allow read: if isParentForChild(resource.data.childId) || isCollaboratorForChild(resource.data.childId);
+      allow create, update: if request.auth != null && (isParentForChild(request.resource.data.childId) || isCollaboratorForChild(request.resource.data.childId));
+      allow delete: if isParentForChild(resource.data.childId);
+    }
     match /invitations/{invitationId} {
       allow read: if request.auth != null && (request.auth.token.email == resource.data.toEmail || request.auth.token.email == resource.data.fromEmail);
       allow create: if request.auth != null && request.auth.token.email == request.resource.data.fromEmail;
