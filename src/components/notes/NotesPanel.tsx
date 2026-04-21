@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/app'
 import { createNote, deleteNote, markNoteRead, updateNote } from '@/lib/db'
 import { showToast } from '@/lib/toast'
 import { formatDate } from '@/lib/utils'
+import { DocumentAssociations } from '@/components/documents/DocumentAssociations'
 import type { Note, NoteTag } from '@/types'
 
 const TAG_CONFIG: Record<NoteTag, { label: string; color: string; bg: string }> = {
@@ -84,10 +85,12 @@ export function NotesPanel({ focusTargetId, focusSeq, initialCreateDate, createS
 
 function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () => void }) {
   const { user } = useAuth()
+  const { documents } = useAppStore()
   const tag = TAG_CONFIG[note.tag]
   const isOwn = note.createdBy === user?.uid
   const dateText = note.type === 'single' ? formatDate(note.date!) : `${formatDate(note.startDate!)} → ${formatDate(note.endDate!)}`
   const authorColor = child?.parentColors?.[note.createdBy] ?? '#6b7280'
+  const linkedDocuments = (note.documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
   return (
     <div className="card" style={{ border:`1px solid ${tag.color}33`, borderRadius:20, marginBottom:0, padding:16, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:10 }}>
@@ -106,7 +109,8 @@ function NoteCard({ note, child, onEdit }: { note: Note; child: any; onEdit: () 
         <div style={{ width:8, height:8, borderRadius:'50%', background:authorColor, flexShrink:0 }} />
         <span style={{ fontSize:11, color:'var(--text-secondary)' }}>{note.createdByName} · {dateText}</span>
       </div>
-      <p style={{ color:'var(--text-strong)', fontSize:13, lineHeight:1.6, margin:0 }}>{note.text}</p>
+      <p style={{ color:'var(--text-strong)', fontSize:13, lineHeight:1.6, margin:'0 0 8px 0' }}>{note.text}</p>
+      {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>{linkedDocuments.map((doc: any) => <span key={doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999 }}>📎 {doc.title || 'Documento'}</span>)}</div> : null}
     </div>
   )
 }
@@ -123,6 +127,7 @@ function NoteForm({ note, onClose, initialDate }: { note: Note | null; onClose: 
   const [text, setText] = useState(note?.text ?? '')
   const [tag, setTag] = useState<NoteTag>(note?.tag ?? 'info')
   const [mentionOther, setMentionOther] = useState(note?.mentionOther ?? false)
+  const [documentIds, setDocumentIds] = useState<string[]>(note?.documentIds ?? [])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -137,7 +142,7 @@ function NoteForm({ note, onClose, initialDate }: { note: Note | null; onClose: 
         childId: child.id,
         createdBy: note?.createdBy ?? user.uid,
         createdByName: note?.createdByName ?? user.displayName ?? user.email ?? 'Progenitor',
-        type, tag, text: text.trim(), mentionOther, read: note?.read ?? false,
+        type, tag, text: text.trim(), mentionOther, read: note?.read ?? false, documentIds,
         ...(type === 'single' ? { date, startDate: undefined, endDate: undefined } : { startDate, endDate, date: undefined }),
       }
       if (note) {
@@ -180,6 +185,7 @@ function NoteForm({ note, onClose, initialDate }: { note: Note | null; onClose: 
         </div>
       </div>
       <div style={{ marginBottom:10 }}><div className="settings-label">Nota</div><textarea value={text} onChange={e => setText(e.target.value)} placeholder="Escribe tu nota aquí..." rows={3} className="settings-textarea" /></div>
+      {child ? <DocumentAssociations childId={child.id} value={documentIds} onChange={setDocumentIds} /> : null}
       {child && child.parents.length >= 2 && (
         <div style={{ marginBottom:14 }}>
           <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }}>
