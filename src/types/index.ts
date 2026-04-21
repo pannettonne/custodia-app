@@ -7,6 +7,8 @@ export interface User {
 
 export type CollaboratorLabel = 'caregiver' | 'family' | 'other'
 export type CollaboratorCalendarAccess = 'assigned_only' | 'all'
+export type CollaboratorAssignmentStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
+export type CollaboratorAssignmentType = 'full_day' | 'partial_slot'
 
 export interface Child {
   id: string
@@ -61,6 +63,25 @@ export interface ChangeRequest {
   endDate?: string
   reason: string
   status: RequestStatus
+  createdAt: Date
+  respondedAt?: Date
+}
+
+export interface CollaboratorAssignment {
+  id: string
+  childId: string
+  createdByParentId: string
+  createdByParentName: string
+  baseParentId: string
+  collaboratorId: string
+  collaboratorName: string
+  collaboratorLabel?: CollaboratorLabel
+  type: CollaboratorAssignmentType
+  date: string
+  startTime?: string
+  endTime?: string
+  notes?: string
+  status: CollaboratorAssignmentStatus
   createdAt: Date
   respondedAt?: Date
 }
