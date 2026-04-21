@@ -106,7 +106,7 @@ export async function ensureLocalDocumentKeyPair(uid: string) {
   return getOrCreateKeyPair(uid)
 }
 
-export async function encryptFileForUsers(file: File, recipientKeys: Record<string, UserDocumentKey>) {
+export async function encryptFileForUsers(file: File, recipientKeys: Record<string, UserDocumentKey>, expectedRecipientIds?: string[]) {
   const plaintext = await file.arrayBuffer()
   const contentHash = await sha256Hex(plaintext)
   const fileKey = await ensureBrowserCrypto().subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
@@ -122,6 +122,7 @@ export async function encryptFileForUsers(file: File, recipientKeys: Record<stri
   }
 
   const encryptedName = await encryptTextWithKey(file.name, fileKey)
+  const pendingRecipientIds = Array.from(new Set((expectedRecipientIds || []).filter(uid => !encryptedFileKeys[uid])))
 
   return {
     encryptedBlob: new Blob([encryptedBuffer], { type: 'application/octet-stream' }),
@@ -133,13 +134,14 @@ export async function encryptFileForUsers(file: File, recipientKeys: Record<stri
       contentHash,
       iv: toBase64(iv),
       encryptedFileKeys,
+      pendingRecipientIds,
     },
   }
 }
 
 export async function decryptDocumentToFile(document: DocumentFile, uid: string, idToken: string) {
   const wrappedKey = document.encryptedFileKeys?.[uid]
-  if (!wrappedKey) throw new Error('No tienes clave para abrir este documento')
+  if (!wrappedKey) throw new Error('Este documento todavía no está disponible para tu dispositivo')
 
   const { privateKey: privateKeyPkcs8 } = await getOrCreateKeyPair(uid)
   const privateKey = await importPrivateKey(privateKeyPkcs8)
