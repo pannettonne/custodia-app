@@ -11,19 +11,20 @@ import { NotesPanel } from '@/components/notes/NotesPanel'
 import { EventsPanel } from '@/components/events/EventsPanel'
 import { DocumentsPanel } from '@/components/documents/DocumentsPanel'
 import { PackingPanel } from '@/components/packing/PackingPanel'
+import { MedicationsPanel } from '@/components/medications/MedicationsPanel'
 import { StatsPanel } from '@/components/stats/StatsPanel'
 import { GlobalToasts } from '@/components/ui/GlobalToasts'
 import { markNotificationRead } from '@/lib/db'
 import type { AppNotification } from '@/types'
 
-type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'documents' | 'packing' | 'stats' | 'settings'
+type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'documents' | 'packing' | 'medications' | 'stats' | 'settings'
 type SearchResultType = 'child' | 'parent' | 'event' | 'note' | 'request' | 'special_period' | 'document' | 'document_folder'
 type SearchResult = { id: string; type: SearchResultType; title: string; subtitle: string; childId?: string; date?: string; endDate?: string; targetTab: Tab }
 type FocusTarget = { id: string; seq: number } | null
 type DraftTarget = { date: string; seq: number } | null
 
 type CalendarNavigateDetail = {
-  tab: 'notes' | 'events' | 'requests'
+  tab: 'notes' | 'events' | 'requests' | 'medications'
   childId?: string
   date?: string
   focusTargetId?: string
@@ -34,6 +35,7 @@ const HEADER_SEARCH_ICON = '/shell-icons/search.svg'
 const HEADER_BELL_ICON = '/shell-icons/bell.svg'
 const MORE_DOCUMENTS_ICON = '/nav-icons/notes.svg'
 const MORE_PACKING_ICON = '/shell-icons/packing.svg'
+const MORE_MEDICATIONS_ICON = '/shell-icons/medication.svg'
 const MORE_STATS_ICON = '/shell-icons/stats.svg'
 const MORE_SETTINGS_ICON = '/shell-icons/settings.svg'
 
@@ -41,9 +43,10 @@ function inferTargetTab(item: AppNotification): Tab {
   if (item.targetTab) return item.targetTab as Tab
   if (item.type === 'pending_request' || item.type === 'event_assignment_pending' || item.type === 'event_assignment_response') return 'requests'
   if (item.type === 'event_reminder') return 'events'
+  if (item.type === 'medication_reminder') return 'medications'
   return 'calendar'
 }
-function notificationGroupLabel(type: AppNotification['type']) { if (type === 'pending_request') return 'Cambios'; if (type === 'event_assignment_pending' || type === 'event_assignment_response') return 'Asignaciones'; if (type === 'event_reminder') return 'Recordatorios'; return 'Otros' }
+function notificationGroupLabel(type: AppNotification['type']) { if (type === 'pending_request') return 'Cambios'; if (type === 'event_assignment_pending' || type === 'event_assignment_response') return 'Asignaciones'; if (type === 'event_reminder' || type === 'medication_reminder') return 'Recordatorios'; return 'Otros' }
 function normalizeText(value: string) { return (value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() }
 function matchesQuery(query: string, ...fields: Array<string | undefined | null>) { const q = normalizeText(query); if (!q) return true; return fields.some(field => normalizeText(field || '').includes(q)) }
 function searchGroupLabel(type: SearchResultType) { if (type === 'event') return 'Eventos'; if (type === 'note') return 'Notas'; if (type === 'request') return 'Cambios'; if (type === 'special_period') return 'Períodos especiales'; if (type === 'document') return 'Documentos'; if (type === 'document_folder') return 'Carpetas'; if (type === 'child') return 'Menores'; return 'Progenitores' }
@@ -106,9 +109,9 @@ export function AppShell() {
   const isParentForSelectedChild = !!child && !!user?.uid && child.parents.includes(user.uid)
   const isCollaboratorForSelectedChild = !!child && !!user?.uid && !!child.collaborators?.includes(user.uid)
   const allowedTabs: Tab[] = isParentForSelectedChild
-    ? ['calendar', 'requests', 'notes', 'events', 'documents', 'packing', 'stats', 'settings']
+    ? ['calendar', 'requests', 'notes', 'events', 'documents', 'packing', 'medications', 'stats', 'settings']
     : isCollaboratorForSelectedChild
-      ? ['calendar', 'requests', 'settings']
+      ? ['calendar', 'requests', 'medications', 'settings']
       : ['calendar', 'settings']
 
   useEffect(() => {
@@ -191,11 +194,15 @@ export function AppShell() {
   }
   const markAllVisibleAsRead = async () => { const unread = visibleNotifications.filter(n => !n.read); await Promise.all(unread.map(n => markNotificationRead(n.id))) }
   const handleTabClick = (id: Tab) => { if (!allowedTabs.includes(id)) return; setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(false); if (id === 'settings') { setMoreOpen(v => !v); return } setMoreOpen(false); setTab(id) }
-  const activeMore = ['documents', 'packing', 'stats', 'settings'].includes(tab)
+  const activeMore = ['documents', 'packing', 'medications', 'stats', 'settings'].includes(tab)
   const visibleMoreItems = isParentForSelectedChild ? [
     { id: 'documents' as Tab, label: 'Documentos', icon: MORE_DOCUMENTS_ICON },
     { id: 'packing' as Tab, label: 'Equipaje', icon: MORE_PACKING_ICON },
+    { id: 'medications' as Tab, label: 'Medicación', icon: MORE_MEDICATIONS_ICON },
     { id: 'stats' as Tab, label: 'Estadísticas', icon: MORE_STATS_ICON },
+    { id: 'settings' as Tab, label: 'Ajustes', icon: MORE_SETTINGS_ICON },
+  ] : isCollaboratorForSelectedChild ? [
+    { id: 'medications' as Tab, label: 'Medicación', icon: MORE_MEDICATIONS_ICON },
     { id: 'settings' as Tab, label: 'Ajustes', icon: MORE_SETTINGS_ICON },
   ] : [
     { id: 'settings' as Tab, label: 'Ajustes', icon: MORE_SETTINGS_ICON },
@@ -244,6 +251,7 @@ export function AppShell() {
         {tab === 'events' && isParentForSelectedChild && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={eventDraftTarget?.date} createSeq={eventDraftTarget?.seq} />}
         {tab === 'documents' && isParentForSelectedChild && <DocumentsPanel />}
         {tab === 'packing' && isParentForSelectedChild && <PackingPanel />}
+        {tab === 'medications' && (isParentForSelectedChild || isCollaboratorForSelectedChild) && <MedicationsPanel />}
         {tab === 'stats' && isParentForSelectedChild && <StatsPanel />}
         {tab === 'settings' && <><div className="page-title">Configuración</div><SettingsPanel /></>}
       </main>
