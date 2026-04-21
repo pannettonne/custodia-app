@@ -226,6 +226,7 @@ export interface DocumentFile {
   contentHash: string
   iv: string
   encryptedFileKeys: Record<string, string>
+  pendingRecipientIds?: string[]
   createdAt: Date
   updatedAt?: Date
 }
