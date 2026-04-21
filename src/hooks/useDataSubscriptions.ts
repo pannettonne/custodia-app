@@ -10,13 +10,14 @@ import {
 } from '@/lib/db'
 import { subscribeToDocumentFolders, subscribeToDocuments } from '@/lib/documents-db'
 import { subscribeToCollaboratorChildren } from '@/lib/collaborators-db'
+import { subscribeToCollaboratorAssignmentsForCollaborator, subscribeToCollaboratorAssignmentsForParent } from '@/lib/collaborator-assignments-db'
 
 export function useDataSubscriptions() {
   const { user } = useAuth()
   const {
     selectedChildId,
     children,
-    setChildren, setPattern, setOverrides, setRequests,
+    setChildren, setPattern, setOverrides, setRequests, setCollaboratorAssignments,
     setInvitations, setNotes, setEvents, setPackingItems, setSpecialPeriods,
     setSelectedChildId, setNotifications, setDocuments, setDocumentFolders,
   } = useAppStore()
@@ -45,31 +46,69 @@ export function useDataSubscriptions() {
   useEffect(() => {
     if (!user?.email) return
     return subscribeToInvitations(user.email, setInvitations)
-  }, [user?.email])
+  }, [user?.email, setInvitations])
 
   useEffect(() => {
     if (!user?.uid) return
     return subscribeToNotifications(user.uid, setNotifications)
-  }, [user?.uid])
+  }, [user?.uid, setNotifications])
 
   useEffect(() => {
     const selectedChild = children.find(child => child.id === selectedChildId)
     const isParent = !!selectedChild && selectedChild.parents.includes(user?.uid || '')
+    const isCollaborator = !!selectedChild && !!selectedChild.collaborators?.includes(user?.uid || '')
+    const collaboratorCanSeeFullCalendar = !!selectedChild && selectedChild.collaboratorCalendarAccess?.[user?.uid || ''] === 'all'
+    const collaboratorCanSeeDocuments = !!selectedChild && !!selectedChild.collaboratorDocumentAccess?.[user?.uid || '']
 
-    if (!selectedChildId || !user?.uid || !isParent) {
-      setPattern(null); setOverrides([]); setRequests([])
+    if (!selectedChildId || !user?.uid || !selectedChild) {
+      setPattern(null); setOverrides([]); setRequests([]); setCollaboratorAssignments([])
       setNotes([]); setEvents([]); setDocuments([]); setDocumentFolders([]); setPackingItems([]); setSpecialPeriods([])
       return
     }
-    const u1 = subscribeToPattern(selectedChildId, setPattern)
-    const u2 = subscribeToOverrides(selectedChildId, setOverrides)
-    const u3 = subscribeToRequests(selectedChildId, setRequests)
-    const u4 = subscribeToNotes(selectedChildId, setNotes)
-    const u5 = subscribeToEvents(selectedChildId, setEvents)
-    const u6 = subscribeToDocuments(selectedChildId, user.uid, setDocuments)
-    const u7 = subscribeToDocumentFolders(selectedChildId, user.uid, setDocumentFolders)
-    const u8 = subscribeToPackingItems(selectedChildId, setPackingItems)
-    const u9 = subscribeToSpecialPeriods(selectedChildId, setSpecialPeriods)
-    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9() }
-  }, [selectedChildId, user?.uid, children])
+
+    const cleanups: Array<() => void> = []
+
+    if (isParent || collaboratorCanSeeFullCalendar) {
+      cleanups.push(subscribeToPattern(selectedChildId, setPattern))
+      cleanups.push(subscribeToOverrides(selectedChildId, setOverrides))
+      cleanups.push(subscribeToSpecialPeriods(selectedChildId, setSpecialPeriods))
+    } else {
+      setPattern(null)
+      setOverrides([])
+      setSpecialPeriods([])
+    }
+
+    if (isParent) {
+      cleanups.push(subscribeToRequests(selectedChildId, setRequests))
+      cleanups.push(subscribeToCollaboratorAssignmentsForParent(selectedChildId, setCollaboratorAssignments))
+      cleanups.push(subscribeToNotes(selectedChildId, setNotes))
+      cleanups.push(subscribeToEvents(selectedChildId, setEvents))
+      cleanups.push(subscribeToPackingItems(selectedChildId, setPackingItems))
+      cleanups.push(subscribeToDocuments(selectedChildId, user.uid, setDocuments))
+      cleanups.push(subscribeToDocumentFolders(selectedChildId, user.uid, setDocumentFolders))
+    } else if (isCollaborator) {
+      setRequests([])
+      setNotes([])
+      setEvents([])
+      setPackingItems([])
+      cleanups.push(subscribeToCollaboratorAssignmentsForCollaborator(selectedChildId, user.uid, setCollaboratorAssignments))
+      if (collaboratorCanSeeDocuments) {
+        cleanups.push(subscribeToDocuments(selectedChildId, user.uid, setDocuments))
+        cleanups.push(subscribeToDocumentFolders(selectedChildId, user.uid, setDocumentFolders))
+      } else {
+        setDocuments([])
+        setDocumentFolders([])
+      }
+    } else {
+      setRequests([])
+      setCollaboratorAssignments([])
+      setNotes([])
+      setEvents([])
+      setDocuments([])
+      setDocumentFolders([])
+      setPackingItems([])
+    }
+
+    return () => { cleanups.forEach(unsub => unsub()) }
+  }, [selectedChildId, user?.uid, children, setPattern, setOverrides, setRequests, setCollaboratorAssignments, setNotes, setEvents, setPackingItems, setSpecialPeriods, setDocuments, setDocumentFolders])
 }
