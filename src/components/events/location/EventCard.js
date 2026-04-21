@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase'
 import { createNotification, deleteEvent, setOverride, updateEvent } from '@/lib/db'
 import { getParentForDate, formatDate } from '@/lib/utils'
 import { useAppStore } from '@/store/app'
+import { decryptDocumentToFile } from '@/lib/document-crypto'
 import {
   CAT_CONFIG,
   buildNavigationLinks,
@@ -32,9 +33,10 @@ async function clearEventCustodyOverrides(event) {
 
 export function EventCard({ event, onEdit }) {
   const { user } = useAuth()
-  const { children, selectedChildId, pattern, overrides, specialPeriods } = useAppStore()
+  const { children, selectedChildId, pattern, overrides, specialPeriods, documents } = useAppStore()
   const [calendarLoading, setCalendarLoading] = useState(false)
   const [deletionLoading, setDeletionLoading] = useState(false)
+  const [openingDocId, setOpeningDocId] = useState(null)
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
 
   const cat = CAT_CONFIG[event.category]
@@ -56,6 +58,26 @@ export function EventCard({ event, onEdit }) {
   const otherParentId = child?.parents.find(pid => pid !== user?.uid) ?? null
   const deletionPendingForMe = event.deletionRequestStatus === 'pending' && event.deletionRequestedBy === user?.uid
   const canRespondDeletion = event.deletionRequestStatus === 'pending' && user?.uid === event.deletionRequestToParentId
+  const linkedDocuments = (event.documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
+
+  const openDocument = async doc => {
+    if (!user?.uid) return
+    setOpeningDocId(doc.id)
+    try {
+      const idToken = await user.getIdToken()
+      const decrypted = await decryptDocumentToFile(doc, user.uid, idToken)
+      const url = URL.createObjectURL(decrypted.blob)
+      const anchor = window.document.createElement('a')
+      anchor.href = url
+      anchor.download = decrypted.filename
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Event document open failed', error)
+    } finally {
+      setOpeningDocId(null)
+    }
+  }
 
   const requestAssignment = async targetParentId => {
     if (!user || !child) return
@@ -211,6 +233,7 @@ export function EventCard({ event, onEdit }) {
             <span style={{ background: `${cat.color}22`, color: cat.color, fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>{categoryLabel}</span>
             {recurrenceLabel && <span style={{ background: 'rgba(139,92,246,0.18)', color: '#a78bfa', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>{recurrenceLabel}</span>}
             {event.reminderEnabled && <span style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>⏰ {event.reminderDaysBefore ?? 0}d</span>}
+            {linkedDocuments.length > 0 && <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>📎 {linkedDocuments.length} documento(s)</span>}
             {event.assignmentStatus === 'pending' && assignedName && <span style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>Pendiente para {assignedName}</span>}
             {event.assignmentStatus === 'accepted' && assignedName && <span style={{ background: 'rgba(16,185,129,0.18)', color: '#6ee7b7', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>Asignado a {assignedName}</span>}
             {event.deletionRequestStatus === 'pending' && <span style={{ background: 'rgba(245,158,11,0.16)', color: '#f59e0b', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>Eliminación pendiente</span>}
@@ -222,6 +245,7 @@ export function EventCard({ event, onEdit }) {
 
           <LocationActions event={event} navLinks={navLinks} />
           {event.notes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.5 }}>{event.notes}</div>}
+          {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>{linkedDocuments.map(doc => <button key={doc.id} onClick={() => openDocument(doc)} disabled={openingDocId === doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999, cursor:'pointer' }}>📎 {openingDocId === doc.id ? 'Abriendo...' : (doc.title || 'Documento')}</button>)}</div> : null}
           {event.reminderEnabled && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Aviso: {event.reminderDaysBefore === 0 ? 'el mismo día' : `${event.reminderDaysBefore} día(s) antes`} · {event.reminderAudience === 'both' ? 'ambos progenitores' : 'solo tú'}</div>}
           {canManageEvent && event.createdBy !== user?.uid && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Puedes gestionar este evento porque este día te corresponde según la custodia.</div>}
           {hasCustodyImpact && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Este evento ya cambió la custodia. Esa parte queda bloqueada y su eliminación requiere aceptación del otro progenitor.</div>}
