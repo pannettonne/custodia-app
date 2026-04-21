@@ -8,6 +8,7 @@ import {
   subscribeToEvents, subscribeToPackingItems, subscribeToSpecialPeriods,
   subscribeToNotifications,
 } from '@/lib/db'
+import { subscribeToDocuments } from '@/lib/documents-db'
 
 export function useDataSubscriptions() {
   const { user } = useAuth()
@@ -15,7 +16,7 @@ export function useDataSubscriptions() {
     selectedChildId,
     setChildren, setPattern, setOverrides, setRequests,
     setInvitations, setNotes, setEvents, setPackingItems, setSpecialPeriods,
-    setSelectedChildId, setNotifications,
+    setSelectedChildId, setNotifications, setDocuments,
   } = useAppStore()
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export function useDataSubscriptions() {
   useEffect(() => {
     if (!selectedChildId) {
       setPattern(null); setOverrides([]); setRequests([])
-      setNotes([]); setEvents([]); setPackingItems([]); setSpecialPeriods([])
+      setNotes([]); setEvents([]); setDocuments([]); setPackingItems([]); setSpecialPeriods([])
       return
     }
     const u1 = subscribeToPattern(selectedChildId, setPattern)
@@ -47,8 +48,9 @@ export function useDataSubscriptions() {
     const u3 = subscribeToRequests(selectedChildId, setRequests)
     const u4 = subscribeToNotes(selectedChildId, setNotes)
     const u5 = subscribeToEvents(selectedChildId, setEvents)
-    const u6 = subscribeToPackingItems(selectedChildId, setPackingItems)
-    const u7 = subscribeToSpecialPeriods(selectedChildId, setSpecialPeriods)
-    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7() }
+    const u6 = subscribeToDocuments(selectedChildId, setDocuments)
+    const u7 = subscribeToPackingItems(selectedChildId, setPackingItems)
+    const u8 = subscribeToSpecialPeriods(selectedChildId, setSpecialPeriods)
+    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8() }
   }, [selectedChildId])
 }
