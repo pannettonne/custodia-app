@@ -137,7 +137,7 @@ export async function encryptFileForUsers(file: File, recipientKeys: Record<stri
   }
 }
 
-export async function decryptDocumentToFile(document: DocumentFile, uid: string) {
+export async function decryptDocumentToFile(document: DocumentFile, uid: string, idToken: string) {
   const wrappedKey = document.encryptedFileKeys?.[uid]
   if (!wrappedKey) throw new Error('No tienes clave para abrir este documento')
 
@@ -146,8 +146,16 @@ export async function decryptDocumentToFile(document: DocumentFile, uid: string)
   const rawFileKey = await ensureBrowserCrypto().subtle.decrypt({ name: 'RSA-OAEP' }, privateKey, fromBase64(wrappedKey))
   const fileKey = await ensureBrowserCrypto().subtle.importKey('raw', rawFileKey, { name: 'AES-GCM' }, true, ['decrypt'])
 
-  const response = await fetch(document.blobUrl)
-  if (!response.ok) throw new Error('No se pudo descargar el documento cifrado')
+  const response = await fetch(`/api/documents/download?documentId=${encodeURIComponent(document.id)}`, {
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    throw new Error(payload?.error || 'No se pudo descargar el documento cifrado')
+  }
+
   const encryptedBuffer = await response.arrayBuffer()
   const decryptedBuffer = await ensureBrowserCrypto().subtle.decrypt({ name: 'AES-GCM', iv: fromBase64(document.iv) }, fileKey, encryptedBuffer)
   const filename = await decryptTextWithKey(document.filenameEncrypted, document.filenameIv, fileKey)
