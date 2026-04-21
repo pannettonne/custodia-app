@@ -12,7 +12,10 @@ function formatBytes(bytes: number) {
   const units = ['B', 'KB', 'MB', 'GB']
   let value = bytes
   let index = 0
-  while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1 }
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024
+    index += 1
+  }
   return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`
 }
 
@@ -40,6 +43,35 @@ function buildFolderOptions(folders: DocumentFolder[], parentFolderId?: string, 
   ])
 }
 
+const compactButtonBase: React.CSSProperties = {
+  height: 34,
+  borderRadius: 10,
+  border: '1px solid var(--border)',
+  background: 'var(--bg-card)',
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 800,
+  padding: '0 10px',
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  whiteSpace: 'nowrap',
+}
+
+const dangerButtonStyle: React.CSSProperties = {
+  ...compactButtonBase,
+  border: '1px solid rgba(239,68,68,0.28)',
+  background: 'rgba(239,68,68,0.08)',
+  color: '#dc2626',
+}
+
+const iconButtonStyle: React.CSSProperties = {
+  ...compactButtonBase,
+  width: 34,
+  padding: 0,
+}
+
 function DocumentRow({ document, folderName, busy, userId, deleteMenuId, setDeleteMenuId, onOpen, onHideForMe, onDeleteForEveryone }: {
   document: DocumentFile
   folderName: string
@@ -54,27 +86,44 @@ function DocumentRow({ document, folderName, busy, userId, deleteMenuId, setDele
   const canOpen = !!document.encryptedFileKeys?.[userId || '']
   const unavailableForOthers = Array.isArray(document.pendingRecipientIds) ? document.pendingRecipientIds.length : 0
   const thumb = documentThumbLabel(document.mimeType || '')
-  return <div style={{ display: 'grid', gap: 10, padding: '12px 16px 12px 24px', borderBottom: '1px solid var(--border)', overflow: 'visible', position: 'relative' }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', overflow: 'visible' }}>
-      <div style={{ display:'flex', gap:12, minWidth:0 }}>
-        <div style={{ width:48, height:62, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-soft)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'var(--text-secondary)', flexShrink:0 }}>{thumb}</div>
-        <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>{document.title || 'Documento cifrado'}</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{folderName} · {document.shareScope === 'only_me' ? 'Solo para mi' : 'Para todos'}</div>
-          {unavailableForOthers > 0 ? <div style={{ fontSize: 11, color: '#9a3412' }}>Pendiente de compartirse con {unavailableForOthers} progenitor(es).</div> : null}
+
+  return (
+    <div style={{ padding: '10px 14px 10px 18px', borderTop: '1px solid var(--border)', overflow: 'visible', position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <div style={{ width: 44, height: 56, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: 'var(--text-secondary)', flexShrink: 0 }}>
+          {thumb}
+        </div>
+
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontWeight: 800, color: 'var(--text-strong)', fontSize: 14, lineHeight: 1.2, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {document.title || 'Documento cifrado'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+            {formatBytes(document.sizeBytes)} · subido por {document.createdByName || 'progenitor'}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.35 }}>
+            {folderName} · {document.shareScope === 'only_me' ? 'Solo para mí' : 'Para todos'}
+          </div>
+          {unavailableForOthers > 0 ? <div style={{ fontSize: 11, color: '#9a3412', lineHeight: 1.35 }}>Pendiente de compartirse con {unavailableForOthers} progenitor(es).</div> : null}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, position: 'relative' }}>
+          <button style={{ ...compactButtonBase, minWidth: 72, opacity: busy === document.id || !canOpen ? 0.65 : 1 }} onClick={() => onOpen(document.id)} disabled={busy === document.id || !canOpen}>
+            {busy === document.id ? '...' : 'Abrir'}
+          </button>
+          <button style={{ ...iconButtonStyle, ...dangerButtonStyle }} onClick={() => setDeleteMenuId(deleteMenuId === document.id ? null : document.id)} disabled={busy === document.id} title="Borrar" aria-label="Borrar">
+            🗑
+          </button>
+          {deleteMenuId === document.id ? (
+            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--card-shadow)', padding: 8, display: 'grid', gap: 6, minWidth: 186, zIndex: 60 }}>
+              <button style={compactButtonBase} onClick={() => onHideForMe(document.id)} disabled={busy === document.id}>Ocultar solo para mí</button>
+              <button style={dangerButtonStyle} onClick={() => onDeleteForEveryone(document.id)} disabled={busy === document.id}>Eliminar para todos</button>
+            </div>
+          ) : null}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', position:'relative', overflow: 'visible' }}>
-        <button className="btn-primary btn-outline" onClick={() => onOpen(document.id)} disabled={busy === document.id || !canOpen}>{busy === document.id ? 'Abriendo...' : 'Abrir'}</button>
-        <button className="btn-primary btn-outline" onClick={() => setDeleteMenuId(deleteMenuId === document.id ? null : document.id)} disabled={busy === document.id} title="Borrar" aria-label="Borrar">🗑️</button>
-        {deleteMenuId === document.id ? <div style={{ position:'absolute', top:'calc(100% + 6px)', right:0, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12, boxShadow:'var(--card-shadow)', padding:8, display:'grid', gap:6, minWidth:170, zIndex:50 }}>
-          <button className="btn-primary btn-outline" onClick={() => onHideForMe(document.id)} disabled={busy === document.id}>Solo para mi</button>
-          <button className="btn-primary btn-outline" onClick={() => onDeleteForEveryone(document.id)} disabled={busy === document.id}>Para todos</button>
-        </div> : null}
-      </div>
     </div>
-  </div>
+  )
 }
 
 export function DocumentsPanel() {
@@ -102,8 +151,15 @@ export function DocumentsPanel() {
     return [doc.title || '', folderName, doc.mimeType || ''].some(field => normalize(field).includes(normalizedQuery))
   }), [documents, documentFolders, normalizedQuery])
 
-  function showMessage(text: string, tone: 'info' | 'success' | 'error' = 'info') { setMessage(text); setMessageTone(tone) }
-  function toggleFolder(folderId: string) { setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] })) }
+  function showMessage(text: string, tone: 'info' | 'success' | 'error' = 'info') {
+    setMessage(text)
+    setMessageTone(tone)
+  }
+
+  function toggleFolder(folderId: string) {
+    setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] }))
+  }
+
   function getFolderPath(folderId?: string) {
     if (!folderId) return 'Sin carpeta'
     const parts: string[] = []
@@ -122,17 +178,27 @@ export function DocumentsPanel() {
       .catch((error: unknown) => showMessage(error instanceof Error ? error.message : 'No se pudo inicializar el cifrado local', 'error'))
   }, [user?.uid])
 
-  const handleCreateFolder = async (parentId = newFolderParentId) => {
-    if (!user || !child || !newFolderName.trim()) return
+  const handleCreateFolder = async (name = newFolderName, parentId = newFolderParentId) => {
+    const trimmedName = name.trim()
+    if (!user || !child || !trimmedName) return
     setBusy('folder')
     try {
       const actualParentId = parentId === 'root' ? undefined : parentId
-      await createDocumentFolder({ childId: child.id, name: newFolderName.trim(), createdBy: user.uid, createdByName: user.displayName || user.email || 'Progenitor', shareScope, hiddenForUserIds: [], ...(actualParentId ? { parentFolderId: actualParentId } : {}) })
+      await createDocumentFolder({
+        childId: child.id,
+        name: trimmedName,
+        createdBy: user.uid,
+        createdByName: user.displayName || user.email || 'Progenitor',
+        shareScope,
+        hiddenForUserIds: [],
+        ...(actualParentId ? { parentFolderId: actualParentId } : {}),
+      })
       setNewFolderName('')
       setNewFolderParentId('root')
       if (actualParentId) setExpandedFolders(prev => ({ ...prev, [actualParentId]: true }))
       showMessage('Carpeta creada.', 'success')
     } catch (error: unknown) {
+      console.error('Document folder creation failed', error)
       showMessage(error instanceof Error ? error.message : 'No se pudo crear la carpeta', 'error')
     } finally {
       setBusy(null)
@@ -142,16 +208,16 @@ export function DocumentsPanel() {
   const handleCreateChildFolder = async (parentFolderId: string) => {
     const name = window.prompt('Nombre de la subcarpeta')?.trim()
     if (!name) return
-    setNewFolderName(name)
-    await handleCreateFolder(parentFolderId)
-    setNewFolderName('')
+    await handleCreateFolder(name, parentFolderId)
   }
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file || !user || !child) return
-    setBusy('upload'); setUploadStage('Preparando cifrado...'); showMessage(`Archivo seleccionado: ${file.name}`, 'info')
+    setBusy('upload')
+    setUploadStage('Preparando cifrado...')
+    showMessage(`Archivo seleccionado: ${file.name}`, 'info')
     try {
       const localKeys = await ensureLocalDocumentKeyPair(user.uid)
       await ensureUserDocumentKey(user.uid, localKeys.publicKey)
@@ -161,7 +227,9 @@ export function DocumentsPanel() {
       setUploadStage('Cifrando archivo en este dispositivo...')
       const encrypted = await encryptFileForUsers(file, keyRegistry, parentIds)
       const idToken = await user.getIdToken()
-      const formData = new FormData(); formData.append('file', encrypted.encryptedBlob, `${child.id}-${Date.now()}.bin`); formData.append('childId', child.id)
+      const formData = new FormData()
+      formData.append('file', encrypted.encryptedBlob, `${child.id}-${Date.now()}.bin`)
+      formData.append('childId', child.id)
       setUploadStage('Subiendo blob cifrado...')
       const uploadResponse = await fetch('/api/documents/upload', { method: 'POST', headers: { Authorization: `Bearer ${idToken}` }, body: formData })
       const uploadPayload = await uploadResponse.json()
@@ -193,30 +261,43 @@ export function DocumentsPanel() {
     } catch (error: unknown) {
       console.error('Documents upload failed', error)
       showMessage(error instanceof Error ? error.message : 'Error subiendo documento', 'error')
-    } finally { setBusy(null); setUploadStage('') }
+    } finally {
+      setBusy(null)
+      setUploadStage('')
+    }
   }
 
   const handleDownload = async (documentId: string) => {
     if (!user?.uid) return
     const document = documents.find(item => item.id === documentId)
     if (!document) return
-    setBusy(documentId); showMessage('Descargando y descifrando documento...', 'info')
+    setBusy(documentId)
+    showMessage('Descargando y descifrando documento...', 'info')
     try {
       const idToken = await user.getIdToken()
       const decrypted = await decryptDocumentToFile(document, user.uid, idToken)
       const url = URL.createObjectURL(decrypted.blob)
       const anchor = window.document.createElement('a')
-      anchor.href = url; anchor.download = decrypted.filename; anchor.click(); URL.revokeObjectURL(url)
+      anchor.href = url
+      anchor.download = decrypted.filename
+      anchor.click()
+      URL.revokeObjectURL(url)
       showMessage(`Documento listo: ${decrypted.filename}`, 'success')
     } catch (error: unknown) {
       showMessage(error instanceof Error ? error.message : 'No se pudo abrir el documento', 'error')
-    } finally { setBusy(null) }
+    } finally {
+      setBusy(null)
+    }
   }
 
   const deleteBlobByPath = async (pathname: string) => {
     if (!user) return
     const idToken = await user.getIdToken()
-    const response = await fetch('/api/documents/delete', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` }, body: JSON.stringify({ pathname }) })
+    const response = await fetch('/api/documents/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ pathname }),
+    })
     const payload = await response.json()
     if (!response.ok) throw new Error(payload.error || 'No se pudo borrar el blob cifrado')
   }
@@ -234,7 +315,9 @@ export function DocumentsPanel() {
       showMessage('Documento eliminado para todos.', 'success')
     } catch (error: unknown) {
       showMessage(error instanceof Error ? error.message : 'No se pudo eliminar el documento', 'error')
-    } finally { setBusy(null) }
+    } finally {
+      setBusy(null)
+    }
   }
 
   const handleDeleteFolderTree = async (folderId: string) => {
@@ -267,55 +350,71 @@ export function DocumentsPanel() {
     if (!window.confirm('¿Seguro que quieres ocultar este documento solo para ti?')) return
     setDeleteMenuId(null)
     setBusy(documentId)
-    try { await hideDocumentForUser(documentId, user.uid); showMessage('Documento ocultado solo para ti.', 'success') }
-    catch (error: unknown) { showMessage(error instanceof Error ? error.message : 'No se pudo ocultar el documento', 'error') }
-    finally { setBusy(null) }
+    try {
+      await hideDocumentForUser(documentId, user.uid)
+      showMessage('Documento ocultado solo para ti.', 'success')
+    } catch (error: unknown) {
+      showMessage(error instanceof Error ? error.message : 'No se pudo ocultar el documento', 'error')
+    } finally {
+      setBusy(null)
+    }
   }
 
-  const renderFolderBranch = (parentFolderId?: string, depth = 0): React.ReactNode => {
-    const foldersHere = documentFolders.filter(folder => (folder.parentFolderId || '') === (parentFolderId || '')).filter(folder => !normalizedQuery || normalize(folder.name).includes(normalizedQuery) || visibleDocuments.some(doc => doc.folderId === folder.id))
+  const renderFolderBranch = (parentFolderId?: string, depth = 0): JSX.Element | null => {
+    const foldersHere = documentFolders
+      .filter(folder => (folder.parentFolderId || '') === (parentFolderId || ''))
+      .filter(folder => !normalizedQuery || normalize(folder.name).includes(normalizedQuery) || visibleDocuments.some(doc => doc.folderId === folder.id))
+
     const documentsHere = visibleDocuments.filter(doc => (doc.folderId || '') === (parentFolderId || ''))
+
     if (foldersHere.length === 0 && documentsHere.length === 0 && parentFolderId) return null
 
     return (
       <>
         {parentFolderId === undefined ? (
           <div style={{ borderBottom: (documentsHere.length > 0 || foldersHere.length > 0) ? '1px solid var(--border)' : 'none' }}>
-            <div style={{ width:'100%', textAlign:'left', padding:'14px 16px', display:'flex', alignItems:'center', gap:10, color:'var(--text-strong)', fontWeight:800 }}>
-              <button onClick={() => toggleFolder('root')} style={{ background:'transparent', border:'none', cursor:'pointer', color:'inherit', font: 'inherit', display:'flex', alignItems:'center', gap:10, padding:0 }}>
-                <span style={{ fontSize:18 }}>📁</span><span>Sin carpeta</span><span style={{ color:'var(--text-muted)', fontWeight:600 }}>({documentsHere.length})</span>
+            <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <button onClick={() => toggleFolder('root')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit', display: 'flex', alignItems: 'center', gap: 10, padding: 0, minWidth: 0 }}>
+                <span style={{ fontSize: 18 }}>📁</span>
+                <span style={{ fontWeight: 800, color: 'var(--text-strong)' }}>Sin carpeta</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>({documentsHere.length})</span>
               </button>
-              <button className="btn-primary btn-outline" style={{ marginLeft:'auto', padding:'6px 10px' }} onClick={() => { setSelectedFolderId('root'); setExpandedFolders(prev => ({ ...prev, root: true })) }}>Subir aquí</button>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <button style={{ ...compactButtonBase, minWidth: 84 }} onClick={() => { setSelectedFolderId('root'); setExpandedFolders(prev => ({ ...prev, root: true })) }}>Subir aquí</button>
+              </div>
             </div>
             {expandedFolders.root !== false ? documentsHere.map(document => <DocumentRow key={document.id} document={document} folderName="Sin carpeta" busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />) : null}
           </div>
         ) : null}
+
         {foldersHere.map(folder => {
           const childFolders = documentFolders.filter(item => item.parentFolderId === folder.id)
           const docsInFolder = visibleDocuments.filter(document => document.folderId === folder.id)
           const isOpen = expandedFolders[folder.id] !== false
           const totalCount = docsInFolder.length + childFolders.length
-          return <div key={folder.id} style={{ borderBottom: '1px solid var(--border)' }}>
-            <div style={{ width:'100%', textAlign:'left', padding:`14px 16px 14px ${16 + depth * 18}px`, display:'flex', alignItems:'center', gap:10, color:'var(--text-strong)', fontWeight:800 }}>
-              <button onClick={() => toggleFolder(folder.id)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'inherit', font: 'inherit', display:'flex', alignItems:'center', gap:10, padding:0, textAlign:'left' }}>
-                <span style={{ fontSize:18 }}>📁</span>
-                <span>{folder.name}</span>
-                <span style={{ color:'var(--text-muted)', fontWeight:600 }}>({totalCount})</span>
-              </button>
-              <div style={{ marginLeft:'auto', display:'flex', gap:6, flexWrap:'wrap' }}>
-                <button className="btn-primary btn-outline" style={{ padding:'6px 10px' }} onClick={() => { setSelectedFolderId(folder.id); setExpandedFolders(prev => ({ ...prev, [folder.id]: true })) }}>Subir aquí</button>
-                <button className="btn-primary btn-outline" style={{ padding:'6px 10px' }} onClick={() => handleCreateChildFolder(folder.id)}>＋</button>
-                <button className="btn-primary btn-outline" style={{ padding:'6px 10px' }} onClick={() => handleDeleteFolderTree(folder.id)} disabled={busy === `folder-delete-${folder.id}`}>🗑️</button>
+          return (
+            <div key={folder.id} style={{ borderBottom: '1px solid var(--border)' }}>
+              <div style={{ padding: `12px 14px 12px ${14 + depth * 16}px`, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <button onClick={() => toggleFolder(folder.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit', display: 'flex', alignItems: 'center', gap: 10, padding: 0, minWidth: 0, textAlign: 'left' }}>
+                  <span style={{ fontSize: 18 }}>📁</span>
+                  <span style={{ fontWeight: 800, color: 'var(--text-strong)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{folder.name}</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 700, flexShrink: 0 }}>({totalCount})</span>
+                </button>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <button style={{ ...compactButtonBase, minWidth: 84 }} onClick={() => { setSelectedFolderId(folder.id); setExpandedFolders(prev => ({ ...prev, [folder.id]: true })) }}>Subir aquí</button>
+                  <button style={iconButtonStyle} onClick={() => handleCreateChildFolder(folder.id)} title="Crear subcarpeta">＋</button>
+                  <button style={{ ...iconButtonStyle, ...dangerButtonStyle, opacity: busy === `folder-delete-${folder.id}` ? 0.7 : 1 }} onClick={() => handleDeleteFolderTree(folder.id)} disabled={busy === `folder-delete-${folder.id}`} title="Eliminar carpeta">🗑</button>
+                </div>
               </div>
+              {isOpen ? (
+                <>
+                  {docsInFolder.map(document => <DocumentRow key={document.id} document={document} folderName={getFolderPath(folder.id)} busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />)}
+                  {renderFolderBranch(folder.id, depth + 1)}
+                  {docsInFolder.length === 0 && childFolders.length === 0 ? <div style={{ padding: `0 14px 12px ${52 + depth * 16}px`, color: 'var(--text-muted)', fontSize: 12 }}>No hay contenido en esta carpeta.</div> : null}
+                </>
+              ) : null}
             </div>
-            {isOpen ? (
-              <>
-                {docsInFolder.map(document => <DocumentRow key={document.id} document={document} folderName={getFolderPath(folder.id)} busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />)}
-                {renderFolderBranch(folder.id, depth + 1)}
-                {docsInFolder.length === 0 && childFolders.length === 0 ? <div style={{ padding:`0 16px 14px ${50 + depth * 18}px`, color:'var(--text-muted)', fontSize:13 }}>No hay contenido en esta carpeta.</div> : null}
-              </>
-            ) : null}
-          </div>
+          )
         })}
       </>
     )
@@ -327,33 +426,36 @@ export function DocumentsPanel() {
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       <div className="page-title">Documentos</div>
+
       <div className="card" style={{ padding: 16, display: 'grid', gap: 12 }}>
-        <div style={{ display:'grid', gap:8 }}>
+        <div style={{ display: 'grid', gap: 8 }}>
           <div style={{ fontWeight: 800, color: 'var(--text-strong)' }}>Subidas y carpetas</div>
           <input className="settings-input" value={documentTitle} onChange={e => setDocumentTitle(e.target.value)} placeholder="Nombre del documento" />
-          <select className="settings-input" value={shareScope} onChange={e => setShareScope(e.target.value as DocumentShareScope)}><option value="all_parents">Para todos</option><option value="only_me">Solo para mi</option></select>
+          <select className="settings-input" value={shareScope} onChange={e => setShareScope(e.target.value as DocumentShareScope)}><option value="all_parents">Para todos</option><option value="only_me">Solo para mí</option></select>
           <select className="settings-input" value={selectedFolderId} onChange={e => setSelectedFolderId(e.target.value)}><option value="root">Sin carpeta</option>{folderOptions.map(folder => <option key={folder.id} value={folder.id}>{folder.label}</option>)}</select>
-          <label className="btn-primary" style={{ justifySelf:'start', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy === 'upload' ? 'Procesando...' : 'Subir PDF o imagen'}<input hidden type="file" accept="application/pdf,image/*" onChange={handleUpload} disabled={!!busy} /></label>
+          <label className="btn-primary" style={{ justifySelf: 'start', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy === 'upload' ? 'Procesando...' : 'Subir PDF o imagen'}<input hidden type="file" accept="application/pdf,image/*" onChange={handleUpload} disabled={!!busy} /></label>
         </div>
-        <div style={{ display:'grid', gap:8 }}>
+
+        <div style={{ display: 'grid', gap: 8 }}>
           <input className="settings-input" value={newFolderName} onChange={e => setNewFolderName(e.target.value)} placeholder="Nueva carpeta" />
-          <div style={{ display:'grid', gap:8, gridTemplateColumns:'1fr auto' }}>
-            <select className="settings-input" value={newFolderParentId} onChange={e => setNewFolderParentId(e.target.value)} style={{ marginBottom:0 }}><option value="root">Crear en raíz</option>{folderOptions.map(folder => <option key={folder.id} value={folder.id}>{folder.label}</option>)}</select>
-            <button className="btn-primary btn-outline" onClick={() => handleCreateFolder()} disabled={busy === 'folder' || !newFolderName.trim()}>{busy === 'folder' ? 'Creando...' : 'Crear carpeta'}</button>
+          <div style={{ display: 'grid', gap: 8, gridTemplateColumns: '1fr auto' }}>
+            <select className="settings-input" value={newFolderParentId} onChange={e => setNewFolderParentId(e.target.value)} style={{ marginBottom: 0 }}><option value="root">Crear en raíz</option>{folderOptions.map(folder => <option key={folder.id} value={folder.id}>{folder.label}</option>)}</select>
+            <button style={{ ...compactButtonBase, minWidth: 110, opacity: busy === 'folder' || !newFolderName.trim() ? 0.6 : 1 }} onClick={() => handleCreateFolder()} disabled={busy === 'folder' || !newFolderName.trim()}>{busy === 'folder' ? 'Creando...' : 'Crear carpeta'}</button>
           </div>
         </div>
+
         {uploadStage ? <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{uploadStage}</div> : null}
         {message ? <div style={{ fontSize: 13, color: toneColor }}>{message}</div> : null}
       </div>
 
-      <div className="card" style={{ padding: 12, display:'grid', gap:8 }}>
-        <div style={{ fontWeight:800 }}>Explorar documentos</div>
+      <div className="card" style={{ padding: 12, display: 'grid', gap: 8 }}>
+        <div style={{ fontWeight: 800 }}>Explorar documentos</div>
         <input className="settings-input" value={documentQuery} onChange={e => setDocumentQuery(e.target.value)} placeholder="Buscar por nombre, carpeta o tipo..." />
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'visible' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontWeight: 800 }}>Documentos de {child.name}</div>
-        {visibleDocuments.length === 0 && documentFolders.length === 0 ? <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos en esta vista.</div> : <div style={{ display: 'grid', overflow: 'visible' }}>{renderFolderBranch(undefined, 0)}</div>}
+        {visibleDocuments.length === 0 && documentFolders.length === 0 ? <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavía no hay documentos en esta vista.</div> : <div style={{ display: 'grid', overflow: 'visible' }}>{renderFolderBranch(undefined, 0)}</div>}
       </div>
     </div>
   )
