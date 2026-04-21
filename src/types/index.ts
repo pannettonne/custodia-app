@@ -62,6 +62,11 @@ export interface ChangeRequest {
   startDate?: string
   endDate?: string
   reason: string
+  locationName?: string
+  locationAddress?: string
+  locationLatitude?: number
+  locationLongitude?: number
+  locationPlaceId?: string
   status: RequestStatus
   createdAt: Date
   respondedAt?: Date
@@ -81,6 +86,11 @@ export interface CollaboratorAssignment {
   startTime?: string
   endTime?: string
   notes?: string
+  locationName?: string
+  locationAddress?: string
+  locationLatitude?: number
+  locationLongitude?: number
+  locationPlaceId?: string
   status: CollaboratorAssignmentStatus
   createdAt: Date
   respondedAt?: Date
