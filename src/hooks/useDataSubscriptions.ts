@@ -8,7 +8,7 @@ import {
   subscribeToEvents, subscribeToPackingItems, subscribeToSpecialPeriods,
   subscribeToNotifications,
 } from '@/lib/db'
-import { subscribeToDocuments } from '@/lib/documents-db'
+import { subscribeToDocumentFolders, subscribeToDocuments } from '@/lib/documents-db'
 
 export function useDataSubscriptions() {
   const { user } = useAuth()
@@ -16,7 +16,7 @@ export function useDataSubscriptions() {
     selectedChildId,
     setChildren, setPattern, setOverrides, setRequests,
     setInvitations, setNotes, setEvents, setPackingItems, setSpecialPeriods,
-    setSelectedChildId, setNotifications, setDocuments,
+    setSelectedChildId, setNotifications, setDocuments, setDocumentFolders,
   } = useAppStore()
 
   useEffect(() => {
@@ -38,9 +38,9 @@ export function useDataSubscriptions() {
   }, [user?.uid])
 
   useEffect(() => {
-    if (!selectedChildId) {
+    if (!selectedChildId || !user?.uid) {
       setPattern(null); setOverrides([]); setRequests([])
-      setNotes([]); setEvents([]); setDocuments([]); setPackingItems([]); setSpecialPeriods([])
+      setNotes([]); setEvents([]); setDocuments([]); setDocumentFolders([]); setPackingItems([]); setSpecialPeriods([])
       return
     }
     const u1 = subscribeToPattern(selectedChildId, setPattern)
@@ -48,9 +48,10 @@ export function useDataSubscriptions() {
     const u3 = subscribeToRequests(selectedChildId, setRequests)
     const u4 = subscribeToNotes(selectedChildId, setNotes)
     const u5 = subscribeToEvents(selectedChildId, setEvents)
-    const u6 = subscribeToDocuments(selectedChildId, setDocuments)
-    const u7 = subscribeToPackingItems(selectedChildId, setPackingItems)
-    const u8 = subscribeToSpecialPeriods(selectedChildId, setSpecialPeriods)
-    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8() }
-  }, [selectedChildId])
+    const u6 = subscribeToDocuments(selectedChildId, user.uid, setDocuments)
+    const u7 = subscribeToDocumentFolders(selectedChildId, user.uid, setDocumentFolders)
+    const u8 = subscribeToPackingItems(selectedChildId, setPackingItems)
+    const u9 = subscribeToSpecialPeriods(selectedChildId, setSpecialPeriods)
+    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9() }
+  }, [selectedChildId, user?.uid])
 }
