@@ -15,7 +15,7 @@ const DEFAULT_NOTIFICATION_SETTINGS: Omit<UserNotificationSettings, 'uid'> = {
 function mapNotificationTypeToPreferenceKey(type: AppNotification['type']): keyof Omit<UserNotificationSettings, 'uid' | 'updatedAt'> {
   if (type === 'pending_request') return 'changes'
   if (type === 'event_assignment_pending' || type === 'event_assignment_response') return 'assignments'
-  if (type === 'event_reminder') return 'reminders'
+  if (type === 'event_reminder' || type === 'medication_reminder') return 'reminders'
   return 'changes'
 }
 
