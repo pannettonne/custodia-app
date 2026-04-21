@@ -17,6 +17,13 @@ export interface Child {
   parentEmails: string[]
   parentNames: Record<string, string>
   parentColors: Record<string, string>
+  collaborators?: string[]
+  collaboratorEmails?: string[]
+  collaboratorNames?: Record<string, string>
+  collaboratorLabels?: Record<string, CollaboratorLabel>
+  collaboratorDocumentAccess?: Record<string, boolean>
+  collaboratorCalendarAccess?: Record<string, CollaboratorCalendarAccess>
+  collaboratorCalendarApprovedBy?: Record<string, string[]>
   createdAt: Date
 }
 
