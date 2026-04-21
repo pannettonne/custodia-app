@@ -25,6 +25,7 @@ export function DayEventItem({
   eventActionLoading,
   onNavigate,
   onToggleOccurrence,
+  documentCount = 0,
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const hasLocation = !!(event.locationName || event.locationAddress)
@@ -69,17 +70,24 @@ export function DayEventItem({
             cursor: 'pointer',
           }}
         >
-          <div
-            style={{
-              fontSize: 13,
-              color: 'var(--text-strong)',
-              fontWeight: 800,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {event.title}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 13,
+                color: 'var(--text-strong)',
+                fontWeight: 800,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {event.title}
+            </div>
+            {documentCount > 0 && (
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 800, flexShrink: 0 }}>
+                📎 ({documentCount})
+              </span>
+            )}
           </div>
 
           <div
