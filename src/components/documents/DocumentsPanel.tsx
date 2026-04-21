@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createDocumentFolder, createDocumentRecord, deleteDocumentFolder, deleteDocumentRecord, ensureUserDocumentKey, getChildParentIds, getUserDocumentKeys, hideDocumentForUser } from '@/lib/documents-db'
@@ -41,6 +41,27 @@ function buildFolderOptions(folders: DocumentFolder[], parentFolderId?: string, 
     { id: folder.id, label: `${'— '.repeat(depth)}${folder.name}` },
     ...buildFolderOptions(folders, folder.id, depth + 1),
   ])
+}
+
+function DocumentAddIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 3h7l5 5v10.5A2.5 2.5 0 0 1 16.5 21h-9A2.5 2.5 0 0 1 5 18.5v-13A2.5 2.5 0 0 1 7.5 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 10.5v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M9.5 13h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function FolderAddIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l1.7 1.8c.3.3.7.5 1.1.5H18a2.5 2.5 0 0 1 2.5 2.5v6.7A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5v-9Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 10.5v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M9.5 13h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  )
 }
 
 const compactButtonBase: CSSProperties = {
@@ -141,6 +162,8 @@ export function DocumentsPanel() {
   const [deleteMenuId, setDeleteMenuId] = useState<string | null>(null)
   const [documentQuery, setDocumentQuery] = useState('')
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({ root: true })
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
+  const pendingUploadFolderRef = useRef<string>('root')
 
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
   const normalizedQuery = normalize(documentQuery)
@@ -169,6 +192,13 @@ export function DocumentsPanel() {
       current = current.parentFolderId ? documentFolders.find(folder => folder.id === current?.parentFolderId) : undefined
     }
     return parts.join(' / ')
+  }
+
+  function handleFolderUploadClick(folderId: string) {
+    pendingUploadFolderRef.current = folderId
+    setSelectedFolderId(folderId)
+    if (folderId !== 'root') setExpandedFolders(prev => ({ ...prev, [folderId]: true }))
+    uploadInputRef.current?.click()
   }
 
   useEffect(() => {
@@ -215,6 +245,8 @@ export function DocumentsPanel() {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file || !user || !child) return
+    const targetFolderId = pendingUploadFolderRef.current || selectedFolderId || 'root'
+    setSelectedFolderId(targetFolderId)
     setBusy('upload')
     setUploadStage('Preparando cifrado...')
     showMessage(`Archivo seleccionado: ${file.name}`, 'info')
@@ -252,16 +284,17 @@ export function DocumentsPanel() {
         pendingRecipientIds: encrypted.metadata.pendingRecipientIds,
         shareScope,
         hiddenForUserIds: [],
-        ...(selectedFolderId !== 'root' ? { folderId: selectedFolderId } : {}),
+        ...(targetFolderId !== 'root' ? { folderId: targetFolderId } : {}),
       }
       await createDocumentRecord(record)
       setDocumentTitle('')
-      if (selectedFolderId !== 'root') setExpandedFolders(prev => ({ ...prev, [selectedFolderId]: true }))
+      if (targetFolderId !== 'root') setExpandedFolders(prev => ({ ...prev, [targetFolderId]: true }))
       showMessage(encrypted.metadata.pendingRecipientIds.length > 0 ? `Documento subido. Pendiente de compartirse con ${encrypted.metadata.pendingRecipientIds.length} progenitor(es).` : `Documento subido: ${record.title}`, 'success')
     } catch (error: unknown) {
       console.error('Documents upload failed', error)
       showMessage(error instanceof Error ? error.message : 'Error subiendo documento', 'error')
     } finally {
+      pendingUploadFolderRef.current = targetFolderId
       setBusy(null)
       setUploadStage('')
     }
@@ -380,7 +413,7 @@ export function DocumentsPanel() {
                 <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>({documentsHere.length})</span>
               </button>
               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <button style={{ ...compactButtonBase, minWidth: 84 }} onClick={() => { setSelectedFolderId('root'); setExpandedFolders(prev => ({ ...prev, root: true })) }}>Subir aquí</button>
+                <button style={iconButtonStyle} onClick={() => handleFolderUploadClick('root')} title="Subir documento aquí" aria-label="Subir documento aquí"><DocumentAddIcon /></button>
               </div>
             </div>
             {expandedFolders.root !== false ? documentsHere.map(document => <DocumentRow key={document.id} document={document} folderName="Sin carpeta" busy={busy} userId={user?.uid} deleteMenuId={deleteMenuId} setDeleteMenuId={setDeleteMenuId} onOpen={handleDownload} onHideForMe={handleHideForMe} onDeleteForEveryone={handleDeleteForEveryone} />) : null}
@@ -401,8 +434,8 @@ export function DocumentsPanel() {
                   <span style={{ color: 'var(--text-muted)', fontWeight: 700, flexShrink: 0 }}>({totalCount})</span>
                 </button>
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  <button style={{ ...compactButtonBase, minWidth: 84 }} onClick={() => { setSelectedFolderId(folder.id); setExpandedFolders(prev => ({ ...prev, [folder.id]: true })) }}>Subir aquí</button>
-                  <button style={iconButtonStyle} onClick={() => handleCreateChildFolder(folder.id)} title="Crear subcarpeta">＋</button>
+                  <button style={iconButtonStyle} onClick={() => handleFolderUploadClick(folder.id)} title="Subir documento aquí" aria-label={`Subir documento a ${folder.name}`}><DocumentAddIcon /></button>
+                  <button style={iconButtonStyle} onClick={() => handleCreateChildFolder(folder.id)} title="Crear subcarpeta" aria-label={`Crear subcarpeta dentro de ${folder.name}`}><FolderAddIcon /></button>
                   <button style={{ ...iconButtonStyle, ...dangerButtonStyle, opacity: busy === `folder-delete-${folder.id}` ? 0.7 : 1 }} onClick={() => handleDeleteFolderTree(folder.id)} disabled={busy === `folder-delete-${folder.id}`} title="Eliminar carpeta">🗑</button>
                 </div>
               </div>
@@ -433,7 +466,8 @@ export function DocumentsPanel() {
           <input className="settings-input" value={documentTitle} onChange={e => setDocumentTitle(e.target.value)} placeholder="Nombre del documento" />
           <select className="settings-input" value={shareScope} onChange={e => setShareScope(e.target.value as DocumentShareScope)}><option value="all_parents">Para todos</option><option value="only_me">Solo para mí</option></select>
           <select className="settings-input" value={selectedFolderId} onChange={e => setSelectedFolderId(e.target.value)}><option value="root">Sin carpeta</option>{folderOptions.map(folder => <option key={folder.id} value={folder.id}>{folder.label}</option>)}</select>
-          <label className="btn-primary" style={{ justifySelf: 'start', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy === 'upload' ? 'Procesando...' : 'Subir PDF o imagen'}<input hidden type="file" accept="application/pdf,image/*" onChange={handleUpload} disabled={!!busy} /></label>
+          <button className="btn-primary" style={{ justifySelf: 'start', opacity: busy ? 0.7 : 1 }} onClick={() => handleFolderUploadClick(selectedFolderId)} disabled={!!busy}>Subir PDF o imagen</button>
+          <input ref={uploadInputRef} hidden type="file" accept="application/pdf,image/*" onChange={handleUpload} disabled={!!busy} />
         </div>
 
         <div style={{ display: 'grid', gap: 8 }}>
