@@ -11,6 +11,7 @@ import {
 import { subscribeToDocumentFolders, subscribeToDocuments } from '@/lib/documents-db'
 import { subscribeToCollaboratorChildren } from '@/lib/collaborators-db'
 import { subscribeToCollaboratorAssignmentsForCollaborator, subscribeToCollaboratorAssignmentsForParent } from '@/lib/collaborator-assignments-db'
+import { subscribeToMedicationLogs, subscribeToMedicationPlans } from '@/lib/medications-db'
 
 export function useDataSubscriptions() {
   const { user } = useAuth()
@@ -20,6 +21,7 @@ export function useDataSubscriptions() {
     setChildren, setPattern, setOverrides, setRequests, setCollaboratorAssignments,
     setInvitations, setNotes, setEvents, setPackingItems, setSpecialPeriods,
     setSelectedChildId, setNotifications, setDocuments, setDocumentFolders,
+    setMedications, setMedicationLogs,
   } = useAppStore()
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export function useDataSubscriptions() {
     if (!selectedChildId || !user?.uid || !selectedChild) {
       setPattern(null); setOverrides([]); setRequests([]); setCollaboratorAssignments([])
       setNotes([]); setEvents([]); setDocuments([]); setDocumentFolders([]); setPackingItems([]); setSpecialPeriods([])
+      setMedications([]); setMedicationLogs([])
       return
     }
 
@@ -86,12 +89,16 @@ export function useDataSubscriptions() {
       cleanups.push(subscribeToPackingItems(selectedChildId, setPackingItems))
       cleanups.push(subscribeToDocuments(selectedChildId, user.uid, setDocuments))
       cleanups.push(subscribeToDocumentFolders(selectedChildId, user.uid, setDocumentFolders))
+      cleanups.push(subscribeToMedicationPlans(selectedChildId, setMedications))
+      cleanups.push(subscribeToMedicationLogs(selectedChildId, setMedicationLogs))
     } else if (isCollaborator) {
       setRequests([])
       setNotes([])
       setEvents([])
       setPackingItems([])
       cleanups.push(subscribeToCollaboratorAssignmentsForCollaborator(selectedChildId, user.uid, setCollaboratorAssignments))
+      cleanups.push(subscribeToMedicationPlans(selectedChildId, setMedications))
+      cleanups.push(subscribeToMedicationLogs(selectedChildId, setMedicationLogs))
       if (collaboratorCanSeeDocuments) {
         cleanups.push(subscribeToDocuments(selectedChildId, user.uid, setDocuments))
         cleanups.push(subscribeToDocumentFolders(selectedChildId, user.uid, setDocumentFolders))
@@ -107,8 +114,10 @@ export function useDataSubscriptions() {
       setDocuments([])
       setDocumentFolders([])
       setPackingItems([])
+      setMedications([])
+      setMedicationLogs([])
     }
 
     return () => { cleanups.forEach(unsub => unsub()) }
-  }, [selectedChildId, user?.uid, children, setPattern, setOverrides, setRequests, setCollaboratorAssignments, setNotes, setEvents, setPackingItems, setSpecialPeriods, setDocuments, setDocumentFolders])
+  }, [selectedChildId, user?.uid, children, setPattern, setOverrides, setRequests, setCollaboratorAssignments, setNotes, setEvents, setPackingItems, setSpecialPeriods, setDocuments, setDocumentFolders, setMedications, setMedicationLogs])
 }
