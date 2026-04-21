@@ -178,15 +178,15 @@ export function DocumentsPanel() {
         <div style={{ fontWeight:800 }}>Carpetas</div>
         <select className="settings-input" value={filterFolderId} onChange={e => setFilterFolderId(e.target.value)}><option value="all">Todas</option><option value="root">Sin carpeta</option>{documentFolders.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select>
       </div>
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card" style={{ padding: 0, overflow: 'visible' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontWeight: 800 }}>Documentos de {child.name}</div>
-        {visibleDocuments.length === 0 ? <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos en esta vista.</div> : <div style={{ display: 'grid' }}>{visibleDocuments.map(document => {
+        {visibleDocuments.length === 0 ? <div style={{ padding: 16, color: 'var(--text-secondary)' }}>Todavia no hay documentos en esta vista.</div> : <div style={{ display: 'grid', overflow: 'visible' }}>{visibleDocuments.map(document => {
           const canOpen = !!document.encryptedFileKeys?.[user?.uid || '']
           const unavailableForOthers = Array.isArray(document.pendingRecipientIds) ? document.pendingRecipientIds.length : 0
           const folderName = document.folderId ? documentFolders.find(folder => folder.id === document.folderId)?.name : 'Sin carpeta'
           const thumb = documentThumbLabel(document.mimeType || '')
-          return <div key={document.id} style={{ display: 'grid', gap: 10, padding: 16, borderBottom: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+          return <div key={document.id} style={{ display: 'grid', gap: 10, padding: 16, borderBottom: '1px solid var(--border)', overflow: 'visible', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', overflow: 'visible' }}>
               <div style={{ display:'flex', gap:12, minWidth:0 }}>
                 <div style={{ width:56, height:72, borderRadius:12, border:'1px solid var(--border)', background:'var(--bg-soft)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:800, color:'var(--text-secondary)', flexShrink:0 }}>{thumb}</div>
                 <div>
@@ -196,10 +196,10 @@ export function DocumentsPanel() {
                   {unavailableForOthers > 0 ? <div style={{ fontSize: 11, color: '#9a3412' }}>Pendiente de compartirse con {unavailableForOthers} progenitor(es).</div> : null}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', position:'relative' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', position:'relative', overflow: 'visible' }}>
                 <button className="btn-primary btn-outline" onClick={() => handleDownload(document.id)} disabled={busy === document.id || !canOpen}>{busy === document.id ? 'Abriendo...' : 'Abrir'}</button>
                 <button className="btn-primary btn-outline" onClick={() => setDeleteMenuId(deleteMenuId === document.id ? null : document.id)} disabled={busy === document.id} title="Borrar" aria-label="Borrar">🗑️</button>
-                {deleteMenuId === document.id ? <div style={{ position:'absolute', top:'calc(100% + 6px)', right:0, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12, boxShadow:'var(--card-shadow)', padding:8, display:'grid', gap:6, minWidth:170, zIndex:5 }}>
+                {deleteMenuId === document.id ? <div style={{ position:'absolute', top:'calc(100% + 6px)', right:0, background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:12, boxShadow:'var(--card-shadow)', padding:8, display:'grid', gap:6, minWidth:170, zIndex:50 }}>
                   <button className="btn-primary btn-outline" onClick={() => handleHideForMe(document.id)} disabled={busy === document.id}>Solo para mi</button>
                   <button className="btn-primary btn-outline" onClick={() => handleDeleteForEveryone(document.id)} disabled={busy === document.id}>Para todos</button>
                 </div> : null}
