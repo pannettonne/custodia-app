@@ -231,6 +231,7 @@ export interface DocumentFile {
   childId: string
   createdBy: string
   createdByName: string
+  title?: string
   filenameEncrypted: string
   filenameIv: string
   mimeType: string
