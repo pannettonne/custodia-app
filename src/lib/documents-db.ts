@@ -76,6 +76,10 @@ export async function deleteDocumentRecord(id: string): Promise<void> {
   await deleteDoc(doc(db, 'documents', id))
 }
 
+export async function deleteDocumentFolder(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'documentFolders', id))
+}
+
 export async function hideDocumentForUser(id: string, uid: string): Promise<void> {
   await updateDoc(doc(db, 'documents', id), {
     hiddenForUserIds: arrayUnion(uid),
