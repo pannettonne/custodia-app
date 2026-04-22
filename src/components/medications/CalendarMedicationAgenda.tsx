@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { setMedicationLog } from '@/lib/medications-db'
@@ -40,7 +40,6 @@ export function CalendarMedicationAgenda() {
 
   return (
     <>
-      <CalendarViewEnhancer />
       <MedicationAlertDaemon />
       {occurrences.length > 0 ? (
         <div className="card" style={{ marginTop: 14, borderColor: 'rgba(239,68,68,0.24)', background:'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, var(--bg-card) 100%)' }}>
@@ -98,125 +97,6 @@ export function CalendarMedicationAgenda() {
       ) : null}
     </>
   )
-}
-
-function CalendarViewEnhancer() {
-  useEffect(() => {
-    const styleId = 'custodia-calendar-view-enhancer-style'
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style')
-      style.id = styleId
-      style.textContent = `
-        .cal-cell.today {
-          border-color: #3B82F6 !important;
-          border-width: 2px !important;
-          box-shadow: 0 10px 22px rgba(59,130,246,0.14) !important;
-        }
-        .cal-cell.today .cal-day-num {
-          color: #2563EB !important;
-        }
-        .custodia-today-badge,
-        .custodia-week-today-badge {
-          position: absolute;
-          top: 6px;
-          right: 6px;
-          padding: 2px 6px;
-          border-radius: 999px;
-          background: rgba(59,130,246,0.14);
-          color: #2563EB;
-          font-size: 8px;
-          font-weight: 900;
-          line-height: 1;
-          pointer-events: none;
-        }
-        .custodia-week-today {
-          border-color: #3B82F6 !important;
-          box-shadow: 0 8px 18px rgba(59,130,246,0.12) !important;
-        }
-      `
-      document.head.appendChild(style)
-    }
-
-    const normalizeMonth = (value: string) => value.toLowerCase().replace(/\./g, '').trim()
-
-    const applyEnhancements = () => {
-      const allButtons = Array.from(document.querySelectorAll('button'))
-
-      const modeButtons = allButtons.filter((button) => {
-        const parent = button.parentElement
-        if (!parent) return false
-        const directButtons = Array.from(parent.children).filter((child): child is HTMLButtonElement => child instanceof HTMLButtonElement)
-        if (directButtons.length !== 4) return false
-        const labels = directButtons.map((item) => (item.textContent || '').trim())
-        return labels.includes('Semana') && labels.includes('Mes') && labels.includes('Próximos')
-      })
-
-      const dayToggle = modeButtons[0] || null
-      if (dayToggle) {
-        if ((dayToggle.textContent || '').trim() !== 'Hoy') {
-          dayToggle.textContent = 'Hoy'
-        }
-        if (dayToggle.dataset.custodiaHoyHooked !== 'true') {
-          dayToggle.dataset.custodiaHoyHooked = 'true'
-          dayToggle.addEventListener('click', () => {
-            window.setTimeout(() => {
-              const todayButtons = Array.from(document.querySelectorAll('button')).filter((button) => (button.textContent || '').trim() === 'Hoy')
-              const headerTodayButton = todayButtons.find((button) => button !== dayToggle)
-              headerTodayButton?.click()
-            }, 0)
-          })
-        }
-      }
-
-      document.querySelectorAll('.cal-cell.today').forEach((cell) => {
-        if (!cell.querySelector('.custodia-today-badge')) {
-          const badge = document.createElement('div')
-          badge.className = 'custodia-today-badge'
-          badge.textContent = 'HOY'
-          cell.appendChild(badge)
-        }
-      })
-
-      const todayDate = new Date()
-      const todayDay = String(todayDate.getDate())
-      const todayMonth = normalizeMonth(todayDate.toLocaleDateString('es-ES', { month: 'short' }))
-
-      const weekRows = Array.from(document.querySelectorAll('div')).filter((node) => {
-        const directButtons = Array.from(node.children).filter((child): child is HTMLButtonElement => child instanceof HTMLButtonElement)
-        return directButtons.length === 7
-      })
-
-      weekRows.forEach((row) => {
-        const directButtons = Array.from(row.children).filter((child): child is HTMLButtonElement => child instanceof HTMLButtonElement)
-        directButtons.forEach((button) => {
-          button.classList.remove('custodia-week-today')
-          button.querySelector('.custodia-week-today-badge')?.remove()
-
-          const divs = Array.from(button.querySelectorAll(':scope > div'))
-          if (divs.length < 3) return
-
-          const dayNumber = (divs[1]?.textContent || '').trim()
-          const monthLabel = normalizeMonth((divs[2]?.textContent || '').trim())
-          if (dayNumber !== todayDay || monthLabel !== todayMonth) return
-
-          button.classList.add('custodia-week-today')
-          button.style.position = 'relative'
-          const badge = document.createElement('div')
-          badge.className = 'custodia-week-today-badge'
-          badge.textContent = 'HOY'
-          button.appendChild(badge)
-        })
-      })
-    }
-
-    applyEnhancements()
-    const observer = new MutationObserver(() => applyEnhancements())
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
-
-    return () => observer.disconnect()
-  }, [])
-
-  return null
 }
 
 function labelForStatus(status: string) {
