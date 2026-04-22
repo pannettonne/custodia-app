@@ -9,23 +9,21 @@ function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
   return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T>
 }
 
-function sortByCreatedAtDesc<T extends { createdAt?: any }>(items: T[]): T[] {
-  return [...items].sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))
-}
-
 export function subscribeToMedicationPlans(childId: string, cb: (items: MedicationPlan[]) => void): Unsubscribe {
   const q = query(collection(db, 'medications'), where('childId', '==', childId))
   return onSnapshot(q, snap => {
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as MedicationPlan))
-    cb(sortByCreatedAtDesc(items))
+    const items: MedicationPlan[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as MedicationPlan))
+    items.sort((a: any, b: any) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))
+    cb(items)
   })
 }
 
 export function subscribeToMedicationLogs(childId: string, cb: (items: MedicationLog[]) => void): Unsubscribe {
   const q = query(collection(db, 'medicationLogs'), where('childId', '==', childId))
   return onSnapshot(q, snap => {
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as MedicationLog))
-    cb(sortByCreatedAtDesc(items))
+    const items: MedicationLog[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as MedicationLog))
+    items.sort((a: any, b: any) => (b.actedAt?.seconds ?? 0) - (a.actedAt?.seconds ?? 0))
+    cb(items)
   })
 }
 
