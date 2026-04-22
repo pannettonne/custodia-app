@@ -173,7 +173,7 @@ function MedicationForm({ childId, userId, userName, editing, onClose }: { child
   const [endDate, setEndDate] = useState(editing?.endDate ?? new Date().toISOString().slice(0, 10))
   const [instructions, setInstructions] = useState(editing?.instructions ?? '')
   const [observations, setObservations] = useState(editing?.observations ?? '')
-  const [status, setStatus] = useState(editing?.status ?? 'active')
+  const [status, setStatus] = useState<MedicationPlan['status']>(editing?.status ?? 'active')
   const [reminderEnabled, setReminderEnabled] = useState(editing?.reminderEnabled ?? true)
   const [reminderMinutesBefore, setReminderMinutesBefore] = useState(editing?.reminderMinutesBefore ?? 30)
   const [loading, setLoading] = useState(false)
@@ -198,7 +198,7 @@ function MedicationForm({ childId, userId, userName, editing, onClose }: { child
         endDate,
         instructions: instructions.trim() || undefined,
         observations: observations.trim() || undefined,
-        status: status as MedicationPlan['status'],
+        status,
         reminderEnabled,
         reminderMinutesBefore: reminderEnabled ? reminderMinutesBefore : undefined,
       }
@@ -225,7 +225,7 @@ function MedicationForm({ childId, userId, userName, editing, onClose }: { child
         </div>
         <div className="date-pair">
           <input type="time" value={firstDoseTime} onChange={e => setFirstDoseTime(e.target.value)} className="settings-input" />
-          <select value={status} onChange={e => setStatus(e.target.value)} className="settings-select">
+          <select value={status} onChange={e => setStatus(e.target.value as MedicationPlan['status'])} className="settings-select">
             <option value="active">Activo</option>
             <option value="paused">Pausado</option>
             <option value="completed">Finalizado</option>
