@@ -11,6 +11,7 @@ import { NotesPanel } from '@/components/notes/NotesPanel'
 import { EventsPanel } from '@/components/events/EventsPanel'
 import { DocumentsPanel } from '@/components/documents/DocumentsPanel'
 import { PackingPanel } from '@/components/packing/PackingPanel'
+import { ContactsPanel } from '@/components/contacts/ContactsPanel'
 import { MedicationsPanel } from '@/components/medications/MedicationsPanel'
 import { CalendarMedicationAgenda } from '@/components/medications/CalendarMedicationAgenda'
 import { StatsPanel } from '@/components/stats/StatsPanel'
@@ -18,8 +19,8 @@ import { GlobalToasts } from '@/components/ui/GlobalToasts'
 import { markNotificationRead } from '@/lib/db'
 import type { AppNotification } from '@/types'
 
-type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'documents' | 'packing' | 'medications' | 'stats' | 'settings'
-type SearchResultType = 'child' | 'parent' | 'event' | 'note' | 'request' | 'special_period' | 'document' | 'document_folder'
+type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'documents' | 'packing' | 'contacts' | 'medications' | 'stats' | 'settings'
+type SearchResultType = 'child' | 'parent' | 'event' | 'note' | 'request' | 'special_period' | 'document' | 'document_folder' | 'contact'
 type SearchResult = { id: string; type: SearchResultType; title: string; subtitle: string; childId?: string; date?: string; endDate?: string; targetTab: Tab }
 type FocusTarget = { id: string; seq: number } | null
 type DraftTarget = { date: string; seq: number } | null
@@ -36,6 +37,7 @@ const HEADER_SEARCH_ICON = '/shell-icons/search.svg'
 const HEADER_BELL_ICON = '/shell-icons/bell.svg'
 const MORE_DOCUMENTS_ICON = '/nav-icons/notes.svg'
 const MORE_PACKING_ICON = '/shell-icons/packing.svg'
+const MORE_CONTACTS_ICON = '/shell-icons/contacts.svg'
 const MORE_MEDICATIONS_ICON = '/shell-icons/medication.svg'
 const MORE_STATS_ICON = '/shell-icons/stats.svg'
 const MORE_SETTINGS_ICON = '/shell-icons/settings.svg'
@@ -50,11 +52,11 @@ function inferTargetTab(item: AppNotification): Tab {
 function notificationGroupLabel(type: AppNotification['type']) { if (type === 'pending_request') return 'Cambios'; if (type === 'event_assignment_pending' || type === 'event_assignment_response') return 'Asignaciones'; if (type === 'event_reminder' || type === 'medication_reminder') return 'Recordatorios'; return 'Otros' }
 function normalizeText(value: string) { return (value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() }
 function matchesQuery(query: string, ...fields: Array<string | undefined | null>) { const q = normalizeText(query); if (!q) return true; return fields.some(field => normalizeText(field || '').includes(q)) }
-function searchGroupLabel(type: SearchResultType) { if (type === 'event') return 'Eventos'; if (type === 'note') return 'Notas'; if (type === 'request') return 'Cambios'; if (type === 'special_period') return 'Períodos especiales'; if (type === 'document') return 'Documentos'; if (type === 'document_folder') return 'Carpetas'; if (type === 'child') return 'Menores'; return 'Progenitores' }
+function searchGroupLabel(type: SearchResultType) { if (type === 'event') return 'Eventos'; if (type === 'note') return 'Notas'; if (type === 'request') return 'Cambios'; if (type === 'special_period') return 'Períodos especiales'; if (type === 'document') return 'Documentos'; if (type === 'document_folder') return 'Carpetas'; if (type === 'contact') return 'Contactos'; if (type === 'child') return 'Menores'; return 'Progenitores' }
 
 export function AppShell() {
   const { user, signOut } = useAuth()
-  const { children, selectedChildId, setSelectedChildId, requests, collaboratorAssignments, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate, events, specialPeriods, documents, documentFolders } = useAppStore()
+  const { children, selectedChildId, setSelectedChildId, requests, collaboratorAssignments, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate, events, specialPeriods, documents, documentFolders, contacts } = useAppStore()
   const [tab, setTab] = useState<Tab>('calendar')
   const [moreOpen, setMoreOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -110,9 +112,9 @@ export function AppShell() {
   const isParentForSelectedChild = !!child && !!user?.uid && child.parents.includes(user.uid)
   const isCollaboratorForSelectedChild = !!child && !!user?.uid && !!child.collaborators?.includes(user.uid)
   const allowedTabs: Tab[] = isParentForSelectedChild
-    ? ['calendar', 'requests', 'notes', 'events', 'documents', 'packing', 'medications', 'stats', 'settings']
+    ? ['calendar', 'requests', 'notes', 'events', 'documents', 'packing', 'contacts', 'medications', 'stats', 'settings']
     : isCollaboratorForSelectedChild
-      ? ['calendar', 'requests', 'medications', 'settings']
+      ? ['calendar', 'requests', 'contacts', 'medications', 'settings']
       : ['calendar', 'settings']
 
   useEffect(() => {
@@ -157,9 +159,13 @@ export function AppShell() {
         const folderName = document.folderId ? documentFolders.find(folder => folder.id === document.folderId)?.name : 'Sin carpeta'
         results.push({ id: `document-${document.id}`, type: 'document', title: document.title || 'Documento cifrado', subtitle: `${childName} · ${folderName} · ${document.shareScope === 'only_me' ? 'Solo para mí' : 'Para todos'}`, childId: document.childId, targetTab: 'documents' })
       }
+      for (const contact of contacts) {
+        const childNames = (contact.childNames && contact.childNames.length > 0 ? contact.childNames : contact.childIds.map(id => children.find(c => c.id === id)?.name || 'Menor')).join(', ')
+        results.push({ id: `contact-${contact.id}`, type: 'contact', title: contact.name, subtitle: `${childNames}${contact.role ? ` · ${contact.role}` : ''}${contact.organization ? ` · ${contact.organization}` : ''}`, childId: contact.childIds[0], targetTab: 'contacts' })
+      }
     }
     return results
-  }, [children, events, notes, requests, specialPeriods, user?.uid, documents, documentFolders, isParentForSelectedChild])
+  }, [children, events, notes, requests, specialPeriods, user?.uid, documents, documentFolders, contacts, isParentForSelectedChild])
 
   const filteredSearchResults = useMemo(() => allSearchResults.filter(result => (searchFilter === 'all' || result.type === searchFilter) && matchesQuery(searchQuery.trim(), result.title, result.subtitle)).slice(0, 50), [allSearchResults, searchQuery, searchFilter])
   const groupedSearchResults = useMemo(() => { const groups: Record<string, SearchResult[]> = {}; for (const item of filteredSearchResults) { const key = searchGroupLabel(item.type); groups[key] ||= []; groups[key].push(item) } return Object.entries(groups) }, [filteredSearchResults])
@@ -195,14 +201,16 @@ export function AppShell() {
   }
   const markAllVisibleAsRead = async () => { const unread = visibleNotifications.filter(n => !n.read); await Promise.all(unread.map(n => markNotificationRead(n.id))) }
   const handleTabClick = (id: Tab) => { if (!allowedTabs.includes(id)) return; setUserMenuOpen(false); setNotifOpen(false); setQueryOpen(false); if (id === 'settings') { setMoreOpen(v => !v); return } setMoreOpen(false); setTab(id) }
-  const activeMore = ['documents', 'packing', 'medications', 'stats', 'settings'].includes(tab)
+  const activeMore = ['documents', 'packing', 'contacts', 'medications', 'stats', 'settings'].includes(tab)
   const visibleMoreItems = isParentForSelectedChild ? [
     { id: 'documents' as Tab, label: 'Documentos', icon: MORE_DOCUMENTS_ICON },
     { id: 'packing' as Tab, label: 'Equipaje', icon: MORE_PACKING_ICON },
+    { id: 'contacts' as Tab, label: 'Contactos', icon: MORE_CONTACTS_ICON },
     { id: 'medications' as Tab, label: 'Medicación', icon: MORE_MEDICATIONS_ICON },
     { id: 'stats' as Tab, label: 'Estadísticas', icon: MORE_STATS_ICON },
     { id: 'settings' as Tab, label: 'Ajustes', icon: MORE_SETTINGS_ICON },
   ] : isCollaboratorForSelectedChild ? [
+    { id: 'contacts' as Tab, label: 'Contactos', icon: MORE_CONTACTS_ICON },
     { id: 'medications' as Tab, label: 'Medicación', icon: MORE_MEDICATIONS_ICON },
     { id: 'settings' as Tab, label: 'Ajustes', icon: MORE_SETTINGS_ICON },
   ] : [
@@ -252,12 +260,13 @@ export function AppShell() {
         {tab === 'events' && isParentForSelectedChild && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={eventDraftTarget?.date} createSeq={eventDraftTarget?.seq} />}
         {tab === 'documents' && isParentForSelectedChild && <DocumentsPanel />}
         {tab === 'packing' && isParentForSelectedChild && <PackingPanel />}
+        {tab === 'contacts' && (isParentForSelectedChild || isCollaboratorForSelectedChild) && <ContactsPanel />}
         {tab === 'medications' && (isParentForSelectedChild || isCollaboratorForSelectedChild) && <MedicationsPanel />}
         {tab === 'stats' && isParentForSelectedChild && <StatsPanel />}
         {tab === 'settings' && <><div className="page-title">Configuración</div><SettingsPanel /></>}
       </main>
 
-      {searchOpen && <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:90, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'70px 14px 14px' }} onClick={() => setSearchOpen(false)}><div className="card" style={{ width:'100%', maxWidth:680, maxHeight:'80vh', overflow:'auto', padding:14 }} onClick={e => e.stopPropagation()}><div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}><input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar en eventos, notas, documentos, carpetas..." className="settings-input" style={{ marginBottom:0 }} /><button className="btn-primary btn-outline" style={{ padding:'10px 12px' }} onClick={() => setSearchOpen(false)}>Cerrar</button></div><div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:4, marginBottom:10, flexWrap:'wrap' }}>{[['all','Todo'],['event','Eventos'],['note','Notas'],['request','Cambios'],['document','Documentos'],['document_folder','Carpetas'],['special_period','Períodos'],['child','Menores'],['parent','Progenitores']].map(([value, label]) => <button key={value} onClick={() => setSearchFilter(value as any)} style={{ padding:'6px 10px', borderRadius:999, border:`1px solid ${searchFilter === value ? 'var(--text-strong)' : 'var(--border)'}`, background: searchFilter === value ? 'var(--bg-soft)' : 'transparent', color:'var(--text-secondary)', fontSize:11, fontWeight:700, cursor:'pointer' }}>{label}</button>)}</div>{groupedSearchResults.length === 0 ? <div className="popup-empty">No hay resultados para esa búsqueda.</div> : groupedSearchResults.map(([group, items]) => <div key={group} style={{ marginBottom:12 }}><div style={{ fontSize:11, fontWeight:800, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:0.4, marginBottom:6 }}>{group}</div><div style={{ display:'grid', gap:6 }}>{items.map(item => <button key={item.id} className="notification-item" onClick={() => openSearchResult(item)} style={{ textAlign:'left' }}><div className="notification-item-title">{item.title}</div><div className="notification-item-body">{item.subtitle}</div></button>)}</div></div>)}</div></div>}
+      {searchOpen && <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:90, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'70px 14px 14px' }} onClick={() => setSearchOpen(false)}><div className="card" style={{ width:'100%', maxWidth:680, maxHeight:'80vh', overflow:'auto', padding:14 }} onClick={e => e.stopPropagation()}><div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}><input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar en eventos, notas, documentos, contactos..." className="settings-input" style={{ marginBottom:0 }} /><button className="btn-primary btn-outline" style={{ padding:'10px 12px' }} onClick={() => setSearchOpen(false)}>Cerrar</button></div><div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:4, marginBottom:10, flexWrap:'wrap' }}>{[['all','Todo'],['event','Eventos'],['note','Notas'],['request','Cambios'],['contact','Contactos'],['document','Documentos'],['document_folder','Carpetas'],['special_period','Períodos'],['child','Menores'],['parent','Progenitores']].map(([value, label]) => <button key={value} onClick={() => setSearchFilter(value as any)} style={{ padding:'6px 10px', borderRadius:999, border:`1px solid ${searchFilter === value ? 'var(--text-strong)' : 'var(--border)'}`, background: searchFilter === value ? 'var(--bg-soft)' : 'transparent', color:'var(--text-secondary)', fontSize:11, fontWeight:700, cursor:'pointer' }}>{label}</button>)}</div>{groupedSearchResults.length === 0 ? <div className="popup-empty">No hay resultados para esa búsqueda.</div> : groupedSearchResults.map(([group, items]) => <div key={group} style={{ marginBottom:12 }}><div style={{ fontSize:11, fontWeight:800, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:0.4, marginBottom:6 }}>{group}</div><div style={{ display:'grid', gap:6 }}>{items.map(item => <button key={item.id} className="notification-item" onClick={() => openSearchResult(item)} style={{ textAlign:'left' }}><div className="notification-item-title">{item.title}</div><div className="notification-item-body">{item.subtitle}</div></button>)}</div></div>)}</div></div>}
 
       {moreOpen && <div className="floating-more-menu" onClick={e => e.stopPropagation()}>{visibleMoreItems.map(({ id, label, icon }) => <button key={id} className={`floating-more-item ${tab===id ? 'active' : ''}`} onClick={() => { setTab(id); setMoreOpen(false) }} style={{ display:'flex', alignItems:'center', gap:10 }}><img src={icon} alt="" aria-hidden="true" style={{ width:20, height:20, objectFit:'contain', flexShrink:0 }} /><span>{label}</span></button>)}</div>}
 
