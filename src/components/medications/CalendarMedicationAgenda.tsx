@@ -104,6 +104,46 @@ function CalendarTodayEnhancer() {
   const { setSelectedCalendarDate, setCurrentMonth } = useAppStore()
 
   useEffect(() => {
+    const styleId = 'custodia-calendar-today-enhancer'
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style')
+      style.id = styleId
+      style.textContent = `
+        .cal-cell.today {
+          border-color: #2563EB !important;
+          border-width: 2px !important;
+          box-shadow: 0 10px 24px rgba(37,99,235,0.18) !important;
+        }
+        .cal-cell.today .cal-day-num {
+          color: #2563EB !important;
+        }
+        .custodia-month-today-badge,
+        .custodia-week-today-badge {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          padding: 2px 6px;
+          border-radius: 999px;
+          background: rgba(37,99,235,0.14);
+          color: #2563EB;
+          font-size: 8px;
+          font-weight: 900;
+          line-height: 1;
+          pointer-events: none;
+        }
+        .custodia-week-today {
+          border-color: #2563EB !important;
+          box-shadow: 0 8px 18px rgba(37,99,235,0.16) !important;
+        }
+        .custodia-week-today > div:nth-child(2) {
+          color: #2563EB !important;
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    const normalize = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\./g, '').trim()
+
     const goToToday = () => {
       const today = new Date()
       const todayStr = today.toISOString().slice(0, 10)
@@ -131,8 +171,58 @@ function CalendarTodayEnhancer() {
       dayButton.addEventListener('click', goToToday)
     }
 
-    bindTodayButton()
-    const observer = new MutationObserver(() => bindTodayButton())
+    const applyTodayVisuals = () => {
+      document.querySelectorAll('.cal-cell.today').forEach((cell) => {
+        const monthCell = cell as HTMLDivElement
+        monthCell.style.position = 'relative'
+        if (!monthCell.querySelector('.custodia-month-today-badge')) {
+          const badge = document.createElement('div')
+          badge.className = 'custodia-month-today-badge'
+          badge.textContent = 'HOY'
+          monthCell.appendChild(badge)
+        }
+      })
+
+      const now = new Date()
+      const todayDay = String(now.getDate())
+      const todayMonth = normalize(now.toLocaleDateString('es-ES', { month: 'short' }))
+      const weekDayPrefixes = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom']
+      const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[]
+
+      const weekButtons = buttons.filter((button) => {
+        const directDivs = Array.from(button.querySelectorAll(':scope > div'))
+        if (directDivs.length < 3) return false
+        const weekday = normalize(directDivs[0]?.textContent || '')
+        const dayNumber = (directDivs[1]?.textContent || '').trim()
+        const monthLabel = normalize(directDivs[2]?.textContent || '')
+        return /^\d+$/.test(dayNumber) && monthLabel.length > 0 && weekDayPrefixes.some(prefix => weekday.startsWith(prefix))
+      })
+
+      weekButtons.forEach((button) => {
+        button.classList.remove('custodia-week-today')
+        button.querySelector('.custodia-week-today-badge')?.remove()
+
+        const directDivs = Array.from(button.querySelectorAll(':scope > div'))
+        const dayNumber = (directDivs[1]?.textContent || '').trim()
+        const monthLabel = normalize(directDivs[2]?.textContent || '')
+        if (dayNumber !== todayDay || monthLabel !== todayMonth) return
+
+        button.classList.add('custodia-week-today')
+        button.style.position = 'relative'
+        const badge = document.createElement('div')
+        badge.className = 'custodia-week-today-badge'
+        badge.textContent = 'HOY'
+        button.appendChild(badge)
+      })
+    }
+
+    const applyEnhancements = () => {
+      bindTodayButton()
+      applyTodayVisuals()
+    }
+
+    applyEnhancements()
+    const observer = new MutationObserver(() => applyEnhancements())
     observer.observe(document.body, { childList: true, subtree: true, characterData: true })
 
     return () => observer.disconnect()
