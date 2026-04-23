@@ -32,7 +32,14 @@ export function useDataSubscriptions() {
     const syncChildren = () => {
       const merged = Array.from(new Map([...parentChildren, ...collaboratorChildren].map(item => [item.id, item])).values())
       setChildren(merged)
-      if (merged.length > 0 && !selectedChildId) setSelectedChildId(merged[0].id)
+
+      if (merged.length === 0) {
+        if (selectedChildId) setSelectedChildId(null)
+        return
+      }
+
+      const hasSelectedChild = !!selectedChildId && merged.some(item => item.id === selectedChildId)
+      if (!hasSelectedChild) setSelectedChildId(merged[0].id)
     }
 
     const u1 = subscribeToChildren(user.uid, kids => {
