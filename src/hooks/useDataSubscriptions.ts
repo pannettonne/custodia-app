@@ -12,6 +12,7 @@ import { subscribeToDocumentFolders, subscribeToDocuments } from '@/lib/document
 import { subscribeToCollaboratorChildren } from '@/lib/collaborators-db'
 import { subscribeToCollaboratorAssignmentsForCollaborator, subscribeToCollaboratorAssignmentsForParent } from '@/lib/collaborator-assignments-db'
 import { subscribeToMedicationLogs, subscribeToMedicationPlans } from '@/lib/medications-db'
+import { subscribeToContactsForUser } from '@/lib/contacts-db'
 
 export function useDataSubscriptions() {
   const { user } = useAuth()
@@ -21,7 +22,7 @@ export function useDataSubscriptions() {
     setChildren, setPattern, setOverrides, setRequests, setCollaboratorAssignments,
     setInvitations, setNotes, setEvents, setPackingItems, setSpecialPeriods,
     setSelectedChildId, setNotifications, setDocuments, setDocumentFolders,
-    setMedications, setMedicationLogs,
+    setMedications, setMedicationLogs, setContacts,
   } = useAppStore()
 
   useEffect(() => {
@@ -56,6 +57,20 @@ export function useDataSubscriptions() {
   }, [user?.uid, setNotifications])
 
   useEffect(() => {
+    if (!user?.uid) {
+      setContacts([])
+      return
+    }
+    return subscribeToContactsForUser(user.uid, items => {
+      if (!selectedChildId) {
+        setContacts([])
+        return
+      }
+      setContacts(items.filter(item => Array.isArray(item.childIds) && item.childIds.includes(selectedChildId)))
+    })
+  }, [user?.uid, selectedChildId, setContacts])
+
+  useEffect(() => {
     const selectedChild = children.find(child => child.id === selectedChildId)
     const isParent = !!selectedChild && selectedChild.parents.includes(user?.uid || '')
     const isCollaborator = !!selectedChild && !!selectedChild.collaborators?.includes(user?.uid || '')
@@ -65,7 +80,7 @@ export function useDataSubscriptions() {
     if (!selectedChildId || !user?.uid || !selectedChild) {
       setPattern(null); setOverrides([]); setRequests([]); setCollaboratorAssignments([])
       setNotes([]); setEvents([]); setDocuments([]); setDocumentFolders([]); setPackingItems([]); setSpecialPeriods([])
-      setMedications([]); setMedicationLogs([])
+      setMedications([]); setMedicationLogs([]); setContacts([])
       return
     }
 
@@ -119,5 +134,5 @@ export function useDataSubscriptions() {
     }
 
     return () => { cleanups.forEach(unsub => unsub()) }
-  }, [selectedChildId, user?.uid, children, setPattern, setOverrides, setRequests, setCollaboratorAssignments, setNotes, setEvents, setPackingItems, setSpecialPeriods, setDocuments, setDocumentFolders, setMedications, setMedicationLogs])
+  }, [selectedChildId, user?.uid, children, setPattern, setOverrides, setRequests, setCollaboratorAssignments, setNotes, setEvents, setPackingItems, setSpecialPeriods, setDocuments, setDocumentFolders, setMedications, setMedicationLogs, setContacts])
 }
