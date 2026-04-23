@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { setMedicationLog } from '@/lib/medications-db'
@@ -40,6 +40,7 @@ export function CalendarMedicationAgenda() {
 
   return (
     <>
+      <CalendarTodayEnhancer />
       <MedicationAlertDaemon />
       {occurrences.length > 0 ? (
         <div className="card" style={{ marginTop: 14, borderColor: 'rgba(239,68,68,0.24)', background:'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, var(--bg-card) 100%)' }}>
@@ -97,6 +98,47 @@ export function CalendarMedicationAgenda() {
       ) : null}
     </>
   )
+}
+
+function CalendarTodayEnhancer() {
+  const { setSelectedCalendarDate, setCurrentMonth } = useAppStore()
+
+  useEffect(() => {
+    const goToToday = () => {
+      const today = new Date()
+      const todayStr = today.toISOString().slice(0, 10)
+      setSelectedCalendarDate(todayStr)
+      setCurrentMonth(new Date(`${todayStr}T12:00:00`))
+    }
+
+    const bindTodayButton = () => {
+      const buttons = Array.from(document.querySelectorAll('button')) as HTMLButtonElement[]
+      const dayButton = buttons.find((button) => {
+        const label = (button.textContent || '').trim()
+        if (label !== 'Día' && label !== 'Hoy') return false
+        const siblings = button.parentElement
+          ? Array.from(button.parentElement.children).filter((item): item is HTMLButtonElement => item instanceof HTMLButtonElement)
+          : []
+        const labels = siblings.map((item) => (item.textContent || '').trim())
+        return labels.includes('Semana') && labels.includes('Mes')
+      })
+
+      if (!dayButton) return
+      if ((dayButton.textContent || '').trim() !== 'Hoy') dayButton.textContent = 'Hoy'
+      if (dayButton.dataset.custodiaTodayBound === 'true') return
+
+      dayButton.dataset.custodiaTodayBound = 'true'
+      dayButton.addEventListener('click', goToToday)
+    }
+
+    bindTodayButton()
+    const observer = new MutationObserver(() => bindTodayButton())
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+
+    return () => observer.disconnect()
+  }, [setCurrentMonth, setSelectedCalendarDate])
+
+  return null
 }
 
 function labelForStatus(status: string) {
