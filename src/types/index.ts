@@ -11,6 +11,9 @@ export type CollaboratorAssignmentStatus = 'pending' | 'accepted' | 'rejected' |
 export type CollaboratorAssignmentType = 'full_day' | 'partial_slot'
 export type MedicationPlanStatus = 'active' | 'paused' | 'completed'
 export type MedicationLogStatus = 'administered' | 'skipped'
+export type ChildContactKind = 'person' | 'place'
+export type ChildContactCategory = 'teacher' | 'doctor' | 'specialist' | 'caregiver' | 'family' | 'school' | 'activity' | 'other'
+export type ChildContactVisibility = 'all_access' | 'parents_only'
 
 export interface Child {
   id: string
@@ -136,6 +139,41 @@ export interface MedicationLog {
   updatedAt?: Date
 }
 
+export interface ChildContact {
+  id: string
+  childIds: string[]
+  childNames?: string[]
+  createdBy: string
+  createdByName: string
+  updatedBy?: string
+  updatedByName?: string
+  visibleToUserIds: string[]
+  editableByUserIds: string[]
+  kind: ChildContactKind
+  category: ChildContactCategory
+  visibility: ChildContactVisibility
+  name: string
+  role?: string
+  organization?: string
+  photoUrl?: string
+  phone?: string
+  email?: string
+  whatsapp?: string
+  address?: string
+  availability?: string
+  notes?: string
+  isPrimary?: boolean
+  canPickup?: boolean
+  useAsLocation?: boolean
+  locationName?: string
+  locationAddress?: string
+  locationLatitude?: number
+  locationLongitude?: number
+  locationPlaceId?: string
+  createdAt: Date
+  updatedAt?: Date
+}
+
 export interface Invitation {
   id: string
   childId: string
@@ -191,6 +229,7 @@ export type NotificationTargetTab =
   | 'medications'
   | 'stats'
   | 'settings'
+  | 'contacts'
 export type NotificationChannel = 'off' | 'in_app' | 'push' | 'both'
 
 export interface UserNotificationSettings {
