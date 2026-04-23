@@ -104,39 +104,6 @@ function CalendarTodayEnhancer() {
   const { setSelectedCalendarDate, setCurrentMonth } = useAppStore()
 
   useEffect(() => {
-    const styleId = 'custodia-safe-today-style'
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style')
-      style.id = styleId
-      style.textContent = `
-        .cal-cell.today {
-          position: relative;
-          border-color: #2563EB !important;
-          border-width: 2px !important;
-          box-shadow: 0 10px 24px rgba(37,99,235,0.14) !important;
-        }
-        .cal-cell.today .cal-day-num {
-          color: #2563EB !important;
-          font-weight: 900 !important;
-        }
-        .cal-cell.today::after {
-          content: 'HOY';
-          position: absolute;
-          top: 6px;
-          right: 6px;
-          padding: 2px 6px;
-          border-radius: 999px;
-          background: rgba(37,99,235,0.12);
-          color: #2563EB;
-          font-size: 8px;
-          font-weight: 900;
-          line-height: 1;
-          pointer-events: none;
-        }
-      `
-      document.head.appendChild(style)
-    }
-
     const goToToday = () => {
       const today = new Date()
       const todayStr = today.toISOString().slice(0, 10)
