@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import {
@@ -25,33 +25,48 @@ export function useDataSubscriptions() {
     setMedications, setMedicationLogs, setContacts,
   } = useAppStore()
 
+  const selectedChildIdRef = useRef<string | null>(selectedChildId)
+
+  useEffect(() => {
+    selectedChildIdRef.current = selectedChildId
+  }, [selectedChildId])
+
   useEffect(() => {
     if (!user?.uid) return
     let parentChildren: any[] = []
     let collaboratorChildren: any[] = []
+    let parentReady = false
+    let collaboratorReady = false
+
     const syncChildren = () => {
+      if (!parentReady || !collaboratorReady) return
+
       const merged = Array.from(new Map([...parentChildren, ...collaboratorChildren].map(item => [item.id, item])).values())
       setChildren(merged)
 
+      const currentSelectedChildId = selectedChildIdRef.current
+
       if (merged.length === 0) {
-        if (selectedChildId) setSelectedChildId(null)
+        if (currentSelectedChildId) setSelectedChildId(null)
         return
       }
 
-      const hasSelectedChild = !!selectedChildId && merged.some(item => item.id === selectedChildId)
+      const hasSelectedChild = !!currentSelectedChildId && merged.some(item => item.id === currentSelectedChildId)
       if (!hasSelectedChild) setSelectedChildId(merged[0].id)
     }
 
     const u1 = subscribeToChildren(user.uid, kids => {
       parentChildren = kids
+      parentReady = true
       syncChildren()
     })
     const u2 = subscribeToCollaboratorChildren(user.uid, kids => {
       collaboratorChildren = kids
+      collaboratorReady = true
       syncChildren()
     })
     return () => { u1(); u2() }
-  }, [user?.uid, selectedChildId, setChildren, setSelectedChildId])
+  }, [user?.uid, setChildren, setSelectedChildId])
 
   useEffect(() => {
     if (!user?.email) return
