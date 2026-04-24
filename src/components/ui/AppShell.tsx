@@ -17,6 +17,8 @@ import { CalendarMedicationAgenda } from '@/components/medications/CalendarMedic
 import { StatsPanel } from '@/components/stats/StatsPanel'
 import { GlobalToasts } from '@/components/ui/GlobalToasts'
 import { markNotificationRead } from '@/lib/db'
+import { attachForegroundPushLogger } from '@/lib/push'
+import { showToast } from '@/lib/toast'
 import type { AppNotification } from '@/types'
 
 type Tab = 'calendar' | 'requests' | 'notes' | 'events' | 'documents' | 'packing' | 'contacts' | 'medications' | 'stats' | 'settings'
@@ -54,6 +56,12 @@ function normalizeText(value: string) { return (value || '').toLowerCase().norma
 function matchesQuery(query: string, ...fields: Array<string | undefined | null>) { const q = normalizeText(query); if (!q) return true; return fields.some(field => normalizeText(field || '').includes(q)) }
 function searchGroupLabel(type: SearchResultType) { if (type === 'event') return 'Eventos'; if (type === 'note') return 'Notas'; if (type === 'request') return 'Cambios'; if (type === 'special_period') return 'Períodos especiales'; if (type === 'document') return 'Documentos'; if (type === 'document_folder') return 'Carpetas'; if (type === 'contact') return 'Contactos'; if (type === 'child') return 'Menores'; return 'Progenitores' }
 
+function buildForegroundPushMessage(payload: any) {
+  const title = payload?.notification?.title || 'Nuevo aviso'
+  const body = payload?.notification?.body || ''
+  return body ? `${title}: ${body}` : title
+}
+
 export function AppShell() {
   const { user, signOut } = useAuth()
   const { children, selectedChildId, setSelectedChildId, requests, collaboratorAssignments, invitations, notes, notifications, setCurrentMonth, setSelectedCalendarDate, events, specialPeriods, documents, documentFolders, contacts } = useAppStore()
@@ -70,6 +78,24 @@ export function AppShell() {
   const [noteDraftTarget, setNoteDraftTarget] = useState<DraftTarget>(null)
   const [eventDraftTarget, setEventDraftTarget] = useState<DraftTarget>(null)
   useDataSubscriptions()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    let unsubscribe = () => {}
+    let disposed = false
+
+    void (async () => {
+      unsubscribe = await attachForegroundPushLogger((payload) => {
+        showToast({ message: buildForegroundPushMessage(payload), tone: 'info' })
+      })
+      if (disposed) unsubscribe()
+    })()
+
+    return () => {
+      disposed = true
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
