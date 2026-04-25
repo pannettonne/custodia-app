@@ -3,6 +3,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   query,
@@ -69,4 +70,8 @@ export async function cancelCollaboratorAssignment(id: string): Promise<void> {
     status: 'cancelled',
     respondedAt: serverTimestamp(),
   })
+}
+
+export async function deleteCollaboratorAssignment(id: string): Promise<void> {
+  await deleteDoc(doc(db, 'collaboratorAssignments', id))
 }
