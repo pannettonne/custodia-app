@@ -6,6 +6,7 @@ import { useDataSubscriptions } from '@/hooks/useDataSubscriptions'
 import { CustodyCalendar } from '@/components/calendar/CustodyCalendar'
 import { QuickDateQuery } from '@/components/calendar/QuickDateQuery'
 import { RequestsList } from '@/components/requests/RequestsList'
+import { RejectedItemsCleanupPanel } from '@/components/requests/RejectedItemsCleanupPanel'
 import { CollaboratorAssignmentCalendarPanel } from '@/components/collaborators/CollaboratorAssignmentCalendarPanel'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { NotesPanel } from '@/components/notes/NotesPanel'
@@ -282,7 +283,7 @@ export function AppShell() {
 
       <main className="app-main" onClick={e => e.stopPropagation()}>
         {tab === 'calendar' && <><CustodyCalendar /><CalendarMedicationAgenda /></>}
-        {tab === 'requests' && (isParentForSelectedChild || isCollaboratorForSelectedChild) && <><RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} />{isCollaboratorForSelectedChild && !isParentForSelectedChild && <CollaboratorAssignmentCalendarPanel />}</>}
+        {tab === 'requests' && (isParentForSelectedChild || isCollaboratorForSelectedChild) && <><RequestsList focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} /><RejectedItemsCleanupPanel />{isCollaboratorForSelectedChild && !isParentForSelectedChild && <CollaboratorAssignmentCalendarPanel />}</>}
         {tab === 'notes' && isParentForSelectedChild && <NotesPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={noteDraftTarget?.date} createSeq={noteDraftTarget?.seq} />}
         {tab === 'events' && isParentForSelectedChild && <EventsPanel focusTargetId={focusTarget?.id} focusSeq={focusTarget?.seq} initialCreateDate={eventDraftTarget?.date} createSeq={eventDraftTarget?.seq} />}
         {tab === 'documents' && isParentForSelectedChild && <DocumentsPanel />}
