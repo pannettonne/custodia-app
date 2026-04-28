@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, DocumentFile, DocumentFolder, CollaboratorAssignment, MedicationPlan, MedicationLog, ChildContact } from '@/types'
+import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, DocumentFile, DocumentFolder, CollaboratorAssignment, MedicationPlan, MedicationLog, ChildContact, AvailabilityBlock } from '@/types'
 
 interface AppState {
   selectedChildId: string | null
@@ -14,6 +14,8 @@ interface AppState {
   setRequests: (r: ChangeRequest[]) => void
   collaboratorAssignments: CollaboratorAssignment[]
   setCollaboratorAssignments: (a: CollaboratorAssignment[]) => void
+  availabilityBlocks: AvailabilityBlock[]
+  setAvailabilityBlocks: (a: AvailabilityBlock[]) => void
   invitations: Invitation[]
   setInvitations: (i: Invitation[]) => void
   notes: Note[]
@@ -57,6 +59,8 @@ export const useAppStore = create<AppState>((set) => ({
   setRequests: requests => set({ requests }),
   collaboratorAssignments: [],
   setCollaboratorAssignments: collaboratorAssignments => set({ collaboratorAssignments }),
+  availabilityBlocks: [],
+  setAvailabilityBlocks: availabilityBlocks => set({ availabilityBlocks }),
   invitations: [],
   setInvitations: invitations => set({ invitations }),
   notes: [],
