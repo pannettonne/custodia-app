@@ -13,6 +13,7 @@ import { subscribeToCollaboratorChildren } from '@/lib/collaborators-db'
 import { subscribeToCollaboratorAssignmentsForCollaborator, subscribeToCollaboratorAssignmentsForParent } from '@/lib/collaborator-assignments-db'
 import { subscribeToMedicationLogs, subscribeToMedicationPlans } from '@/lib/medications-db'
 import { subscribeToContactsForUser } from '@/lib/contacts-db'
+import { subscribeToAvailabilityBlocks } from '@/lib/availability-blocks-db'
 
 export function useDataSubscriptions() {
   const { user } = useAuth()
@@ -22,7 +23,7 @@ export function useDataSubscriptions() {
     setChildren, setPattern, setOverrides, setRequests, setCollaboratorAssignments,
     setInvitations, setNotes, setEvents, setPackingItems, setSpecialPeriods,
     setSelectedChildId, setNotifications, setDocuments, setDocumentFolders,
-    setMedications, setMedicationLogs, setContacts,
+    setMedications, setMedicationLogs, setContacts, setAvailabilityBlocks,
   } = useAppStore()
 
   const selectedChildIdRef = useRef<string | null>(selectedChildId)
@@ -100,13 +101,15 @@ export function useDataSubscriptions() {
     const collaboratorCanSeeDocuments = !!selectedChild && !!selectedChild.collaboratorDocumentAccess?.[user?.uid || '']
 
     if (!selectedChildId || !user?.uid || !selectedChild) {
-      setPattern(null); setOverrides([]); setRequests([]); setCollaboratorAssignments([])
+      setPattern(null); setOverrides([]); setRequests([]); setCollaboratorAssignments([]); setAvailabilityBlocks([])
       setNotes([]); setEvents([]); setDocuments([]); setDocumentFolders([]); setPackingItems([]); setSpecialPeriods([])
       setMedications([]); setMedicationLogs([]); setContacts([])
       return
     }
 
     const cleanups: Array<() => void> = []
+
+    cleanups.push(subscribeToAvailabilityBlocks(selectedChildId, setAvailabilityBlocks))
 
     if (isParent || collaboratorCanSeeFullCalendar) {
       cleanups.push(subscribeToPattern(selectedChildId, setPattern))
@@ -146,6 +149,7 @@ export function useDataSubscriptions() {
     } else {
       setRequests([])
       setCollaboratorAssignments([])
+      setAvailabilityBlocks([])
       setNotes([])
       setEvents([])
       setDocuments([])
@@ -156,5 +160,5 @@ export function useDataSubscriptions() {
     }
 
     return () => { cleanups.forEach(unsub => unsub()) }
-  }, [selectedChildId, user?.uid, children, setPattern, setOverrides, setRequests, setCollaboratorAssignments, setNotes, setEvents, setPackingItems, setSpecialPeriods, setDocuments, setDocumentFolders, setMedications, setMedicationLogs, setContacts])
+  }, [selectedChildId, user?.uid, children, setPattern, setOverrides, setRequests, setCollaboratorAssignments, setAvailabilityBlocks, setNotes, setEvents, setPackingItems, setSpecialPeriods, setDocuments, setDocumentFolders, setMedications, setMedicationLogs, setContacts])
 }
