@@ -3,16 +3,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
-import { createAvailabilityBlock, deleteAvailabilityBlock, subscribeToAvailabilityBlocks } from '@/lib/availability-blocks-db'
+import { createAvailabilityBlock, deleteAvailabilityBlock } from '@/lib/availability-blocks-db'
 import { formatAvailabilityBlockLabel } from '@/lib/availability-blocks'
 import { showToast } from '@/lib/toast'
-import type { AvailabilityBlock, AvailabilityBlockType } from '@/types'
+import type { AvailabilityBlockType } from '@/types'
 
 export function AvailabilityBlocksPanel() {
   const { user } = useAuth()
-  const { children, selectedChildId } = useAppStore()
+  const { children, selectedChildId, availabilityBlocks } = useAppStore()
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
-  const [items, setItems] = useState<AvailabilityBlock[]>([])
   const [type, setType] = useState<AvailabilityBlockType>('full_day')
   const [date, setDate] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -23,22 +22,14 @@ export function AvailabilityBlocksPanel() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!child?.id) {
-      setItems([])
-      return
-    }
-    return subscribeToAvailabilityBlocks(child.id, setItems)
-  }, [child?.id])
-
-  useEffect(() => {
     const seed = new Date().toISOString().slice(0, 10)
     setDate(current => current || seed)
     setStartDate(current => current || seed)
     setEndDate(current => current || seed)
   }, [])
 
-  const myBlocks = useMemo(() => items.filter(item => item.userId === user?.uid), [items, user?.uid])
-  const otherBlocks = useMemo(() => items.filter(item => item.userId !== user?.uid), [items, user?.uid])
+  const myBlocks = useMemo(() => availabilityBlocks.filter(item => item.userId === user?.uid), [availabilityBlocks, user?.uid])
+  const otherBlocks = useMemo(() => availabilityBlocks.filter(item => item.userId !== user?.uid), [availabilityBlocks, user?.uid])
   const isParent = !!child && !!user?.uid && child.parents.includes(user.uid)
   const isCollaborator = !!child && !!user?.uid && !!child.collaborators?.includes(user.uid)
   const canUse = !!child && !!user?.uid && (isParent || isCollaborator)
@@ -77,7 +68,7 @@ export function AvailabilityBlocksPanel() {
     }
   }
 
-  const renderBlockCard = (item: AvailabilityBlock, own: boolean) => (
+  const renderBlockCard = (item: typeof availabilityBlocks[number], own: boolean) => (
     <div key={item.id} style={{ padding:'10px 12px', borderRadius:16, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:6 }}>
         <div style={{ fontSize:13, color:'var(--text-strong)', fontWeight:800 }}>{own ? 'Tu bloqueo' : item.userName}</div>
