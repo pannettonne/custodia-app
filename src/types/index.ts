@@ -14,6 +14,8 @@ export type MedicationLogStatus = 'administered' | 'skipped'
 export type ChildContactKind = 'person' | 'place'
 export type ChildContactCategory = 'teacher' | 'doctor' | 'specialist' | 'caregiver' | 'family' | 'school' | 'activity' | 'other'
 export type ChildContactVisibility = 'all_access' | 'parents_only'
+export type AvailabilityBlockType = 'full_day' | 'date_range' | 'partial_slot'
+export type AvailabilityBlockOwnerRole = 'parent' | 'collaborator'
 
 export interface Child {
   id: string
@@ -99,6 +101,22 @@ export interface CollaboratorAssignment {
   status: CollaboratorAssignmentStatus
   createdAt: Date
   respondedAt?: Date
+}
+
+export interface AvailabilityBlock {
+  id: string
+  childId: string
+  userId: string
+  userName: string
+  ownerRole: AvailabilityBlockOwnerRole
+  type: AvailabilityBlockType
+  date?: string
+  startDate?: string
+  endDate?: string
+  startTime?: string
+  endTime?: string
+  note?: string
+  createdAt: Date
 }
 
 export interface MedicationPlan {

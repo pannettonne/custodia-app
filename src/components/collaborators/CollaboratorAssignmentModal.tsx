@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createCollaboratorAssignment } from '@/lib/collaborator-assignments-db'
+import { getAvailabilityBlocksForUser } from '@/lib/availability-blocks-db'
+import { findAvailabilityConflict, getAvailabilityConflictMessage } from '@/lib/availability-blocks'
 import { createNotification } from '@/lib/db'
 import { showToast } from '@/lib/toast'
 import { LocationField } from '@/components/events/location/LocationField'
@@ -117,6 +119,16 @@ export function CollaboratorAssignmentModal({ open, onClose, initialDate, basePa
     if (!user || !child || !baseParentId || !collaboratorId) return
     setLoading(true)
     try {
+      const availabilityBlocks = await getAvailabilityBlocksForUser(child.id, collaboratorId)
+      const conflict = findAvailabilityConflict({
+        blocks: availabilityBlocks,
+        startDate: date,
+        endDate: date,
+        startTime: type === 'partial_slot' ? startTime : undefined,
+        endTime: type === 'partial_slot' ? endTime : undefined,
+      })
+      if (conflict) throw new Error(getAvailabilityConflictMessage(selectedCollaboratorName || 'El colaborador', conflict))
+
       await createCollaboratorAssignment({
         childId: child.id,
         createdByParentId: user.uid,
