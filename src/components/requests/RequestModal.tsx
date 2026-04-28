@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '@/store/app'
 import { useAuth } from '@/lib/auth-context'
 import { createChangeRequest, createNotification } from '@/lib/db'
+import { getAvailabilityBlocksForUser } from '@/lib/availability-blocks-db'
+import { findAvailabilityConflict, getAvailabilityConflictMessage } from '@/lib/availability-blocks'
 import { showToast } from '@/lib/toast'
 import { LocationField } from '@/components/events/location/LocationField'
 
@@ -126,6 +128,14 @@ export function RequestModal({ open, onClose, initialDate }: Props) {
     if (!user || !child || !otherParentId || !reason.trim()) return
     setLoading(true)
     try {
+      const availabilityBlocks = await getAvailabilityBlocksForUser(child.id, otherParentId)
+      const conflict = findAvailabilityConflict({
+        blocks: availabilityBlocks,
+        startDate: type === 'single' ? date : startDate,
+        endDate: type === 'single' ? date : endDate,
+      })
+      if (conflict) throw new Error(getAvailabilityConflictMessage(otherParentName, conflict))
+
       await createChangeRequest({
         childId: child.id,
         fromParentId: user.uid,
