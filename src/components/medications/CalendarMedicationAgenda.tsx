@@ -106,102 +106,110 @@ export function CalendarMedicationAgenda() {
 function CalendarAvailabilityInline({ blocks }: { blocks: AvailabilityBlock[] }) {
   useEffect(() => {
     const injectedAttr = 'data-custodia-inline-blocks'
-    let observer: MutationObserver | null = null
+    let retries = 0
+    let timeoutId: number | null = null
+    let cancelled = false
 
     const removeExisting = () => {
       document.querySelectorAll(`[${injectedAttr}]`).forEach(node => node.remove())
     }
 
-    const renderInline = () => {
-      if (observer) observer.disconnect()
+    const buildWrapper = () => {
+      const wrapper = document.createElement('div')
+      wrapper.setAttribute(injectedAttr, 'true')
+      wrapper.style.marginBottom = '10px'
+      wrapper.style.padding = '10px 12px'
+      wrapper.style.borderRadius = '14px'
+      wrapper.style.border = '1px solid rgba(245,158,11,0.20)'
+      wrapper.style.background = 'rgba(245,158,11,0.10)'
+
+      const title = document.createElement('div')
+      title.textContent = 'Bloqueos del día'
+      title.style.fontSize = '11px'
+      title.style.fontWeight = '800'
+      title.style.letterSpacing = '0.4px'
+      title.style.textTransform = 'uppercase'
+      title.style.color = '#f59e0b'
+      title.style.marginBottom = '8px'
+      wrapper.appendChild(title)
+
+      blocks.forEach((block, index) => {
+        const row = document.createElement('div')
+        row.style.display = 'flex'
+        row.style.alignItems = 'center'
+        row.style.justifyContent = 'space-between'
+        row.style.gap = '8px'
+        row.style.flexWrap = 'wrap'
+        if (index > 0) row.style.marginTop = '8px'
+
+        const left = document.createElement('div')
+        left.style.minWidth = '0'
+
+        const name = document.createElement('div')
+        name.textContent = block.userName
+        name.style.fontSize = '12px'
+        name.style.fontWeight = '800'
+        name.style.color = 'var(--text-strong)'
+        left.appendChild(name)
+
+        const period = document.createElement('div')
+        period.textContent = formatAvailabilityBlockLabel(block)
+        period.style.fontSize = '11px'
+        period.style.color = 'var(--text-secondary)'
+        period.style.marginTop = '4px'
+        left.appendChild(period)
+
+        if (block.note) {
+          const note = document.createElement('div')
+          note.textContent = block.note
+          note.style.fontSize = '10px'
+          note.style.color = 'var(--text-muted)'
+          note.style.marginTop = '4px'
+          left.appendChild(note)
+        }
+
+        const badge = document.createElement('div')
+        badge.textContent = block.ownerRole === 'parent' ? 'PROGENITOR' : 'COLABORADOR'
+        badge.style.fontSize = '10px'
+        badge.style.fontWeight = '800'
+        badge.style.color = block.ownerRole === 'parent' ? '#60a5fa' : '#8B5CF6'
+
+        row.appendChild(left)
+        row.appendChild(badge)
+        wrapper.appendChild(row)
+      })
+
+      return wrapper
+    }
+
+    const tryInject = () => {
+      if (cancelled) return
       removeExisting()
 
-      if (blocks.length === 0) {
-        if (observer) observer.observe(document.body, { childList: true, subtree: true })
-        return
-      }
+      if (blocks.length === 0) return
 
       const titleNode = Array.from(document.querySelectorAll('div')).find(node => (node.textContent || '').trim() === 'Solicitudes de cambio') as HTMLDivElement | undefined
       const sectionNode = titleNode?.parentElement?.parentElement
+      const headerNode = sectionNode?.firstElementChild
 
-      if (sectionNode) {
-        const wrapper = document.createElement('div')
-        wrapper.setAttribute(injectedAttr, 'true')
-        wrapper.style.marginBottom = '10px'
-        wrapper.style.padding = '10px 12px'
-        wrapper.style.borderRadius = '14px'
-        wrapper.style.border = '1px solid rgba(245,158,11,0.20)'
-        wrapper.style.background = 'rgba(245,158,11,0.10)'
-
-        const title = document.createElement('div')
-        title.textContent = 'Bloqueos del día'
-        title.style.fontSize = '11px'
-        title.style.fontWeight = '800'
-        title.style.letterSpacing = '0.4px'
-        title.style.textTransform = 'uppercase'
-        title.style.color = '#f59e0b'
-        title.style.marginBottom = '8px'
-        wrapper.appendChild(title)
-
-        blocks.forEach((block, index) => {
-          const row = document.createElement('div')
-          row.style.display = 'flex'
-          row.style.alignItems = 'center'
-          row.style.justifyContent = 'space-between'
-          row.style.gap = '8px'
-          row.style.flexWrap = 'wrap'
-          if (index > 0) row.style.marginTop = '8px'
-
-          const left = document.createElement('div')
-          left.style.minWidth = '0'
-
-          const name = document.createElement('div')
-          name.textContent = block.userName
-          name.style.fontSize = '12px'
-          name.style.fontWeight = '800'
-          name.style.color = 'var(--text-strong)'
-          left.appendChild(name)
-
-          const period = document.createElement('div')
-          period.textContent = formatAvailabilityBlockLabel(block)
-          period.style.fontSize = '11px'
-          period.style.color = 'var(--text-secondary)'
-          period.style.marginTop = '4px'
-          left.appendChild(period)
-
-          if (block.note) {
-            const note = document.createElement('div')
-            note.textContent = block.note
-            note.style.fontSize = '10px'
-            note.style.color = 'var(--text-muted)'
-            note.style.marginTop = '4px'
-            left.appendChild(note)
-          }
-
-          const badge = document.createElement('div')
-          badge.textContent = block.ownerRole === 'parent' ? 'PROGENITOR' : 'COLABORADOR'
-          badge.style.fontSize = '10px'
-          badge.style.fontWeight = '800'
-          badge.style.color = block.ownerRole === 'parent' ? '#60a5fa' : '#8B5CF6'
-
-          row.appendChild(left)
-          row.appendChild(badge)
-          wrapper.appendChild(row)
-        })
-
-        const headerNode = sectionNode.firstElementChild
-        if (headerNode?.nextSibling) sectionNode.insertBefore(wrapper, headerNode.nextSibling)
+      if (sectionNode && headerNode) {
+        const wrapper = buildWrapper()
+        if (headerNode.nextSibling) sectionNode.insertBefore(wrapper, headerNode.nextSibling)
         else sectionNode.appendChild(wrapper)
+        return
       }
 
-      if (observer) observer.observe(document.body, { childList: true, subtree: true })
+      if (retries < 20) {
+        retries += 1
+        timeoutId = window.setTimeout(tryInject, 120)
+      }
     }
 
-    observer = new MutationObserver(() => window.requestAnimationFrame(renderInline))
-    window.requestAnimationFrame(renderInline)
+    timeoutId = window.setTimeout(tryInject, 0)
 
     return () => {
-      observer?.disconnect()
+      cancelled = true
+      if (timeoutId) window.clearTimeout(timeoutId)
       removeExisting()
     }
   }, [blocks])
