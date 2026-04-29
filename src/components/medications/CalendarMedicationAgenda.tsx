@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { addDays } from 'date-fns'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { setMedicationLog } from '@/lib/medications-db'
 import { getMedicationOccurrencesForDate } from '@/lib/medications'
-import { formatDate, toISODate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 import { blockOverlapsDate, formatAvailabilityBlockLabel } from '@/lib/availability-blocks'
 import { MedicationAlertDaemon } from './MedicationAlertDaemon'
 import type { AvailabilityBlock, MedicationLogStatus } from '@/types'
@@ -21,6 +20,7 @@ export function CalendarMedicationAgenda() {
   const canMark = !!user && !!child
   const canQuickActOnDate = date <= today
   const occurrences = useMemo(() => getMedicationOccurrencesForDate(medications, medicationLogs, date), [medications, medicationLogs, date])
+  const selectedDayBlocks = useMemo(() => availabilityBlocks.filter(block => blockOverlapsDate(block, date)), [availabilityBlocks, date])
 
   const handleMark = async (occurrence: (typeof occurrences)[number], status: MedicationLogStatus) => {
     if (!user || !child) return
@@ -43,8 +43,8 @@ export function CalendarMedicationAgenda() {
   return (
     <>
       <CalendarTodayEnhancer />
+      <CalendarAvailabilityInline blocks={selectedDayBlocks} />
       <MedicationAlertDaemon />
-      <CalendarAvailabilitySummary date={date} blocks={availabilityBlocks} />
       {occurrences.length > 0 ? (
         <div className="card" style={{ marginTop: 14, borderColor: 'rgba(239,68,68,0.24)', background:'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, var(--bg-card) 100%)' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10, flexWrap:'wrap' }}>
@@ -103,59 +103,110 @@ export function CalendarMedicationAgenda() {
   )
 }
 
-function CalendarAvailabilitySummary({ date, blocks }: { date: string; blocks: AvailabilityBlock[] }) {
-  const selectedDayBlocks = useMemo(() => blocks.filter(block => blockOverlapsDate(block, date)), [blocks, date])
-  const nextSevenDays = useMemo(() => Array.from({ length: 7 }, (_, index) => toISODate(addDays(new Date(`${date}T12:00:00`), index))), [date])
-  const upcomingBlocks = useMemo(() => blocks.filter(block => nextSevenDays.some(day => blockOverlapsDate(block, day))), [blocks, nextSevenDays])
+function CalendarAvailabilityInline({ blocks }: { blocks: AvailabilityBlock[] }) {
+  useEffect(() => {
+    const injectedAttr = 'data-custodia-inline-blocks'
+    let observer: MutationObserver | null = null
 
-  if (selectedDayBlocks.length === 0 && upcomingBlocks.length === 0) return null
+    const removeExisting = () => {
+      document.querySelectorAll(`[${injectedAttr}]`).forEach(node => node.remove())
+    }
 
-  return (
-    <div className="card" style={{ marginTop: 14, borderColor: 'rgba(245,158,11,0.24)', background:'linear-gradient(180deg, rgba(245,158,11,0.08) 0%, var(--bg-card) 100%)' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10, flexWrap:'wrap' }}>
-        <div>
-          <div style={{ fontSize:12, color:'#f59e0b', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4 }}>Bloqueos visibles</div>
-          <div style={{ fontSize:14, color:'var(--text-strong)', fontWeight:800, marginTop:4 }}>Calendario · {formatDate(date)}</div>
-        </div>
-        <div style={{ padding:'5px 10px', borderRadius:999, background:'rgba(245,158,11,0.12)', color:'#f59e0b', fontSize:11, fontWeight:800 }}>{selectedDayBlocks.length} hoy / {upcomingBlocks.length} en 7 días</div>
-      </div>
+    const renderInline = () => {
+      if (observer) observer.disconnect()
+      removeExisting()
 
-      {selectedDayBlocks.length > 0 ? (
-        <div style={{ marginBottom: upcomingBlocks.length > 0 ? 10 : 0 }}>
-          <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>Bloqueos del día seleccionado</div>
-          <div style={{ display:'grid', gap:8 }}>
-            {selectedDayBlocks.map(block => (
-              <AvailabilityBlockCard key={`selected-${block.id}`} block={block} />
-            ))}
-          </div>
-        </div>
-      ) : null}
+      if (blocks.length === 0) {
+        if (observer) observer.observe(document.body, { childList: true, subtree: true })
+        return
+      }
 
-      {upcomingBlocks.length > 0 ? (
-        <div>
-          <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>Próximos 7 días</div>
-          <div style={{ display:'grid', gap:8 }}>
-            {upcomingBlocks.map(block => (
-              <AvailabilityBlockCard key={`upcoming-${block.id}`} block={block} />
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  )
-}
+      const titleNode = Array.from(document.querySelectorAll('div')).find(node => (node.textContent || '').trim() === 'Solicitudes de cambio') as HTMLDivElement | undefined
+      const sectionNode = titleNode?.parentElement?.parentElement
 
-function AvailabilityBlockCard({ block }: { block: AvailabilityBlock }) {
-  return (
-    <div style={{ padding:'10px 12px', borderRadius:14, background:'rgba(245,158,11,0.10)', border:'1px solid rgba(245,158,11,0.20)' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap' }}>
-        <div style={{ fontSize:13, color:'var(--text-strong)', fontWeight:800 }}>{block.userName}</div>
-        <div style={{ fontSize:10, color:block.ownerRole === 'parent' ? '#60a5fa' : '#8B5CF6', fontWeight:800, textTransform:'uppercase' }}>{block.ownerRole === 'parent' ? 'PROGENITOR' : 'COLABORADOR'}</div>
-      </div>
-      <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:6 }}>{formatAvailabilityBlockLabel(block)}</div>
-      {block.note ? <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>{block.note}</div> : null}
-    </div>
-  )
+      if (sectionNode) {
+        const wrapper = document.createElement('div')
+        wrapper.setAttribute(injectedAttr, 'true')
+        wrapper.style.marginBottom = '10px'
+        wrapper.style.padding = '10px 12px'
+        wrapper.style.borderRadius = '14px'
+        wrapper.style.border = '1px solid rgba(245,158,11,0.20)'
+        wrapper.style.background = 'rgba(245,158,11,0.10)'
+
+        const title = document.createElement('div')
+        title.textContent = 'Bloqueos del día'
+        title.style.fontSize = '11px'
+        title.style.fontWeight = '800'
+        title.style.letterSpacing = '0.4px'
+        title.style.textTransform = 'uppercase'
+        title.style.color = '#f59e0b'
+        title.style.marginBottom = '8px'
+        wrapper.appendChild(title)
+
+        blocks.forEach((block, index) => {
+          const row = document.createElement('div')
+          row.style.display = 'flex'
+          row.style.alignItems = 'center'
+          row.style.justifyContent = 'space-between'
+          row.style.gap = '8px'
+          row.style.flexWrap = 'wrap'
+          if (index > 0) row.style.marginTop = '8px'
+
+          const left = document.createElement('div')
+          left.style.minWidth = '0'
+
+          const name = document.createElement('div')
+          name.textContent = block.userName
+          name.style.fontSize = '12px'
+          name.style.fontWeight = '800'
+          name.style.color = 'var(--text-strong)'
+          left.appendChild(name)
+
+          const period = document.createElement('div')
+          period.textContent = formatAvailabilityBlockLabel(block)
+          period.style.fontSize = '11px'
+          period.style.color = 'var(--text-secondary)'
+          period.style.marginTop = '4px'
+          left.appendChild(period)
+
+          if (block.note) {
+            const note = document.createElement('div')
+            note.textContent = block.note
+            note.style.fontSize = '10px'
+            note.style.color = 'var(--text-muted)'
+            note.style.marginTop = '4px'
+            left.appendChild(note)
+          }
+
+          const badge = document.createElement('div')
+          badge.textContent = block.ownerRole === 'parent' ? 'PROGENITOR' : 'COLABORADOR'
+          badge.style.fontSize = '10px'
+          badge.style.fontWeight = '800'
+          badge.style.color = block.ownerRole === 'parent' ? '#60a5fa' : '#8B5CF6'
+
+          row.appendChild(left)
+          row.appendChild(badge)
+          wrapper.appendChild(row)
+        })
+
+        const headerNode = sectionNode.firstElementChild
+        if (headerNode?.nextSibling) sectionNode.insertBefore(wrapper, headerNode.nextSibling)
+        else sectionNode.appendChild(wrapper)
+      }
+
+      if (observer) observer.observe(document.body, { childList: true, subtree: true })
+    }
+
+    observer = new MutationObserver(() => window.requestAnimationFrame(renderInline))
+    window.requestAnimationFrame(renderInline)
+
+    return () => {
+      observer?.disconnect()
+      removeExisting()
+    }
+  }, [blocks])
+
+  return null
 }
 
 function CalendarTodayEnhancer() {
