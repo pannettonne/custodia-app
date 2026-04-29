@@ -1,17 +1,19 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { addDays } from 'date-fns'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { setMedicationLog } from '@/lib/medications-db'
 import { getMedicationOccurrencesForDate } from '@/lib/medications'
-import { formatDate } from '@/lib/utils'
+import { formatDate, toISODate } from '@/lib/utils'
+import { blockOverlapsDate, formatAvailabilityBlockLabel } from '@/lib/availability-blocks'
 import { MedicationAlertDaemon } from './MedicationAlertDaemon'
-import type { MedicationLogStatus } from '@/types'
+import type { AvailabilityBlock, MedicationLogStatus } from '@/types'
 
 export function CalendarMedicationAgenda() {
   const { user } = useAuth()
-  const { selectedCalendarDate, medications, medicationLogs, children, selectedChildId } = useAppStore()
+  const { selectedCalendarDate, medications, medicationLogs, children, selectedChildId, availabilityBlocks } = useAppStore()
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const date = selectedCalendarDate || new Date().toISOString().slice(0, 10)
   const today = new Date().toISOString().slice(0, 10)
@@ -42,6 +44,7 @@ export function CalendarMedicationAgenda() {
     <>
       <CalendarTodayEnhancer />
       <MedicationAlertDaemon />
+      <CalendarAvailabilitySummary date={date} blocks={availabilityBlocks} />
       {occurrences.length > 0 ? (
         <div className="card" style={{ marginTop: 14, borderColor: 'rgba(239,68,68,0.24)', background:'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, var(--bg-card) 100%)' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10, flexWrap:'wrap' }}>
@@ -97,6 +100,61 @@ export function CalendarMedicationAgenda() {
         </div>
       ) : null}
     </>
+  )
+}
+
+function CalendarAvailabilitySummary({ date, blocks }: { date: string; blocks: AvailabilityBlock[] }) {
+  const selectedDayBlocks = useMemo(() => blocks.filter(block => blockOverlapsDate(block, date)), [blocks, date])
+  const nextSevenDays = useMemo(() => Array.from({ length: 7 }, (_, index) => toISODate(addDays(new Date(`${date}T12:00:00`), index))), [date])
+  const upcomingBlocks = useMemo(() => blocks.filter(block => nextSevenDays.some(day => blockOverlapsDate(block, day))), [blocks, nextSevenDays])
+
+  if (selectedDayBlocks.length === 0 && upcomingBlocks.length === 0) return null
+
+  return (
+    <div className="card" style={{ marginTop: 14, borderColor: 'rgba(245,158,11,0.24)', background:'linear-gradient(180deg, rgba(245,158,11,0.08) 0%, var(--bg-card) 100%)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10, flexWrap:'wrap' }}>
+        <div>
+          <div style={{ fontSize:12, color:'#f59e0b', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4 }}>Bloqueos visibles</div>
+          <div style={{ fontSize:14, color:'var(--text-strong)', fontWeight:800, marginTop:4 }}>Calendario · {formatDate(date)}</div>
+        </div>
+        <div style={{ padding:'5px 10px', borderRadius:999, background:'rgba(245,158,11,0.12)', color:'#f59e0b', fontSize:11, fontWeight:800 }}>{selectedDayBlocks.length} hoy / {upcomingBlocks.length} en 7 días</div>
+      </div>
+
+      {selectedDayBlocks.length > 0 ? (
+        <div style={{ marginBottom: upcomingBlocks.length > 0 ? 10 : 0 }}>
+          <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>Bloqueos del día seleccionado</div>
+          <div style={{ display:'grid', gap:8 }}>
+            {selectedDayBlocks.map(block => (
+              <AvailabilityBlockCard key={`selected-${block.id}`} block={block} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {upcomingBlocks.length > 0 ? (
+        <div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:8 }}>Próximos 7 días</div>
+          <div style={{ display:'grid', gap:8 }}>
+            {upcomingBlocks.map(block => (
+              <AvailabilityBlockCard key={`upcoming-${block.id}`} block={block} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function AvailabilityBlockCard({ block }: { block: AvailabilityBlock }) {
+  return (
+    <div style={{ padding:'10px 12px', borderRadius:14, background:'rgba(245,158,11,0.10)', border:'1px solid rgba(245,158,11,0.20)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap' }}>
+        <div style={{ fontSize:13, color:'var(--text-strong)', fontWeight:800 }}>{block.userName}</div>
+        <div style={{ fontSize:10, color:block.ownerRole === 'parent' ? '#60a5fa' : '#8B5CF6', fontWeight:800, textTransform:'uppercase' }}>{block.ownerRole === 'parent' ? 'PROGENITOR' : 'COLABORADOR'}</div>
+      </div>
+      <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:6 }}>{formatAvailabilityBlockLabel(block)}</div>
+      {block.note ? <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>{block.note}</div> : null}
+    </div>
   )
 }
 
