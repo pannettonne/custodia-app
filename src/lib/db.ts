@@ -1,6 +1,8 @@
 "use client"
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, onSnapshot, orderBy, limit, serverTimestamp, arrayUnion, arrayRemove, type Unsubscribe, setDoc, deleteField } from 'firebase/firestore'
 import { auth, db } from './firebase'
+import { getAvailabilityBlocksForUser } from './availability-blocks-db'
+import { findAvailabilityConflict, getAvailabilityConflictMessage } from './availability-blocks'
 import type { Child, CustodyPattern, CustodyOverride, ChangeRequest, Invitation, Note, SchoolEvent, PackingItem, SpecialPeriod, AppNotification, RequestStatus, UserNotificationSettings, NotificationChannel } from '@/types'
 
 function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> { return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T> }
@@ -77,7 +79,42 @@ export async function markNoteRead(id: string): Promise<void> { await updateDoc(
 
 export function subscribeToEvents(childId: string, cb: (events: SchoolEvent[]) => void): Unsubscribe { const q = query(collection(db, 'schoolEvents'), where('childId', '==', childId)); return onSnapshot(q, snap => { const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as SchoolEvent)); cb(items.sort((a, b) => a.date.localeCompare(b.date) || ((a.time || '').localeCompare(b.time || '')))) }) }
 export async function createEvent(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Promise<string> { const ref = await addDoc(collection(db, 'schoolEvents'), compactUndefined({ ...data, time: data.allDay ? undefined : (data.time || undefined), endDate: data.endDate || undefined, notes: data.notes || undefined, customCategory: data.category === 'otro' ? (data.customCategory || undefined) : undefined, cancelledDates: data.cancelledDates || [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() })); return ref.id }
-export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promise<void> { await updateDoc(doc(db, 'schoolEvents', id), compactUndefined({ ...data, customCategory: data.category === 'otro' ? data.customCategory : (data.customCategory || undefined), updatedAt: serverTimestamp() })) }
+export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promise<void> {
+  const shouldValidateAssignment = (
+    'assignmentRequestToParentId' in data ||
+    'assignedParentId' in data ||
+    data.assignmentStatus === 'pending'
+  )
+
+  if (shouldValidateAssignment) {
+    const snap = await getDoc(doc(db, 'schoolEvents', id))
+    if (snap.exists()) {
+      const current = { id: snap.id, ...snap.data() } as SchoolEvent
+      const effective: SchoolEvent = { ...current, ...compactUndefined(data as any) } as SchoolEvent
+      const targetParentId = data.assignmentRequestToParentId || (data.assignmentStatus === 'pending' ? (data.assignedParentId || current.assignmentRequestToParentId || current.assignedParentId) : undefined)
+
+      if (targetParentId) {
+        const childRef = doc(db, 'children', effective.childId)
+        const childSnap = await getDoc(childRef)
+        const childData = childSnap.exists() ? (childSnap.data() as Child) : null
+        const targetParentName = childData?.parentNames?.[targetParentId] || 'El progenitor asignado'
+        const availabilityBlocks = await getAvailabilityBlocksForUser(effective.childId, targetParentId)
+        const conflict = findAvailabilityConflict({
+          blocks: availabilityBlocks,
+          startDate: effective.date,
+          endDate: effective.endDate || effective.date,
+          startTime: !effective.allDay ? (effective.time || undefined) : undefined,
+          endTime: undefined,
+        })
+        if (conflict) {
+          throw new Error(getAvailabilityConflictMessage(targetParentName, conflict))
+        }
+      }
+    }
+  }
+
+  await updateDoc(doc(db, 'schoolEvents', id), compactUndefined({ ...data, customCategory: data.category === 'otro' ? data.customCategory : (data.customCategory || undefined), updatedAt: serverTimestamp() }))
+}
 export async function clearPendingEventAssignment(id: string): Promise<void> {
   await updateDoc(doc(db, 'schoolEvents', id), {
     assignedParentId: deleteField(),
