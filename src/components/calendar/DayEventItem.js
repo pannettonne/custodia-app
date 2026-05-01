@@ -18,6 +18,14 @@ function buildNavigationLinks(event) {
   }
 }
 
+function formatEventTime(event) {
+  if (event.allDay) return 'Todo el día'
+  if (event.time && event.endTime) return `${event.time}-${event.endTime}`
+  if (event.time) return event.time
+  if (event.endTime) return `Hasta ${event.endTime}`
+  return 'Sin hora'
+}
+
 export function DayEventItem({
   event,
   cancelled,
@@ -100,7 +108,7 @@ export function DayEventItem({
               textOverflow: 'ellipsis',
             }}
           >
-            {event.allDay ? 'Todo el día' : (event.time || 'Sin hora')} · {event.customCategory || event.category}
+            {formatEventTime(event)} · {event.customCategory || event.category}
           </div>
 
           {addressLine && (
