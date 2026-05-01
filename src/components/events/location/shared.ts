@@ -90,10 +90,17 @@ export function buildEventDateRange(event: SchoolEvent) {
     return [`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`]
   }
 
-  const [hours, minutes] = (event.time || '09:00').split(':').map(Number)
-  const start = new Date(`${event.date}T${pad(hours || 0)}:${pad(minutes || 0)}:00`)
+  const [startHours, startMinutes] = (event.time || '09:00').split(':').map(Number)
+  const start = new Date(`${event.date}T${pad(startHours || 0)}:${pad(startMinutes || 0)}:00`)
   const end = new Date(start)
-  end.setHours(end.getHours() + 1)
+
+  if (event.endTime) {
+    const [endHours, endMinutes] = event.endTime.split(':').map(Number)
+    end.setHours(endHours || 0, endMinutes || 0, 0, 0)
+    if (end <= start) end.setHours(start.getHours() + 1)
+  } else {
+    end.setHours(end.getHours() + 1)
+  }
 
   return [`DTSTART:${formatICSDateUTC(start)}`, `DTEND:${formatICSDateUTC(end)}`]
 }
