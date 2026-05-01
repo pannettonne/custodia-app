@@ -23,6 +23,7 @@ export function EventForm({ event, onClose, initialDate }) {
   const [endDate, setEndDate] = useState(event?.endDate ?? '')
   const [allDay, setAllDay] = useState(event?.allDay ?? true)
   const [time, setTime] = useState(event?.time ?? '')
+  const [endTime, setEndTime] = useState(event?.endTime ?? '')
   const [notes, setNotes] = useState(event?.notes ?? '')
   const [documentIds, setDocumentIds] = useState(event?.documentIds ?? [])
   const [recurrence, setRecurrence] = useState(event?.recurrence ?? 'none')
@@ -46,12 +47,14 @@ export function EventForm({ event, onClose, initialDate }) {
 
   const custodyChangeLocked = !!event && event.assignmentStatus === 'accepted' && !!event.assignedParentId
   const linkedDocuments = (documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
+  const hasValidTimeRange = allDay || !time || !endTime || time < endTime
 
   const isValid = !!user && !!child && !!title.trim() && !!date &&
     (category !== 'otro' || !!customCategory.trim()) &&
     (recurrence === 'none' || !!recurrenceUntil) &&
     (recurrence !== 'weekly' || recurrenceWeekdays.length > 0) &&
-    (recurrence !== 'monthly' || (monthlyDay >= 1 && monthlyDay <= 31))
+    (recurrence !== 'monthly' || (monthlyDay >= 1 && monthlyDay <= 31)) &&
+    hasValidTimeRange
 
   const toggleWeekday = day => {
     setRecurrenceWeekdays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort((a, b) => a - b))
@@ -123,6 +126,7 @@ export function EventForm({ event, onClose, initialDate }) {
         endDate: endDate || undefined,
         allDay,
         time: allDay ? undefined : time || undefined,
+        endTime: allDay ? undefined : endTime || undefined,
         notes: notes.trim() || undefined,
         documentIds,
         recurrence,
@@ -207,12 +211,26 @@ export function EventForm({ event, onClose, initialDate }) {
 
       <div style={{ marginBottom: 10 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13, fontWeight: 700 }}>
-          <input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) setTime('') }} />
+          <input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) { setTime(''); setEndTime('') } }} />
           Evento de todo el día
         </label>
       </div>
 
-      {!allDay && <div style={{ marginBottom: 10 }}><div className="settings-label">Hora (opcional)</div><input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" /></div>}
+      {!allDay && (
+        <div style={{ marginBottom: 10 }}>
+          <div className="date-pair">
+            <div>
+              <div className="date-pair-label">Hora desde</div>
+              <input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" />
+            </div>
+            <div>
+              <div className="date-pair-label">Hora hasta</div>
+              <input type="time" value={endTime} min={time || undefined} onChange={e => setEndTime(e.target.value)} className="settings-input" />
+            </div>
+          </div>
+          {!hasValidTimeRange && <div style={{ marginTop: 6, fontSize: 11, color: '#f87171' }}>La hora hasta debe ser posterior a la hora desde.</div>}
+        </div>
+      )}
 
       <RecurrenceFields event={event} recurrence={recurrence} setRecurrence={setRecurrence} recurrenceWeekdays={recurrenceWeekdays} toggleWeekday={toggleWeekday} recurrenceUntil={recurrenceUntil} setRecurrenceUntil={setRecurrenceUntil} monthlyDay={monthlyDay} setMonthlyDay={setMonthlyDay} date={date} />
 
