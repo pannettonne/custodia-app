@@ -44,6 +44,19 @@ export function EventForm({ event, onClose, initialDate }) {
   const [locationLoading, setLocationLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showMoreOptions, setShowMoreOptions] = useState(() => {
+    if (!event) return false
+    return !!(
+      event.endDate ||
+      event.notes ||
+      event.recurrence && event.recurrence !== 'none' ||
+      event.reminderEnabled ||
+      event.assignedParentId ||
+      event.locationName ||
+      event.locationAddress ||
+      (event.documentIds || []).length > 0
+    )
+  })
 
   const custodyChangeLocked = !!event && event.assignmentStatus === 'accepted' && !!event.assignedParentId
   const linkedDocuments = (documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
@@ -176,48 +189,48 @@ export function EventForm({ event, onClose, initialDate }) {
   }
 
   return (
-    <div className="card" style={{ marginBottom: 14, borderColor: 'rgba(16,185,129,0.3)', borderRadius: 20, background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
-      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-secondary)', marginBottom: 12 }}>{event ? 'Editar evento' : 'Nuevo evento'}</div>
-
-      <div style={{ marginBottom: 10 }}>
-        <div className="settings-label">Título</div>
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Vacaciones de verano" className="settings-input" />
+    <div className="card" style={{ marginBottom: 14, borderColor: 'rgba(16,185,129,0.3)', borderRadius: 24, background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', padding: 16 }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-strong)' }}>{event ? 'Editar evento' : 'Nuevo evento'}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Primero lo básico. Lo demás solo si hace falta.</div>
+        </div>
+        <div style={{ padding:'6px 10px', borderRadius:999, background:'rgba(16,185,129,0.12)', color:'#10b981', fontSize:11, fontWeight:800 }}>{showMoreOptions ? 'Completo' : 'Rápido'}</div>
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <div className="settings-label">Categoría</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+      <div style={{ marginBottom: 12 }}>
+        <div className="settings-label">Título</div>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Revisión pediatra" className="settings-input" />
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div className="settings-label">Tipo</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 6 }}>
           {Object.entries(CAT_CONFIG).map(([key, value]) => (
-            <button key={key} onClick={() => setCategory(key)} style={{ padding: '8px 4px', borderRadius: 12, border: `1px solid ${category === key ? value.color : 'var(--border)'}`, background: category === key ? `${value.color}22` : 'var(--bg-soft)', color: category === key ? value.color : 'var(--text-secondary)', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-              <span style={{ fontSize: 16 }}>{value.icon}</span>{value.label}
+            <button key={key} type="button" onClick={() => setCategory(key)} style={{ padding: '9px 6px', borderRadius: 14, border: `1px solid ${category === key ? value.color : 'var(--border)'}`, background: category === key ? `${value.color}22` : 'var(--bg-soft)', color: category === key ? value.color : 'var(--text-secondary)', fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minHeight: 62, justifyContent:'center' }}>
+              <span style={{ fontSize: 17, lineHeight: 1 }}>{value.icon}</span>
+              <span style={{ lineHeight: 1.1 }}>{value.label}</span>
             </button>
           ))}
         </div>
         {category === 'otro' && <input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Nombre de la categoría" className="settings-input" style={{ marginTop: 8 }} />}
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <div className="date-pair">
-          <div>
-            <div className="date-pair-label">{recurrence === 'none' ? 'Fecha' : 'Empieza el'}</div>
-            <input type="date" value={date} onChange={e => { const next = e.target.value; setDate(next); if (!endDate || endDate < next) setEndDate(next); if (!recurrenceUntil || recurrenceUntil < next) setRecurrenceUntil(next) }} className="settings-input" />
-          </div>
-          <div>
-            <div className="date-pair-label">Hasta (opcional)</div>
-            <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" />
-          </div>
+      <div style={{ marginBottom: 12 }}>
+        <div className="settings-label">Fecha</div>
+        <input type="date" value={date} onChange={e => { const next = e.target.value; setDate(next); if (!endDate || endDate < next) setEndDate(next); if (!recurrenceUntil || recurrenceUntil < next) setRecurrenceUntil(next) }} className="settings-input" />
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div className="settings-label">Duración</div>
+        <div className="type-toggle">
+          <button type="button" className={`type-btn ${allDay ? 'active' : ''}`} onClick={() => { setAllDay(true); setTime(''); setEndTime('') }}>☀️ Todo el día</button>
+          <button type="button" className={`type-btn ${!allDay ? 'active' : ''}`} onClick={() => setAllDay(false)}>🕒 Con hora</button>
         </div>
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13, fontWeight: 700 }}>
-          <input type="checkbox" checked={allDay} onChange={e => { setAllDay(e.target.checked); if (e.target.checked) { setTime(''); setEndTime('') } }} />
-          Evento de todo el día
-        </label>
-      </div>
-
       {!allDay && (
-        <div style={{ marginBottom: 10 }}>
+        <div style={{ marginBottom: 12 }}>
           <div className="date-pair">
             <div>
               <div className="date-pair-label">Hora desde</div>
@@ -232,26 +245,65 @@ export function EventForm({ event, onClose, initialDate }) {
         </div>
       )}
 
-      <RecurrenceFields event={event} recurrence={recurrence} setRecurrence={setRecurrence} recurrenceWeekdays={recurrenceWeekdays} toggleWeekday={toggleWeekday} recurrenceUntil={recurrenceUntil} setRecurrenceUntil={setRecurrenceUntil} monthlyDay={monthlyDay} setMonthlyDay={setMonthlyDay} date={date} />
-
-      {custodyChangeLocked ? (
-        <div style={{ marginBottom: 14, padding: '12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-soft)', fontSize: 12, color: 'var(--text-muted)' }}>
-          Este evento ya implicó un cambio de custodia. La parte de asignación/custodia queda bloqueada.
-        </div>
-      ) : (
-        <AssignmentSelector child={child} assignedParentId={assignedParentId} setAssignedParentId={setAssignedParentId} />
-      )}
-
-      <LocationField locationQuery={locationQuery} setLocationQuery={setLocationQuery} locationName={locationName} setLocationName={setLocationName} locationAddress={locationAddress} setLocationAddress={setLocationAddress} setLocationLatitude={setLocationLatitude} setLocationLongitude={setLocationLongitude} setLocationPlaceId={setLocationPlaceId} locationResults={locationResults} locationLoading={locationLoading} clearLocation={clearLocation} selectLocation={selectLocation} />
-      <ReminderSettings reminderEnabled={reminderEnabled} setReminderEnabled={setReminderEnabled} reminderDaysBefore={reminderDaysBefore} setReminderDaysBefore={setReminderDaysBefore} reminderAudience={reminderAudience} setReminderAudience={setReminderAudience} />
-
-      <div style={{ marginBottom: 14 }}>
-        <div className="settings-label">Observaciones (opcional)</div>
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={2} className="settings-textarea" />
+      <div style={{ marginBottom: 12 }}>
+        <div className="settings-label">Ubicación</div>
+        <LocationField locationQuery={locationQuery} setLocationQuery={setLocationQuery} locationName={locationName} setLocationName={setLocationName} locationAddress={locationAddress} setLocationAddress={setLocationAddress} setLocationLatitude={setLocationLatitude} setLocationLongitude={setLocationLongitude} setLocationPlaceId={setLocationPlaceId} locationResults={locationResults} locationLoading={locationLoading} clearLocation={clearLocation} selectLocation={selectLocation} />
       </div>
 
-      {child ? <DocumentAssociations childId={child.id} value={documentIds} onChange={setDocumentIds} /> : null}
-      {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:14 }}>{linkedDocuments.map(doc => <span key={doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999 }}>📎 {doc.title || 'Documento'}</span>)}</div> : null}
+      <button type="button" onClick={() => setShowMoreOptions(prev => !prev)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, border:'1px solid var(--border)', background:'var(--bg-soft)', borderRadius:16, padding:'12px 14px', marginBottom: showMoreOptions ? 12 : 14, cursor:'pointer' }}>
+        <div style={{ textAlign:'left' }}>
+          <div style={{ fontSize:13, fontWeight:800, color:'var(--text-strong)' }}>{showMoreOptions ? 'Menos opciones' : 'Más opciones'}</div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:3 }}>{showMoreOptions ? 'Ocultar repetición, asignación, recordatorio, notas y documentos' : 'Abrir ajustes avanzados del evento'}</div>
+        </div>
+        <div style={{ fontSize:20, color:'var(--text-secondary)', lineHeight:1 }}>{showMoreOptions ? '−' : '+'}</div>
+      </button>
+
+      {showMoreOptions && (
+        <div style={{ display:'grid', gap: 12, marginBottom: 14 }}>
+          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Repetición y rango</div>
+            <div style={{ marginBottom: 10 }}>
+              <div className="date-pair">
+                <div>
+                  <div className="date-pair-label">Termina el (opcional)</div>
+                  <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" />
+                </div>
+                <div>
+                  <div className="date-pair-label">Estado</div>
+                  <div className="settings-input" style={{ display:'flex', alignItems:'center', color:'var(--text-muted)' }}>{endDate ? 'Evento con rango' : 'Solo un día'}</div>
+                </div>
+              </div>
+            </div>
+            <RecurrenceFields event={event} recurrence={recurrence} setRecurrence={setRecurrence} recurrenceWeekdays={recurrenceWeekdays} toggleWeekday={toggleWeekday} recurrenceUntil={recurrenceUntil} setRecurrenceUntil={setRecurrenceUntil} monthlyDay={monthlyDay} setMonthlyDay={setMonthlyDay} date={date} />
+          </div>
+
+          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Asignación</div>
+            {custodyChangeLocked ? (
+              <div style={{ padding: '12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-soft)', fontSize: 12, color: 'var(--text-muted)' }}>
+                Este evento ya implicó un cambio de custodia. La parte de asignación/custodia queda bloqueada.
+              </div>
+            ) : (
+              <AssignmentSelector child={child} assignedParentId={assignedParentId} setAssignedParentId={setAssignedParentId} />
+            )}
+          </div>
+
+          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Recordatorio</div>
+            <ReminderSettings reminderEnabled={reminderEnabled} setReminderEnabled={setReminderEnabled} reminderDaysBefore={reminderDaysBefore} setReminderDaysBefore={setReminderDaysBefore} reminderAudience={reminderAudience} setReminderAudience={setReminderAudience} />
+          </div>
+
+          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
+            <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Notas y documentos</div>
+            <div style={{ marginBottom: 12 }}>
+              <div className="settings-label">Observaciones</div>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={3} className="settings-textarea" />
+            </div>
+            {child ? <DocumentAssociations childId={child.id} value={documentIds} onChange={setDocumentIds} /> : null}
+            {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>{linkedDocuments.map(doc => <span key={doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999 }}>📎 {doc.title || 'Documento'}</span>)}</div> : null}
+          </div>
+        </div>
+      )}
 
       {error && <div style={{ marginBottom: 10, padding: '8px 10px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', color: '#fca5a5', fontSize: 12 }}>{error}</div>}
 
