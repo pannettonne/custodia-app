@@ -1,22 +1,44 @@
 .root {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+}
+
+.root :global(.card) {
+  margin-bottom: 0;
 }
 
 .heroCard {
-  padding: 18px;
-  border-radius: 24px;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  border-radius: 28px;
+  border: 1px solid var(--border-hover);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 18%, transparent) 0, transparent 34%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%);
+}
+
+.heroCard::after {
+  content: '';
+  position: absolute;
+  right: -48px;
+  top: -52px;
+  width: 128px;
+  height: 128px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  pointer-events: none;
 }
 
 .cardSection {
-  padding: 16px;
-  border-radius: 22px;
+  padding: 17px;
+  border-radius: 24px;
 }
 
 .heroHeader,
 .sectionHeader {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -26,7 +48,7 @@
 .sectionHeader {
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .heroCopy,
@@ -35,47 +57,57 @@
 }
 
 .eyebrow {
-  margin-bottom: 6px;
+  margin-bottom: 7px;
   color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0.45px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.62px;
   text-transform: uppercase;
 }
 
 .heroTitle {
+  max-width: 13ch;
   color: var(--text-strong);
-  font-size: 24px;
+  font-size: 27px;
   font-weight: 950;
-  line-height: 1.08;
+  letter-spacing: -0.75px;
+  line-height: 1.02;
 }
 
 .sectionTitle {
   color: var(--text-strong);
-  font-size: 13px;
-  font-weight: 900;
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: -0.1px;
+}
+
+.cardSection > .sectionTitle {
+  margin-bottom: 12px;
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 7px;
+  margin-top: 12px;
 }
 
 .chip {
-  padding: 5px 9px;
+  padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  background: var(--bg-card);
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
   color: var(--text-secondary);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 850;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .custodyChip {
+  border-color: color-mix(in srgb, var(--today-tone, var(--blue)) 32%, var(--border));
   color: var(--today-tone, var(--text-secondary));
-  font-weight: 850;
+  font-weight: 900;
 }
 
 .ghostButton,
@@ -84,16 +116,17 @@
   background: transparent;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 900;
 }
 
 .ghostButton {
   flex-shrink: 0;
-  padding: 9px 11px;
+  padding: 10px 12px;
   border: 1px solid var(--border-hover);
-  border-radius: 14px;
-  background: var(--bg-card);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
   color: var(--blue);
+  box-shadow: var(--card-shadow);
 }
 
 .linkButton {
@@ -104,33 +137,48 @@
 .quickActions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 9px;
 }
 
 .summaryGrid {
-  margin-top: 16px;
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
 }
 
 .summaryCard {
-  padding: 12px;
+  position: relative;
+  overflow: hidden;
+  padding: 13px;
   border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--bg-card);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--bg-card) 86%, transparent);
+}
+
+.summaryCard::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--today-tone, var(--blue));
+  opacity: 0.85;
 }
 
 .summaryLabel {
-  margin-bottom: 5px;
+  margin-bottom: 7px;
+  padding-left: 2px;
   color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.35px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.42px;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .summaryValue {
+  padding-left: 2px;
   color: var(--today-tone, var(--text-strong));
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 950;
   line-height: 1;
 }
@@ -142,24 +190,45 @@
   background: var(--bg-soft);
   cursor: pointer;
   text-align: left;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.changeButton:hover,
+.timelineItem:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+  transform: translateY(-1px);
 }
 
 .changeButton {
-  padding: 14px;
-  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+  padding: 15px;
+  border-radius: 20px;
+}
+
+.changeButton::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--today-tone, var(--blue));
 }
 
 .changeDate {
-  margin-bottom: 4px;
+  margin-bottom: 5px;
+  padding-left: 4px;
   color: var(--text-muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .changeTitle {
+  padding-left: 4px;
   color: var(--text-strong);
-  font-size: 16px;
-  font-weight: 900;
+  font-size: 17px;
+  font-weight: 950;
+  letter-spacing: -0.15px;
 }
 
 .toneText {
@@ -169,32 +238,34 @@
 .mutedText {
   color: var(--text-secondary);
   font-size: 12px;
+  line-height: 1.45;
 }
 
 .timelineList,
 .medicationList {
   display: grid;
-  gap: 8px;
+  gap: 9px;
 }
 
 .timelineItem {
-  padding: 11px 12px;
-  border-radius: 16px;
+  padding: 12px;
+  border-radius: 18px;
 }
 
 .timelineContent {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
 .timelineDot {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   flex-shrink: 0;
   border-radius: var(--radius-pill);
   background: var(--today-tone, var(--blue));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--today-tone, var(--blue)) 14%, transparent);
 }
 
 .timelineTitle,
@@ -207,23 +278,33 @@
 .timelineTitle {
   color: var(--text-strong);
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 900;
 }
 
 .timelineMeta {
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--text-secondary);
   font-size: 11px;
+}
+
+.quickActions {
+  margin-top: 12px;
 }
 
 .primaryQuickAction {
   background: var(--blue) !important;
   color: #fff !important;
+  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.22);
 }
 
 @media (max-width: 380px) {
   .heroHeader {
     flex-direction: column;
+  }
+
+  .heroTitle {
+    max-width: none;
+    font-size: 25px;
   }
 
   .ghostButton {
