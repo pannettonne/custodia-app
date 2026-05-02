@@ -1,0 +1,45 @@
+.app-main a[href^='tel:'],
+.app-main a[href^='mailto:'],
+.app-main a[href*='wa.me'],
+.app-main a[href*='google.com/maps'] {
+  min-height: 34px !important;
+  padding: 8px 12px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, currentColor 10%, transparent) !important;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s !important;
+}
+
+.app-main a[href^='tel:']:active,
+.app-main a[href^='mailto:']:active,
+.app-main a[href*='wa.me']:active,
+.app-main a[href*='google.com/maps']:active {
+  transform: scale(0.98) !important;
+  opacity: 0.85 !important;
+}
+
+.app-main a[href^='tel:']::before {
+  content: '☎ ';
+}
+
+.app-main a[href*='wa.me']::before {
+  content: '💬 ';
+}
+
+.app-main a[href^='mailto:']::before {
+  content: '✉ ';
+}
+
+.app-main a[href*='google.com/maps']::before {
+  content: '📍 ';
+}
+
+@media (max-width: 380px) {
+  .app-main a[href^='tel:'],
+  .app-main a[href^='mailto:'],
+  .app-main a[href*='wa.me'],
+  .app-main a[href*='google.com/maps'] {
+    flex: 1 1 calc(50% - 4px) !important;
+  }
+}
