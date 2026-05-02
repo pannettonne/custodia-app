@@ -15,6 +15,9 @@ export function CalendarInlineComposerBridge() {
       if (detail?.openComposer !== 'event' || !detail?.date) return
       event.preventDefault()
       setInlineEvent({ date: detail.date, seq: Date.now() })
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: 'calendar', childId: detail.childId, date: detail.date } }))
+      }, 0)
     }
     window.addEventListener('custodia:navigate', handler, { capture: true })
     return () => window.removeEventListener('custodia:navigate', handler, { capture: true } as any)
