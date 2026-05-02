@@ -3,6 +3,7 @@ import './globals.css'
 import './more-menu-polish.css'
 import { AuthProvider } from '@/lib/auth-context'
 import { ThemeProvider } from '@/lib/theme-context'
+import { CalendarInlineComposerBridge } from '@/components/calendar/CalendarInlineComposerBridge'
 
 export const metadata: Metadata = {
   title: 'CustodiaApp',
@@ -52,7 +53,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body style={{ fontFamily: 'system-ui, -apple-system, sans-serif', margin: 0, paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <CalendarInlineComposerBridge />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
