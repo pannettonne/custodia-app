@@ -1,0 +1,56 @@
+/* Safer visual grouping for the floating "Más" menu.
+   No pseudo labels inside buttons, so item alignment and touch areas stay intact. */
+
+.floating-more-menu {
+  width: min(300px, calc(100vw - 40px));
+  padding: 10px;
+  gap: 4px;
+}
+
+.floating-more-item {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+}
+
+.floating-more-item img {
+  opacity: 0.86;
+}
+
+.floating-more-item:hover,
+.floating-more-item.active {
+  border-color: var(--border);
+  background: var(--bg-soft);
+}
+
+/* Parent menu order:
+   1 Eventos, 2 Documentos, 3 Equipaje,
+   4 Contactos, 5 Medicación,
+   6 Estadísticas, 7 Ajustes.
+   These borders create real visual groups without injecting text into buttons. */
+.floating-more-menu .floating-more-item:nth-child(4),
+.floating-more-menu .floating-more-item:nth-child(6) {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top-color: var(--border);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Collaborator menu order:
+   1 Contactos, 2 Medicación, 3 Ajustes. */
+.floating-more-menu:has(.floating-more-item:nth-child(3):last-child) .floating-more-item:nth-child(3) {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top-color: var(--border);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Limited menu: one item only, keep it compact. */
+.floating-more-menu .floating-more-item:only-child {
+  margin-top: 0;
+  padding-top: 10px;
+  border-top-color: transparent;
+  border-radius: var(--radius-lg);
+}
