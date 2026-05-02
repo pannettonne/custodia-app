@@ -7,13 +7,7 @@ import { useAppStore } from '@/store/app'
 import { formatDate, getParentForDate, toISODate } from '@/lib/utils'
 
 type TodayNavigateTab = 'calendar' | 'requests' | 'notes' | 'events' | 'medications'
-
-type TodayAction = {
-  label: string
-  tab: TodayNavigateTab
-  date?: string
-  openComposer?: 'note' | 'event'
-}
+type TodayAction = { label: string; tab: TodayNavigateTab; date?: string; openComposer?: 'note' | 'event' }
 
 function noteMatchesDate(note: any, dateStr: string) {
   if (note.type === 'single') return note.date === dateStr
@@ -22,16 +16,15 @@ function noteMatchesDate(note: any, dateStr: string) {
 }
 
 function eventMatchesDate(event: any, dateStr: string) {
+  if (Array.isArray(event.cancelledDates) && event.cancelledDates.includes(dateStr)) return false
+
   if (event.recurrence === 'weekly') {
     if (!event.date || !event.recurrenceUntil) return false
     if (dateStr < event.date || dateStr > event.recurrenceUntil) return false
-    if (Array.isArray(event.cancelledDates) && event.cancelledDates.includes(dateStr)) return false
     const jsDay = new Date(dateStr + 'T12:00:00').getDay()
     const weekday = jsDay === 0 ? 7 : jsDay
-    const fallbackDay = (() => {
-      const baseDay = new Date(event.date + 'T12:00:00').getDay()
-      return baseDay === 0 ? 7 : baseDay
-    })()
+    const baseDay = new Date(event.date + 'T12:00:00').getDay()
+    const fallbackDay = baseDay === 0 ? 7 : baseDay
     const weekdays = Array.isArray(event.recurrenceWeekdays) && event.recurrenceWeekdays.length > 0 ? event.recurrenceWeekdays : [fallbackDay]
     return weekdays.includes(weekday)
   }
@@ -39,7 +32,6 @@ function eventMatchesDate(event: any, dateStr: string) {
   if (event.recurrence === 'monthly') {
     if (!event.date || !event.recurrenceUntil) return false
     if (dateStr < event.date || dateStr > event.recurrenceUntil) return false
-    if (Array.isArray(event.cancelledDates) && event.cancelledDates.includes(dateStr)) return false
     return Number(dateStr.slice(8, 10)) === Number(String(event.date).slice(8, 10))
   }
 
@@ -154,7 +146,6 @@ export function TodayPanel() {
     const targetDate = action.date || todayStr
     setSelectedCalendarDate(targetDate)
     setCurrentMonth(new Date(targetDate + 'T12:00:00'))
-    if (action.tab === 'calendar') return
     if (typeof window === 'undefined') return
     window.dispatchEvent(new CustomEvent('custodia:navigate', {
       detail: {
