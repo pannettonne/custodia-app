@@ -45,6 +45,36 @@ function compactNote(note) {
   return normalized.length > 110 ? `${normalized.slice(0, 107)}...` : normalized
 }
 
+function compactActionButton({ title, icon, onClick, disabled = false, tone = 'neutral' }) {
+  const palette = tone === 'blue'
+    ? { background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.24)', color: '#93c5fd' }
+    : { background: 'var(--bg-soft)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      style={{
+        width: 34,
+        height: 34,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 10,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontSize: 16,
+        fontWeight: 800,
+        opacity: disabled ? 0.72 : 1,
+        ...palette,
+      }}
+    >
+      {icon}
+    </button>
+  )
+}
+
 export function EventCard({ event, onEdit }) {
   const { user } = useAuth()
   const { children, selectedChildId, pattern, overrides, specialPeriods, documents } = useAppStore()
@@ -285,12 +315,12 @@ export function EventCard({ event, onEdit }) {
           {hasCustodyImpact && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8 }}>Ya afectó a la custodia y su eliminación requiere aceptación.</div>}
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-            <button onClick={addToCalendar} disabled={calendarLoading} style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.24)', borderRadius: 10, color: '#93c5fd', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>{calendarLoading ? 'Preparando...' : 'Añadir al calendario'}</button>
-            {canManageEvent && <button onClick={onEdit} style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 800, padding: '7px 10px', borderRadius: 10 }}>Editar</button>}
+            {compactActionButton({ title: calendarLoading ? 'Preparando calendario' : 'Añadir al calendario', icon: calendarLoading ? '…' : '📅', onClick: addToCalendar, disabled: calendarLoading, tone: 'blue' })}
+            {canManageEvent ? compactActionButton({ title: 'Editar evento', icon: '✏️', onClick: onEdit }) : null}
 
             {canShowMenu && (
               <div style={{ position: 'relative' }}>
-                <button onClick={() => setMenuOpen(v => !v)} style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16, fontWeight: 800, padding: '4px 10px', borderRadius: 10 }}>⋯</button>
+                <button onClick={() => setMenuOpen(v => !v)} title="Más acciones" aria-label="Más acciones" style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16, fontWeight: 800, padding: '4px 10px', borderRadius: 10 }}>⋯</button>
                 {menuOpen && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 190, padding: 8, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 14px 30px rgba(15,23,42,0.16)', zIndex: 60, display: 'grid', gap: 6 }}>
                     {canRequestAssignment && child?.parents.map(pid => (
