@@ -32,7 +32,7 @@ export function CalendarInlineComposerBridge() {
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: 'rgba(0,0,0,0.58)',
+        background: 'var(--bg-primary)',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         padding: 'calc(env(safe-area-inset-top) + 18px) 14px calc(env(safe-area-inset-bottom) + 112px)',
