@@ -19,6 +19,20 @@ export function SettingsPanel() {
   const isParentForSelectedChild = !!child && !!user?.uid && child.parents.includes(user.uid)
   const receivedInvitations = useMemo(() => invitations.filter(i => i.toEmail === (user?.email ?? '').toLowerCase() && i.status === 'pending'), [invitations, user?.email])
   const sentInvitations = useMemo(() => child ? invitations.filter(i => i.childId === child.id && i.fromEmail === (user?.email ?? '').toLowerCase()) : [], [invitations, child, user?.email])
+  const isInitialSetup = children.length === 0
+
+  if (isInitialSetup) {
+    return (
+      <div>
+        <InitialSetupGuide />
+        {receivedInvitations.length > 0 && <PendingInvitations invitations={receivedInvitations} />}
+        <ChildSection child={child} startOpen />
+        <ThemeSection />
+        <PushSection />
+        <NotificationPreferencesSection />
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -34,6 +48,26 @@ export function SettingsPanel() {
       {child && isParentForSelectedChild && child.parents.length >= 2 && <CollaboratorInviteSection child={child} invitations={invitations} />}
       {child && isParentForSelectedChild && child.parents.length >= 2 && <ActiveCollaboratorsSection child={child} />}
       {child && isParentForSelectedChild && <DangerZone child={child} />}
+    </div>
+  )
+}
+
+function InitialSetupGuide() {
+  const steps = ['Añade el menor', 'Elige tu color de calendario', 'Después define el patrón de custodia']
+
+  return (
+    <div className="card" style={{ position:'relative', overflow:'hidden', padding:20, borderRadius:26, border:'1px solid var(--border-hover)', background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
+      <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:900, textTransform:'uppercase', letterSpacing:0.55, marginBottom:8 }}>Configuración inicial</div>
+      <div style={{ fontSize:24, lineHeight:1.05, letterSpacing:-0.6, color:'var(--text-strong)', fontWeight:950, marginBottom:8 }}>Empieza por el menor</div>
+      <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.55, marginBottom:16 }}>Para crear el calendario compartido, primero necesitamos saber a quién pertenece la custodia.</div>
+      <div style={{ display:'grid', gap:8 }}>
+        {steps.map((step, index) => (
+          <div key={step} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 11px', borderRadius:16, border:'1px solid var(--border)', background:'var(--bg-soft)' }}>
+            <span style={{ width:24, height:24, borderRadius:999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(59,130,246,0.14)', color:'#3B82F6', fontSize:12, fontWeight:950 }}>{index + 1}</span>
+            <span style={{ color:'var(--text-strong)', fontSize:13, fontWeight:800 }}>{step}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -147,10 +181,10 @@ function PendingInvitations({ invitations }: { invitations: Invitation[] }) {
   )
 }
 
-function ChildSection({ child }: { child: Child | null }) {
+function ChildSection({ child, startOpen = false }: { child: Child | null; startOpen?: boolean }) {
   const { user } = useAuth()
   const { children, selectedChildId, setSelectedChildId } = useAppStore()
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(startOpen)
   const [name, setName] = useState('')
   const [birthDate, setBirthDate] = useState('')
   const [color, setColor] = useState(PARENT_COLORS[0])
