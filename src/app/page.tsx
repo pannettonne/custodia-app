@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { LoginPage } from '@/components/ui/LoginPage'
-import { AppShell } from '@/components/ui/AppShell'
+import { AppShellWithToday } from '@/components/ui/AppShellWithToday'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -36,5 +36,5 @@ export default function Home() {
   }
 
   if (!user) return <LoginPage />
-  return <AppShell />
+  return <AppShellWithToday />
 }
