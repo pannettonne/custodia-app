@@ -78,7 +78,7 @@ export async function deleteNote(id: string): Promise<void> { await deleteDoc(do
 export async function markNoteRead(id: string): Promise<void> { await updateDoc(doc(db, 'notes', id), { read: true }) }
 
 export function subscribeToEvents(childId: string, cb: (events: SchoolEvent[]) => void): Unsubscribe { const q = query(collection(db, 'schoolEvents'), where('childId', '==', childId)); return onSnapshot(q, snap => { const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as SchoolEvent)); cb(items.sort((a, b) => a.date.localeCompare(b.date) || ((a.time || '').localeCompare(b.time || '')))) }) }
-export async function createEvent(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Promise<string> { const ref = await addDoc(collection(db, 'schoolEvents'), compactUndefined({ ...data, time: data.allDay ? undefined : (data.time || undefined), endDate: data.endDate || undefined, notes: data.notes || undefined, customCategory: data.category === 'otro' ? (data.customCategory || undefined) : undefined, cancelledDates: data.cancelledDates || [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() })); return ref.id }
+export async function createEvent(data: Omit<SchoolEvent, 'id' | 'createdAt'>): Promise<string> { const ref = await addDoc(collection(db, 'schoolEvents'), compactUndefined({ ...data, time: data.allDay ? undefined : (data.time || undefined), endTime: data.allDay ? undefined : (data.endTime || undefined), endDate: data.endDate || undefined, notes: data.notes || undefined, customCategory: data.category === 'otro' ? (data.customCategory || undefined) : undefined, cancelledDates: data.cancelledDates || [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() })); return ref.id }
 export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promise<void> {
   const shouldValidateAssignment = (
     'assignmentRequestToParentId' in data ||
@@ -104,7 +104,7 @@ export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promi
           startDate: effective.date,
           endDate: effective.endDate || effective.date,
           startTime: !effective.allDay ? (effective.time || undefined) : undefined,
-          endTime: undefined,
+          endTime: !effective.allDay ? (effective.endTime || undefined) : undefined,
         })
         if (conflict) {
           throw new Error(getAvailabilityConflictMessage(targetParentName, conflict))
@@ -113,7 +113,14 @@ export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promi
     }
   }
 
-  await updateDoc(doc(db, 'schoolEvents', id), compactUndefined({ ...data, customCategory: data.category === 'otro' ? data.customCategory : (data.customCategory || undefined), updatedAt: serverTimestamp() }))
+  await updateDoc(doc(db, 'schoolEvents', id), compactUndefined({
+    ...data,
+    endDate: 'endDate' in data ? (data.endDate || deleteField()) : undefined,
+    time: 'time' in data ? (data.allDay ? deleteField() : (data.time || deleteField())) : undefined,
+    endTime: 'endTime' in data ? (data.allDay ? deleteField() : (data.endTime || deleteField())) : undefined,
+    customCategory: data.category === 'otro' ? data.customCategory : (data.customCategory || undefined),
+    updatedAt: serverTimestamp()
+  }))
 }
 export async function clearPendingEventAssignment(id: string): Promise<void> {
   await updateDoc(doc(db, 'schoolEvents', id), {

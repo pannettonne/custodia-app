@@ -31,6 +31,14 @@ async function clearEventCustodyOverrides(event) {
   }
 }
 
+function formatEventTime(event) {
+  if (event.allDay) return 'Todo el día'
+  if (event.time && event.endTime) return `${event.time}-${event.endTime}`
+  if (event.time) return event.time
+  if (event.endTime) return `Hasta ${event.endTime}`
+  return 'Sin hora'
+}
+
 export function EventCard({ event, onEdit }) {
   const { user } = useAuth()
   const { children, selectedChildId, pattern, overrides, specialPeriods, documents } = useAppStore()
@@ -240,7 +248,7 @@ export function EventCard({ event, onEdit }) {
           </div>
 
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>
-            {formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}{event.time ? ` · ${event.time}` : event.allDay ? ' · Todo el día' : ''}
+            {formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}{` · ${formatEventTime(event)}`}
           </div>
 
           <LocationActions event={event} navLinks={navLinks} />
