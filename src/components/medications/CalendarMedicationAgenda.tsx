@@ -26,6 +26,7 @@ export function CalendarMedicationAgenda() {
   const canMark = !!user && !!child
   const canQuickActOnDate = date <= today
   const occurrences = useMemo(() => getMedicationOccurrencesForDate(medications, medicationLogs, date), [medications, medicationLogs, date])
+  const agendaTone = useMemo(() => toneForAgenda(occurrences), [occurrences])
 
   const handleMark = async (occurrence: (typeof occurrences)[number], status: MedicationLogStatus) => {
     if (!user || !child) return
@@ -51,13 +52,13 @@ export function CalendarMedicationAgenda() {
       <CalendarCompactDayDetail />
       <MedicationAlertDaemon />
       {occurrences.length > 0 ? (
-        <div className="card" style={{ marginTop: 14, borderColor: 'rgba(239,68,68,0.24)', background:'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, var(--bg-card) 100%)' }}>
+        <div className="card" style={{ marginTop: 14, borderColor: agendaTone.border, background: agendaTone.cardBackground }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10, flexWrap:'wrap' }}>
             <div>
-              <div style={{ fontSize:12, color:'#f87171', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4 }}>Medicación</div>
-              <div style={{ fontSize:14, color:'var(--text-strong)', fontWeight:800, marginTop:4 }}>{formatDate(date)}</div>
+              <div style={{ fontSize:12, color:agendaTone.accent, fontWeight:900, textTransform:'uppercase', letterSpacing:0.4 }}>Medicación</div>
+              <div style={{ fontSize:14, color:'var(--text-strong)', fontWeight:850, marginTop:4 }}>{formatDate(date)}</div>
             </div>
-            <div style={{ padding:'5px 10px', borderRadius:999, background:'rgba(239,68,68,0.12)', color:'#f87171', fontSize:11, fontWeight:800 }}>{occurrences.length} toma(s)</div>
+            <div style={{ padding:'5px 10px', borderRadius:999, background:agendaTone.badgeBg, color:agendaTone.accent, fontSize:11, fontWeight:850 }}>{occurrences.length} toma(s)</div>
           </div>
           <div style={{ display:'grid', gap:8 }}>
             {occurrences.map(item => {
@@ -66,18 +67,18 @@ export function CalendarMedicationAgenda() {
               const showActions = canMark && canQuickActOnDate && item.status !== 'administered' && item.status !== 'skipped'
 
               return (
-                <div key={item.key} style={{ padding:'10px 12px', borderRadius:14, background:tone.background, border:`1px solid ${tone.border}` }}>
+                <div key={item.key} style={{ padding:'11px 12px', borderRadius:15, background:tone.background, border:`1px solid ${tone.border}` }}>
                   <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
                     <div style={{ minWidth:0 }}>
-                      <div style={{ fontSize:13, color:'var(--text-strong)', fontWeight:800, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                      <div style={{ fontSize:13, color:'var(--text-strong)', fontWeight:850, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                         <span>💊 {item.medicationName}</span>
-                        <span style={{ padding:'3px 7px', borderRadius:999, background:tone.badgeBg, color:tone.badgeText, fontSize:10, fontWeight:800 }}>{labelForStatus(item.status)}</span>
+                        <span style={{ padding:'3px 7px', borderRadius:999, background:tone.badgeBg, color:tone.badgeText, fontSize:10, fontWeight:850 }}>{labelForStatus(item.status)}</span>
                       </div>
                       <div style={{ fontSize:11, color:'var(--text-secondary)', marginTop:6 }}>{item.dosage} {item.dosageUnit || ''}{item.route ? ` · vía ${item.route.toLowerCase()}` : ''}</div>
                       {item.instructions ? <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>{item.instructions}</div> : null}
                       {item.log?.actedByName ? <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:6 }}>Registrada por {item.log.actedByName}</div> : null}
                     </div>
-                    <div style={{ fontSize:11, color:'#f87171', fontWeight:800, flexShrink:0 }}>{item.scheduledTime}</div>
+                    <div style={{ fontSize:11, color:tone.badgeText, fontWeight:850, flexShrink:0 }}>{item.scheduledTime}</div>
                   </div>
 
                   {showActions ? (
@@ -153,8 +154,17 @@ function labelForStatus(status: string) {
   if (status === 'administered') return 'Hecha'
   if (status === 'skipped') return 'Omitida'
   if (status === 'overdue') return 'Atrasada'
-  if (status === 'due_soon') return 'Proxima'
+  if (status === 'due_soon') return 'Próxima'
   return 'Pendiente'
+}
+
+function toneForAgenda(items: Array<{ status: string }>) {
+  const statuses = items.map(item => item.status)
+  if (statuses.includes('skipped')) return { border: 'rgba(239,68,68,0.22)', cardBackground: 'linear-gradient(180deg, rgba(239,68,68,0.07) 0%, var(--bg-card) 100%)', accent: '#ef4444', badgeBg: 'rgba(239,68,68,0.12)' }
+  if (statuses.includes('overdue')) return { border: 'rgba(245,158,11,0.24)', cardBackground: 'linear-gradient(180deg, rgba(245,158,11,0.08) 0%, var(--bg-card) 100%)', accent: '#f59e0b', badgeBg: 'rgba(245,158,11,0.12)' }
+  if (statuses.includes('due_soon')) return { border: 'rgba(59,130,246,0.22)', cardBackground: 'linear-gradient(180deg, rgba(59,130,246,0.07) 0%, var(--bg-card) 100%)', accent: '#60a5fa', badgeBg: 'rgba(59,130,246,0.12)' }
+  if (statuses.length > 0 && statuses.every(status => status === 'administered')) return { border: 'rgba(16,185,129,0.22)', cardBackground: 'linear-gradient(180deg, rgba(16,185,129,0.06) 0%, var(--bg-card) 100%)', accent: '#10b981', badgeBg: 'rgba(16,185,129,0.12)' }
+  return { border: 'var(--border)', cardBackground: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', accent: 'var(--text-secondary)', badgeBg: 'var(--bg-soft)' }
 }
 
 function toneForStatus(status: string) {
@@ -162,5 +172,5 @@ function toneForStatus(status: string) {
   if (status === 'skipped') return { background: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.18)', badgeBg: 'rgba(239,68,68,0.12)', badgeText: '#ef4444' }
   if (status === 'overdue') return { background: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', badgeBg: 'rgba(245,158,11,0.12)', badgeText: '#f59e0b' }
   if (status === 'due_soon') return { background: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.18)', badgeBg: 'rgba(59,130,246,0.12)', badgeText: '#60a5fa' }
-  return { background: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.18)', badgeBg: 'rgba(148,163,184,0.12)', badgeText: '#64748b' }
+  return { background: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.16)', badgeBg: 'rgba(148,163,184,0.12)', badgeText: 'var(--text-secondary)' }
 }
