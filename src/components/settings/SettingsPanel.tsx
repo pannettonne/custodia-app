@@ -13,13 +13,15 @@ import { ActiveCollaboratorsSection } from '@/components/settings/ActiveCollabor
 import type { Child, Invitation, NotificationChannel, UserNotificationSettings } from '@/types'
 
 export function SettingsPanel() {
-  const { invitations, children, selectedChildId } = useAppStore()
+  const { invitations, children, selectedChildId, pattern } = useAppStore()
   const { user } = useAuth()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
   const isParentForSelectedChild = !!child && !!user?.uid && child.parents.includes(user.uid)
   const receivedInvitations = useMemo(() => invitations.filter(i => i.toEmail === (user?.email ?? '').toLowerCase() && i.status === 'pending'), [invitations, user?.email])
   const sentInvitations = useMemo(() => child ? invitations.filter(i => i.childId === child.id && i.fromEmail === (user?.email ?? '').toLowerCase()) : [], [invitations, child, user?.email])
   const isInitialSetup = children.length === 0
+  const hasPattern = !!child && !!pattern && pattern.childId === child.id
+  const showSetupProgress = !!child && isParentForSelectedChild && (!hasPattern || child.parents.length < 2)
 
   if (isInitialSetup) {
     return (
@@ -36,6 +38,7 @@ export function SettingsPanel() {
 
   return (
     <div>
+      {showSetupProgress && <SetupProgress child={child} hasPattern={hasPattern} />}
       <ThemeSection />
       <PushSection />
       <NotificationPreferencesSection />
@@ -48,6 +51,39 @@ export function SettingsPanel() {
       {child && isParentForSelectedChild && child.parents.length >= 2 && <CollaboratorInviteSection child={child} invitations={invitations} />}
       {child && isParentForSelectedChild && child.parents.length >= 2 && <ActiveCollaboratorsSection child={child} />}
       {child && isParentForSelectedChild && <DangerZone child={child} />}
+    </div>
+  )
+}
+
+function SetupProgress({ child, hasPattern }: { child: Child; hasPattern: boolean }) {
+  const steps = [
+    { label: 'Menor creado', done: true },
+    { label: 'Patrón de custodia', done: hasPattern },
+    { label: 'Otro progenitor', done: child.parents.length >= 2 },
+  ]
+  const completed = steps.filter(step => step.done).length
+
+  return (
+    <div className="card" style={{ padding:20, borderRadius:26, border:'1px solid var(--border-hover)', background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:14 }}>
+        <div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:900, textTransform:'uppercase', letterSpacing:0.55, marginBottom:7 }}>Configuración de {child.name}</div>
+          <div style={{ color:'var(--text-strong)', fontSize:22, lineHeight:1.08, letterSpacing:-0.55, fontWeight:950 }}>Completa el calendario</div>
+        </div>
+        <div style={{ flexShrink:0, padding:'7px 10px', borderRadius:999, background:'rgba(59,130,246,0.14)', color:'#3B82F6', fontSize:12, fontWeight:950 }}>{completed}/{steps.length}</div>
+      </div>
+      <div style={{ height:7, borderRadius:999, background:'var(--bg-soft)', border:'1px solid var(--border)', overflow:'hidden', marginBottom:14 }}>
+        <div style={{ height:'100%', width:`${Math.round((completed / steps.length) * 100)}%`, background:'#3B82F6', borderRadius:999 }} />
+      </div>
+      <div style={{ display:'grid', gap:8 }}>
+        {steps.map(step => (
+          <div key={step.label} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 11px', borderRadius:16, border:'1px solid var(--border)', background:'var(--bg-soft)' }}>
+            <span style={{ width:24, height:24, borderRadius:999, display:'flex', alignItems:'center', justifyContent:'center', background: step.done ? 'rgba(16,185,129,0.16)' : 'rgba(245,158,11,0.15)', color: step.done ? '#10B981' : '#F59E0B', fontSize:13, fontWeight:950 }}>{step.done ? '✓' : '!'}</span>
+            <span style={{ color:'var(--text-strong)', fontSize:13, fontWeight:850 }}>{step.label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop:12, color:'var(--text-secondary)', fontSize:12, lineHeight:1.45 }}>Completa estos pasos para que la pantalla Hoy pueda mostrar custodia actual, próximos cambios e invitaciones correctamente.</div>
     </div>
   )
 }
