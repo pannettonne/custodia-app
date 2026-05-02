@@ -15,8 +15,10 @@ export const CAT_CONFIG: Record<EventCategory, { label: string; icon: string; co
   excursion: { label: 'Excursión', icon: '🚌', color: '#10b981' },
   examen: { label: 'Examen', icon: '📝', color: '#f59e0b' },
   extraescolar: { label: 'Extraescolar', icon: '⚽', color: '#8b5cf6' },
+  cumpleanos: { label: 'Cumpleaños', icon: '🎂', color: '#ef4444' },
+  medico: { label: 'Médico', icon: '🩺', color: '#06b6d4' },
   festivo: { label: 'Festivo', icon: '🎉', color: '#ec4899' },
-  vacaciones: { label: 'Vacaciones', icon: '🏖️', color: '#06b6d4' },
+  vacaciones: { label: 'Vacaciones', icon: '🏖️', color: '#14b8a6' },
   otro: { label: 'Personalizada', icon: '📌', color: '#6b7280' },
 }
 
