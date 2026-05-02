@@ -82,6 +82,10 @@
   font-weight: 950 !important;
 }
 
+.app-main button[aria-label="Cerrar detalle del día"] {
+  display: none !important;
+}
+
 .app-main .calendar-legend {
   justify-content: flex-start !important;
   gap: 9px !important;
