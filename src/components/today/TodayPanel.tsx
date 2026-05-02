@@ -9,6 +9,7 @@ import styles from './TodayPanel.module.css'
 
 type TodayNavigateTab = 'calendar' | 'requests' | 'notes' | 'events' | 'medications' | 'settings'
 type TodayAction = { label: string; tab: TodayNavigateTab; date?: string; openComposer?: 'note' | 'event' }
+type UpcomingItem = { id: string; title: string; meta: string; tone: string; tab: TodayNavigateTab; date: string }
 
 function toneStyle(tone: string): CSSProperties {
   return { '--today-tone': tone } as CSSProperties
@@ -136,6 +137,50 @@ export function TodayPanel() {
   const todayEvents = useMemo(() => events.filter(event => eventMatchesDate(event, todayStr)), [events, todayStr])
   const todayNotes = useMemo(() => notes.filter(note => noteMatchesDate(note, todayStr)), [notes, todayStr])
   const todayRequests = useMemo(() => requests.filter(request => requestMatchesDate(request, todayStr)), [requests, todayStr])
+  const upcomingItems = useMemo<UpcomingItem[]>(() => {
+    const items: UpcomingItem[] = []
+
+    for (let offset = 1; offset <= 7; offset += 1) {
+      const date = addDays(today, offset)
+      const dateStr = toISODate(date)
+      const dateLabel = formatDate(dateStr, 'EEE d MMM')
+
+      events.filter(event => eventMatchesDate(event, dateStr)).slice(0, 2).forEach(event => {
+        items.push({
+          id: `event-${event.id}-${dateStr}`,
+          title: event.title,
+          meta: `${dateLabel} · ${event.allDay ? 'Todo el día' : event.time || 'Sin hora'}`,
+          tone: '#10B981',
+          tab: 'events',
+          date: dateStr,
+        })
+      })
+
+      requests.filter(request => requestMatchesDate(request, dateStr)).slice(0, 2).forEach(request => {
+        items.push({
+          id: `request-${request.id}-${dateStr}`,
+          title: request.reason || 'Propuesta de cambio',
+          meta: `${dateLabel} · ${getStatusLabel(request.status)}`,
+          tone: '#3B82F6',
+          tab: 'requests',
+          date: dateStr,
+        })
+      })
+
+      notes.filter(note => noteMatchesDate(note, dateStr)).slice(0, 2).forEach(note => {
+        items.push({
+          id: `note-${note.id}-${dateStr}`,
+          title: note.text,
+          meta: `${dateLabel} · Nota`,
+          tone: '#F59E0B',
+          tab: 'notes',
+          date: dateStr,
+        })
+      })
+    }
+
+    return items.slice(0, 5)
+  }, [events, notes, requests, today])
   const pendingRequests = useMemo(() => {
     if (!user?.uid) return []
     return requests.filter(request => request.status === 'pending' && (request.toParentId === user.uid || request.fromParentId === user.uid))
@@ -234,6 +279,19 @@ export function TodayPanel() {
           {todayEvents.slice(0, 3).map(event => <TimelineItem key={`event-${event.id}`} title={event.title} meta={event.allDay ? 'Todo el día' : event.time || 'Sin hora'} tone="#10B981" onClick={() => goTo({ label: event.title, tab: 'events', date: event.date || todayStr })} />)}
           {todayRequests.slice(0, 2).map(request => <TimelineItem key={`request-${request.id}`} title={request.reason || 'Propuesta de cambio'} meta={getStatusLabel(request.status)} tone="#3B82F6" onClick={() => goTo({ label: 'Cambio', tab: 'requests', date: request.date || request.startDate || todayStr })} />)}
           {todayNotes.slice(0, 2).map(note => <TimelineItem key={`note-${note.id}`} title={note.text} meta={`Nota · ${note.createdByName || 'Progenitor'}`} tone="#F59E0B" onClick={() => goTo({ label: 'Nota', tab: 'notes', date: note.date || note.startDate || todayStr })} />)}
+        </div>
+      </section>
+
+      <section className={`card ${styles.cardSection}`}>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTitle}>Próximos 7 días</div>
+          <button className={styles.linkButton} onClick={() => goTo({ label: 'Calendario', tab: 'calendar', date: nextChange?.date || todayStr })} style={toneStyle('#8B5CF6')}>Ver calendario</button>
+        </div>
+        <div className={styles.timelineList}>
+          {upcomingItems.length === 0 ? <div className={styles.mutedText}>No hay eventos, notas ni cambios previstos en los próximos 7 días.</div> : null}
+          {upcomingItems.map(item => (
+            <TimelineItem key={item.id} title={item.title} meta={item.meta} tone={item.tone} onClick={() => goTo({ label: item.title, tab: item.tab, date: item.date })} />
+          ))}
         </div>
       </section>
 
