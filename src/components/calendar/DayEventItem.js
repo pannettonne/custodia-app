@@ -1,5 +1,6 @@
 'use client'
 import { useMemo, useState } from 'react'
+import { CAT_CONFIG } from '@/components/events/location/shared'
 
 function buildNavigationLinks(event) {
   const hasCoords = typeof event?.locationLatitude === 'number' && typeof event?.locationLongitude === 'number'
@@ -39,6 +40,9 @@ export function DayEventItem({
   const hasLocation = !!(event.locationName || event.locationAddress)
   const navLinks = useMemo(() => buildNavigationLinks(event), [event])
   const addressLine = event.locationAddress || event.locationName || ''
+  const categoryLabel = event.category === 'otro'
+    ? (event.customCategory || CAT_CONFIG.otro.label)
+    : (CAT_CONFIG[event.category]?.label || event.category)
 
   return (
     <div
@@ -108,7 +112,7 @@ export function DayEventItem({
               textOverflow: 'ellipsis',
             }}
           >
-            {formatEventTime(event)} · {event.customCategory || event.category}
+            {formatEventTime(event)} · {categoryLabel}
           </div>
 
           {addressLine && (
