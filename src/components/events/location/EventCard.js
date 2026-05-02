@@ -39,15 +39,22 @@ function formatEventTime(event) {
   return 'Sin hora'
 }
 
+function compactNote(note) {
+  if (!note) return ''
+  const normalized = note.replace(/\s+/g, ' ').trim()
+  return normalized.length > 110 ? `${normalized.slice(0, 107)}...` : normalized
+}
+
 export function EventCard({ event, onEdit }) {
   const { user } = useAuth()
   const { children, selectedChildId, pattern, overrides, specialPeriods, documents } = useAppStore()
   const [calendarLoading, setCalendarLoading] = useState(false)
   const [deletionLoading, setDeletionLoading] = useState(false)
   const [openingDocId, setOpeningDocId] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const child = useMemo(() => children.find(c => c.id === selectedChildId) ?? null, [children, selectedChildId])
 
-  const cat = CAT_CONFIG[event.category]
+  const cat = CAT_CONFIG[event.category] || CAT_CONFIG.otro
   const today = new Date().toISOString().slice(0, 10)
   const isPast = event.date < today
   const isToday = event.date === today
@@ -67,6 +74,13 @@ export function EventCard({ event, onEdit }) {
   const deletionPendingForMe = event.deletionRequestStatus === 'pending' && event.deletionRequestedBy === user?.uid
   const canRespondDeletion = event.deletionRequestStatus === 'pending' && user?.uid === event.deletionRequestToParentId
   const linkedDocuments = (event.documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
+  const summaryChips = [
+    recurrenceLabel ? { text: recurrenceLabel, tone: 'rgba(139,92,246,0.18)', color: '#a78bfa' } : null,
+    event.reminderEnabled ? { text: `⏰ ${event.reminderDaysBefore ?? 0}d`, tone: 'rgba(59,130,246,0.18)', color: '#93c5fd' } : null,
+    linkedDocuments.length > 0 ? { text: `📎 ${linkedDocuments.length}`, tone: 'rgba(16,185,129,0.15)', color: '#10b981' } : null,
+  ].filter(Boolean)
+  const compactedNote = compactNote(event.notes)
+  const canShowMenu = (canManageEvent && !deletionPendingForMe && !canRespondDeletion) || canRequestAssignment
 
   const openDocument = async doc => {
     if (!user?.uid) return
@@ -106,6 +120,7 @@ export function EventCard({ event, onEdit }) {
       dateKey: event.date,
       requesterName: user.displayName || user.email || 'Progenitor',
     })
+    setMenuOpen(false)
   }
 
   const respondAssignment = async accept => {
@@ -186,6 +201,7 @@ export function EventCard({ event, onEdit }) {
       await performDelete()
     } finally {
       setDeletionLoading(false)
+      setMenuOpen(false)
     }
   }
 
@@ -231,45 +247,73 @@ export function EventCard({ event, onEdit }) {
   }
 
   return (
-    <div className="card" style={{ marginBottom: 10, opacity: isPast ? 0.7 : 1, border: `1px solid ${cat.color}33`, borderRadius: 22, padding: 16, background: `linear-gradient(180deg, ${cat.color}10 0%, var(--bg-card) 30%, var(--bg-soft) 100%)` }}>
+    <div className="card" style={{ marginBottom: 10, opacity: isPast ? 0.72 : 1, border: `1px solid ${cat.color}28`, borderRadius: 22, padding: 14, background: `linear-gradient(180deg, ${cat.color}0F 0%, var(--bg-card) 45%, var(--bg-soft) 100%)` }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 14, background: `${cat.color}22`, border: `1px solid ${cat.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 21, flexShrink: 0 }}>{cat.icon}</div>
+        <div style={{ width: 40, height: 40, borderRadius: 14, background: `${cat.color}22`, border: `1px solid ${cat.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0 }}>{cat.icon}</div>
+
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-            <span style={{ color: 'var(--text-strong)', fontSize: 14, fontWeight: 800 }}>{event.title}</span>
-            {isToday && <span style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>Hoy</span>}
-            <span style={{ background: `${cat.color}22`, color: cat.color, fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>{categoryLabel}</span>
-            {recurrenceLabel && <span style={{ background: 'rgba(139,92,246,0.18)', color: '#a78bfa', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>{recurrenceLabel}</span>}
-            {event.reminderEnabled && <span style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>⏰ {event.reminderDaysBefore ?? 0}d</span>}
-            {linkedDocuments.length > 0 && <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>📎 {linkedDocuments.length} documento(s)</span>}
-            {event.assignmentStatus === 'pending' && assignedName && <span style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>Pendiente para {assignedName}</span>}
-            {event.assignmentStatus === 'accepted' && assignedName && <span style={{ background: 'rgba(16,185,129,0.18)', color: '#6ee7b7', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>Asignado a {assignedName}</span>}
-            {event.deletionRequestStatus === 'pending' && <span style={{ background: 'rgba(245,158,11,0.16)', color: '#f59e0b', fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 999 }}>Eliminación pendiente</span>}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                <span style={{ color: 'var(--text-strong)', fontSize: 14, fontWeight: 800 }}>{event.title}</span>
+                {isToday && <span style={{ background: 'rgba(16,185,129,0.18)', color: '#10b981', fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999 }}>Hoy</span>}
+                <span style={{ background: `${cat.color}20`, color: cat.color, fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999 }}>{categoryLabel}</span>
+                {event.assignmentStatus === 'pending' && assignedName && <span style={{ background: 'rgba(59,130,246,0.18)', color: '#93c5fd', fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999 }}>Pendiente</span>}
+                {event.assignmentStatus === 'accepted' && assignedName && <span style={{ background: 'rgba(16,185,129,0.18)', color: '#6ee7b7', fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999 }}>Asignado</span>}
+                {event.deletionRequestStatus === 'pending' && <span style={{ background: 'rgba(245,158,11,0.16)', color: '#f59e0b', fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999 }}>Eliminación pendiente</span>}
+              </div>
+
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700 }}>
+                {formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''} · {formatEventTime(event)}
+              </div>
+            </div>
+
+            {summaryChips.length > 0 ? (
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
+                {summaryChips.map(chip => (
+                  <span key={chip.text} style={{ background: chip.tone, color: chip.color, fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999 }}>{chip.text}</span>
+                ))}
+              </div>
+            ) : null}
           </div>
 
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>
-            {formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}{` · ${formatEventTime(event)}`}
-          </div>
+          {(event.locationName || event.locationAddress) ? <LocationActions event={event} navLinks={navLinks} /> : null}
+          {compactedNote ? <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45, marginTop: 6 }}>{compactedNote}</div> : null}
+          {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>{linkedDocuments.map(doc => <button key={doc.id} onClick={() => openDocument(doc)} disabled={openingDocId === doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:10, fontWeight:700, padding:'4px 8px', borderRadius:999, cursor:'pointer' }}>📎 {openingDocId === doc.id ? 'Abriendo...' : (doc.title || 'Documento')}</button>)}</div> : null}
+          {event.reminderEnabled && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8 }}>Aviso {event.reminderDaysBefore === 0 ? 'el mismo día' : `${event.reminderDaysBefore} día(s) antes`} · {event.reminderAudience === 'both' ? 'ambos progenitores' : 'solo tú'}</div>}
+          {canManageEvent && event.createdBy !== user?.uid && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8 }}>Puedes gestionarlo porque este día te corresponde según la custodia.</div>}
+          {hasCustodyImpact && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8 }}>Ya afectó a la custodia y su eliminación requiere aceptación.</div>}
 
-          <LocationActions event={event} navLinks={navLinks} />
-          {event.notes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.5 }}>{event.notes}</div>}
-          {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 }}>{linkedDocuments.map(doc => <button key={doc.id} onClick={() => openDocument(doc)} disabled={openingDocId === doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999, cursor:'pointer' }}>📎 {openingDocId === doc.id ? 'Abriendo...' : (doc.title || 'Documento')}</button>)}</div> : null}
-          {event.reminderEnabled && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Aviso: {event.reminderDaysBefore === 0 ? 'el mismo día' : `${event.reminderDaysBefore} día(s) antes`} · {event.reminderAudience === 'both' ? 'ambos progenitores' : 'solo tú'}</div>}
-          {canManageEvent && event.createdBy !== user?.uid && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Puedes gestionar este evento porque este día te corresponde según la custodia.</div>}
-          {hasCustodyImpact && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>Este evento ya cambió la custodia. Esa parte queda bloqueada y su eliminación requiere aceptación del otro progenitor.</div>}
-
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
             <button onClick={addToCalendar} disabled={calendarLoading} style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.24)', borderRadius: 10, color: '#93c5fd', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>{calendarLoading ? 'Preparando...' : 'Añadir al calendario'}</button>
             {canManageEvent && <button onClick={onEdit} style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 800, padding: '7px 10px', borderRadius: 10 }}>Editar</button>}
-            {canManageEvent && !deletionPendingForMe && !canRespondDeletion && <button onClick={requestDelete} disabled={deletionLoading} style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.18)', color: '#fca5a5', cursor: 'pointer', fontSize: 11, fontWeight: 800, padding: '7px 10px', borderRadius: 10 }}>{deletionLoading ? 'Procesando...' : hasCustodyImpact ? 'Solicitar eliminación' : 'Eliminar'}</button>}
+
+            {canShowMenu && (
+              <div style={{ position: 'relative' }}>
+                <button onClick={() => setMenuOpen(v => !v)} style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 16, fontWeight: 800, padding: '4px 10px', borderRadius: 10 }}>⋯</button>
+                {menuOpen && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 190, padding: 8, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 14px 30px rgba(15,23,42,0.16)', zIndex: 60, display: 'grid', gap: 6 }}>
+                    {canRequestAssignment && child?.parents.map(pid => (
+                      <button key={pid} onClick={() => requestAssignment(pid)} style={{ textAlign: 'left', background: 'transparent', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: 12, fontWeight: 800, padding: '8px 10px', borderRadius: 10 }}>
+                        Asignar a {child.parentNames?.[pid] ?? 'Progenitor'}
+                      </button>
+                    ))}
+                    {canManageEvent && !deletionPendingForMe && !canRespondDeletion && (
+                      <button onClick={requestDelete} disabled={deletionLoading} style={{ textAlign: 'left', background: 'transparent', border: 'none', color: '#fca5a5', cursor: 'pointer', fontSize: 12, fontWeight: 800, padding: '8px 10px', borderRadius: 10 }}>
+                        {deletionLoading ? 'Procesando...' : hasCustodyImpact ? 'Solicitar eliminación' : 'Eliminar'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {deletionPendingForMe && <span style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.20)', color: '#fbbf24', fontSize: 11, fontWeight: 800, padding: '7px 10px', borderRadius: 10 }}>Esperando aceptación</span>}
           </div>
 
-          {child && canRequestAssignment && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>{child.parents.map(pid => <button key={pid} onClick={() => requestAssignment(pid)} style={{ background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-secondary)', fontSize: 11, fontWeight: 800, padding: '6px 9px', cursor: 'pointer' }}>Asignar a {child.parentNames?.[pid] ?? 'Progenitor'}</button>)}</div>}
+          {canRespondAssignment && <div style={{ display: 'flex', gap: 8, marginTop: 10 }}><button onClick={() => respondAssignment(false)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, color: '#fca5a5', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>Rechazar</button><button onClick={() => respondAssignment(true)} style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, color: '#6ee7b7', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>Aceptar</button></div>}
 
-          {canRespondAssignment && <div style={{ display: 'flex', gap: 8, marginTop: 8 }}><button onClick={() => respondAssignment(false)} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, color: '#fca5a5', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>Rechazar</button><button onClick={() => respondAssignment(true)} style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, color: '#6ee7b7', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>Aceptar</button></div>}
-
-          {canRespondDeletion && <div style={{ display: 'flex', gap: 8, marginTop: 8 }}><button onClick={() => respondDeletion(false)} disabled={deletionLoading} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, color: '#fca5a5', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>Rechazar eliminación</button><button onClick={() => respondDeletion(true)} disabled={deletionLoading} style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, color: '#6ee7b7', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>Aceptar eliminación</button></div>}
+          {canRespondDeletion && <div style={{ display: 'flex', gap: 8, marginTop: 10 }}><button onClick={() => respondDeletion(false)} disabled={deletionLoading} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, color: '#fca5a5', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>Rechazar eliminación</button><button onClick={() => respondDeletion(true)} disabled={deletionLoading} style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, color: '#6ee7b7', fontSize: 11, fontWeight: 800, padding: '7px 10px', cursor: 'pointer' }}>Aceptar eliminación</button></div>}
         </div>
       </div>
     </div>
