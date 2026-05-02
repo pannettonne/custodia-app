@@ -7,7 +7,7 @@ import { useAppStore } from '@/store/app'
 import { formatDate, getParentForDate, toISODate } from '@/lib/utils'
 import styles from './TodayPanel.module.css'
 
-type TodayNavigateTab = 'calendar' | 'requests' | 'notes' | 'events' | 'medications'
+type TodayNavigateTab = 'calendar' | 'requests' | 'notes' | 'events' | 'medications' | 'settings'
 type TodayAction = { label: string; tab: TodayNavigateTab; date?: string; openComposer?: 'note' | 'event' }
 
 function toneStyle(tone: string): CSSProperties {
@@ -163,12 +163,26 @@ export function TodayPanel() {
   }
 
   if (!child) {
+    const onboardingSteps = ['Añade el menor', 'Define el patrón de custodia', 'Invita al otro progenitor']
+
     return (
-      <div className="empty-state">
-        <div className="empty-state-icon">👶</div>
-        <div className="empty-state-title">Empieza configurando un menor</div>
-        <div className="empty-state-sub">Cuando haya un menor y un patrón de custodia, aquí verás el resumen de hoy.</div>
-      </div>
+      <section className={`card ${styles.onboardingCard}`}>
+        <div className={styles.onboardingBadge}>👶</div>
+        <div className={styles.eyebrow}>Primeros pasos</div>
+        <h2 className={styles.onboardingTitle}>Configura tu calendario familiar</h2>
+        <p className={styles.onboardingText}>En unos minutos tendrás la pantalla Hoy preparada con custodia actual, próximos cambios y avisos importantes.</p>
+
+        <div className={styles.onboardingSteps}>
+          {onboardingSteps.map((step, index) => (
+            <div className={styles.onboardingStep} key={step}>
+              <span className={styles.onboardingStepNumber}>{index + 1}</span>
+              <span className={styles.onboardingStepText}>{step}</span>
+            </div>
+          ))}
+        </div>
+
+        <button className={styles.onboardingAction} onClick={() => goTo({ label: 'Configurar', tab: 'settings' })}>Empezar configuración</button>
+      </section>
     )
   }
 
