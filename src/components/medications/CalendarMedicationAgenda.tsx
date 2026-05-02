@@ -19,6 +19,10 @@ export function CalendarMedicationAgenda() {
     children,
     selectedChildId,
     availabilityBlocks,
+    notes,
+    events,
+    requests,
+    collaboratorAssignments,
   } = useAppStore()
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const date = selectedCalendarDate || new Date().toISOString().slice(0, 10)
@@ -50,6 +54,11 @@ export function CalendarMedicationAgenda() {
   return (
     <>
       <CalendarTodayEnhancer />
+      <CalendarDayDetailSimplifier
+        selectedDate={date}
+        hasBlocks={selectedDayBlocks.length > 0}
+        rerenderKey={`${events.length}-${requests.length}-${collaboratorAssignments.length}-${notes.length}-${selectedDayBlocks.length}`}
+      />
       <CalendarAvailabilityInline blocks={selectedDayBlocks} />
       <MedicationAlertDaemon />
       {occurrences.length > 0 ? (
@@ -219,6 +228,201 @@ function CalendarAvailabilityInline({ blocks }: { blocks: AvailabilityBlock[] })
       removeExisting()
     }
   }, [blocks])
+
+  return null
+}
+
+function CalendarDayDetailSimplifier({ selectedDate, hasBlocks, rerenderKey }: { selectedDate: string; hasBlocks: boolean; rerenderKey: string }) {
+  useEffect(() => {
+    const actionAttr = 'data-custodia-day-plus'
+    let retries = 0
+    let timeoutId: number | null = null
+    let observer: MutationObserver | null = null
+    let cancelled = false
+    let cleanupOutsideClick: (() => void) | null = null
+
+    const findSectionCard = (title: string) => {
+      const titleNode = Array.from(document.querySelectorAll('div')).find(node => (node.textContent || '').trim() === title) as HTMLDivElement | undefined
+      return titleNode?.parentElement?.parentElement as HTMLDivElement | undefined
+    }
+
+    const removeInjected = () => {
+      document.querySelectorAll(`[${actionAttr}]`).forEach(node => node.remove())
+      cleanupOutsideClick?.()
+      cleanupOutsideClick = null
+    }
+
+    const triggerQuickAction = (label: string) => {
+      const button = Array.from(document.querySelectorAll('button')).find(node => (node.textContent || '').trim() === label) as HTMLButtonElement | undefined
+      button?.click()
+    }
+
+    const setVisibility = (title: string, visible: boolean) => {
+      const sectionCard = findSectionCard(title)
+      if (!sectionCard) return false
+      sectionCard.style.display = visible ? '' : 'none'
+      return true
+    }
+
+    const buildQuickActions = () => {
+      const wrapper = document.createElement('div')
+      wrapper.setAttribute(actionAttr, 'true')
+      wrapper.style.position = 'relative'
+      wrapper.style.display = 'flex'
+      wrapper.style.alignItems = 'center'
+      wrapper.style.justifyContent = 'center'
+      wrapper.style.flexShrink = '0'
+
+      const trigger = document.createElement('button')
+      trigger.type = 'button'
+      trigger.setAttribute('aria-label', 'Abrir acciones rápidas del día')
+      trigger.title = 'Añadir'
+      trigger.textContent = '+'
+      trigger.style.width = '48px'
+      trigger.style.height = '48px'
+      trigger.style.borderRadius = '999px'
+      trigger.style.border = '1px solid rgba(59,130,246,0.22)'
+      trigger.style.background = 'linear-gradient(180deg, rgba(59,130,246,0.14) 0%, rgba(37,99,235,0.22) 100%)'
+      trigger.style.color = '#3B82F6'
+      trigger.style.fontSize = '28px'
+      trigger.style.fontWeight = '700'
+      trigger.style.lineHeight = '1'
+      trigger.style.cursor = 'pointer'
+      trigger.style.display = 'flex'
+      trigger.style.alignItems = 'center'
+      trigger.style.justifyContent = 'center'
+      trigger.style.boxShadow = '0 10px 24px rgba(59,130,246,0.14)'
+
+      const menu = document.createElement('div')
+      menu.style.position = 'absolute'
+      menu.style.top = 'calc(100% + 8px)'
+      menu.style.right = '0'
+      menu.style.minWidth = '170px'
+      menu.style.padding = '8px'
+      menu.style.borderRadius = '16px'
+      menu.style.border = '1px solid var(--border)'
+      menu.style.background = 'var(--bg-card)'
+      menu.style.boxShadow = '0 18px 36px rgba(15,23,42,0.16)'
+      menu.style.display = 'none'
+      menu.style.zIndex = '80'
+
+      const actions = [
+        { label: '+ evento', text: 'Nuevo evento', color: '#10b981' },
+        { label: '+ cambio', text: 'Nuevo cambio', color: '#60a5fa' },
+        { label: '+ asignación', text: 'Nueva asignación', color: '#8B5CF6' },
+        { label: '+ nota', text: 'Nueva nota', color: '#f59e0b' },
+      ].filter(action => Array.from(document.querySelectorAll('button')).some(node => (node.textContent || '').trim() === action.label))
+
+      actions.forEach(action => {
+        const item = document.createElement('button')
+        item.type = 'button'
+        item.textContent = action.text
+        item.style.width = '100%'
+        item.style.textAlign = 'left'
+        item.style.padding = '10px 12px'
+        item.style.borderRadius = '12px'
+        item.style.border = 'none'
+        item.style.background = 'transparent'
+        item.style.color = action.color
+        item.style.fontSize = '12px'
+        item.style.fontWeight = '800'
+        item.style.cursor = 'pointer'
+        item.addEventListener('click', event => {
+          event.preventDefault()
+          event.stopPropagation()
+          menu.style.display = 'none'
+          triggerQuickAction(action.label)
+        })
+        item.addEventListener('mouseenter', () => {
+          item.style.background = 'var(--bg-soft)'
+        })
+        item.addEventListener('mouseleave', () => {
+          item.style.background = 'transparent'
+        })
+        menu.appendChild(item)
+      })
+
+      trigger.addEventListener('click', event => {
+        event.preventDefault()
+        event.stopPropagation()
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none'
+      })
+
+      const handleOutsideClick = (event: MouseEvent) => {
+        if (!wrapper.contains(event.target as Node)) menu.style.display = 'none'
+      }
+      document.addEventListener('click', handleOutsideClick)
+      cleanupOutsideClick = () => document.removeEventListener('click', handleOutsideClick)
+
+      wrapper.appendChild(trigger)
+      if (actions.length > 0) wrapper.appendChild(menu)
+      return wrapper
+    }
+
+    const tryApply = () => {
+      if (cancelled) return
+      removeInjected()
+
+      const closeButton = document.querySelector('button[aria-label="Cerrar detalle del día"]') as HTMLButtonElement | null
+      if (!closeButton) {
+        if (retries < 20) {
+          retries += 1
+          timeoutId = window.setTimeout(tryApply, 120)
+        }
+        return
+      }
+
+      closeButton.style.display = 'none'
+      const actionContainer = closeButton.parentElement
+      if (actionContainer) {
+        actionContainer.style.gap = '0'
+        actionContainer.appendChild(buildQuickActions())
+      }
+
+      const eventsCard = findSectionCard('Eventos')
+      const requestsCard = findSectionCard('Solicitudes de cambio')
+      const collaboratorsCard = findSectionCard('Colaboradores')
+      const notesCard = findSectionCard('Notas')
+      const foundAnySection = !!(eventsCard || requestsCard || collaboratorsCard || notesCard)
+
+      if (!foundAnySection) {
+        if (retries < 20) {
+          retries += 1
+          timeoutId = window.setTimeout(tryApply, 120)
+        }
+        return
+      }
+
+      setVisibility('Eventos', !(eventsCard?.textContent || '').includes('No hay eventos para este día.'))
+      setVisibility('Solicitudes de cambio', hasBlocks || !(requestsCard?.textContent || '').includes('No hay solicitudes para este día.'))
+      setVisibility('Colaboradores', !(collaboratorsCard?.textContent || '').includes('No hay asignaciones de colaboradores para este día.'))
+      setVisibility('Notas', !(notesCard?.textContent || '').includes('No hay notas para este día.'))
+    }
+
+    const scheduleApply = () => {
+      if (cancelled) return
+      if (document.querySelector(`[${actionAttr}]`)) return
+      if (timeoutId) window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(tryApply, 80)
+    }
+
+    timeoutId = window.setTimeout(tryApply, 0)
+    observer = new MutationObserver(scheduleApply)
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    return () => {
+      cancelled = true
+      observer?.disconnect()
+      if (timeoutId) window.clearTimeout(timeoutId)
+      removeInjected()
+      const closeButton = document.querySelector('button[aria-label="Cerrar detalle del día"]') as HTMLButtonElement | null
+      if (closeButton) closeButton.style.display = ''
+      ;['Eventos', 'Solicitudes de cambio', 'Colaboradores', 'Notas'].forEach(title => {
+        const card = findSectionCard(title)
+        if (card) card.style.display = ''
+      })
+    }
+  }, [selectedDate, hasBlocks, rerenderKey])
 
   return null
 }
