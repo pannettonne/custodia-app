@@ -86,6 +86,10 @@
   display: none !important;
 }
 
+.app-main > div:has(.calendar-month-title) > div:has(button[aria-label="Cerrar detalle del día"]):not(:has([data-custodia-compact-day-detail="true"])) {
+  display: none !important;
+}
+
 .app-main .calendar-legend {
   justify-content: flex-start !important;
   gap: 9px !important;
