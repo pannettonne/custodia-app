@@ -164,11 +164,12 @@ export function CalendarCompactDayDetail() {
                 +
               </button>
               {menuOpen ? (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 176, padding: 8, borderRadius: 16, border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 18px 36px rgba(15,23,42,0.16)', zIndex: 90 }}>
-                  <QuickAction label="Nuevo evento" color="#10b981" onClick={openEvent} />
-                  <QuickAction label="Nuevo cambio" color="#60a5fa" onClick={openChange} />
-                  {canAssignCollaborator ? <QuickAction label="Nueva asignación" color="#8B5CF6" onClick={openCollaborator} /> : null}
-                  <QuickAction label="Nueva nota" color="#f59e0b" onClick={openNote} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 214, padding: 8, borderRadius: 18, border: '1px solid var(--border)', background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', boxShadow: '0 22px 42px rgba(15,23,42,0.18)', zIndex: 90 }}>
+                  <div style={{ padding: '5px 8px 9px', color: 'var(--text-muted)', fontSize: 10, fontWeight: 900, letterSpacing: 0.45, textTransform: 'uppercase' }}>Añadir al día</div>
+                  <QuickAction icon="📌" label="Nuevo evento" hint="Cita, colegio, actividad" color="#10b981" onClick={openEvent} />
+                  <QuickAction icon="🔄" label="Nuevo cambio" hint="Solicitud puntual" color="#60a5fa" onClick={openChange} />
+                  {canAssignCollaborator ? <QuickAction icon="🤝" label="Nueva asignación" hint="Familiar o cuidador" color="#8B5CF6" onClick={openCollaborator} /> : null}
+                  <QuickAction icon="📝" label="Nueva nota" hint="Aviso u observación" color="#f59e0b" onClick={openNote} />
                 </div>
               ) : null}
             </div>
@@ -270,10 +271,14 @@ export function CalendarCompactDayDetail() {
   )
 }
 
-function QuickAction({ label, color, onClick }: { label: string; color: string; onClick: () => void }) {
+function QuickAction({ icon, label, hint, color, onClick }: { icon: string; label: string; hint: string; color: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 12, border: 'none', background: 'transparent', color, fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>
-      {label}
+    <button type="button" onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '10px 11px', borderRadius: 13, border: 'none', background: 'transparent', color: 'var(--text-strong)', cursor: 'pointer' }}>
+      <span style={{ width: 30, height: 30, borderRadius: 999, background: `${color}18`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{icon}</span>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 12, fontWeight: 900, color }}>{label}</span>
+        <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', marginTop: 2 }}>{hint}</span>
+      </span>
     </button>
   )
 }
