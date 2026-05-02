@@ -264,6 +264,22 @@ function CalendarDayDetailSimplifier({ selectedDate, hasBlocks, rerenderKey }: {
       return true
     }
 
+    const applySectionVisibility = () => {
+      const eventsCard = findSectionCard('Eventos')
+      const requestsCard = findSectionCard('Solicitudes de cambio')
+      const collaboratorsCard = findSectionCard('Colaboradores')
+      const notesCard = findSectionCard('Notas')
+      const foundAnySection = !!(eventsCard || requestsCard || collaboratorsCard || notesCard)
+
+      if (!foundAnySection) return false
+
+      setVisibility('Eventos', !(eventsCard?.textContent || '').includes('No hay eventos para este día.'))
+      setVisibility('Solicitudes de cambio', hasBlocks || !(requestsCard?.textContent || '').includes('No hay solicitudes para este día.'))
+      setVisibility('Colaboradores', !(collaboratorsCard?.textContent || '').includes('No hay asignaciones de colaboradores para este día.'))
+      setVisibility('Notas', !(notesCard?.textContent || '').includes('No hay notas para este día.'))
+      return true
+    }
+
     const buildQuickActions = () => {
       const wrapper = document.createElement('div')
       wrapper.setAttribute(actionAttr, 'true')
@@ -379,36 +395,24 @@ function CalendarDayDetailSimplifier({ selectedDate, hasBlocks, rerenderKey }: {
         actionContainer.appendChild(buildQuickActions())
       }
 
-      const eventsCard = findSectionCard('Eventos')
-      const requestsCard = findSectionCard('Solicitudes de cambio')
-      const collaboratorsCard = findSectionCard('Colaboradores')
-      const notesCard = findSectionCard('Notas')
-      const foundAnySection = !!(eventsCard || requestsCard || collaboratorsCard || notesCard)
-
-      if (!foundAnySection) {
-        if (retries < 20) {
-          retries += 1
-          timeoutId = window.setTimeout(tryApply, 120)
-        }
-        return
+      if (!applySectionVisibility() && retries < 20) {
+        retries += 1
+        timeoutId = window.setTimeout(tryApply, 120)
       }
-
-      setVisibility('Eventos', !(eventsCard?.textContent || '').includes('No hay eventos para este día.'))
-      setVisibility('Solicitudes de cambio', hasBlocks || !(requestsCard?.textContent || '').includes('No hay solicitudes para este día.'))
-      setVisibility('Colaboradores', !(collaboratorsCard?.textContent || '').includes('No hay asignaciones de colaboradores para este día.'))
-      setVisibility('Notas', !(notesCard?.textContent || '').includes('No hay notas para este día.'))
     }
 
     const scheduleApply = () => {
       if (cancelled) return
-      if (document.querySelector(`[${actionAttr}]`)) return
       if (timeoutId) window.clearTimeout(timeoutId)
-      timeoutId = window.setTimeout(tryApply, 80)
+      timeoutId = window.setTimeout(() => {
+        if (document.querySelector(`[${actionAttr}]`)) applySectionVisibility()
+        else tryApply()
+      }, 80)
     }
 
     timeoutId = window.setTimeout(tryApply, 0)
     observer = new MutationObserver(scheduleApply)
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
 
     return () => {
       cancelled = true
