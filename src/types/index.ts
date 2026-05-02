@@ -270,6 +270,7 @@ export interface SchoolEvent {
   endDate?: string
   allDay: boolean
   time?: string
+  endTime?: string
   notes?: string
   recurrence?: EventRecurrence
   recurrenceUntil?: string
