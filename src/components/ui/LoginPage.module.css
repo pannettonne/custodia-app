@@ -1,0 +1,195 @@
+.page {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 22px;
+  background:
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--blue) 16%, transparent), transparent 28%),
+    radial-gradient(circle at 84% 10%, color-mix(in srgb, var(--violet) 14%, transparent), transparent 30%),
+    linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 390px;
+}
+
+.card {
+  overflow: hidden;
+  border: 1px solid var(--border-hover);
+  border-radius: 32px;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.hero {
+  padding: 28px 24px 22px;
+  text-align: left;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.logo {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--blue), var(--violet));
+  box-shadow: 0 18px 42px rgba(59, 130, 246, 0.28);
+  font-size: 27px;
+}
+
+.brandName {
+  color: var(--text-strong);
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -0.45px;
+  line-height: 1;
+}
+
+.brandMeta {
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.48px;
+  text-transform: uppercase;
+}
+
+.title {
+  margin-bottom: 10px;
+  color: var(--text-strong);
+  font-size: 32px;
+  font-weight: 950;
+  letter-spacing: -1.05px;
+  line-height: 1.02;
+}
+
+.subtitle {
+  max-width: 29ch;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  padding: 0 24px 22px;
+}
+
+.feature {
+  min-height: 82px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-soft);
+}
+
+.featureIcon {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--blue) 13%, transparent);
+  font-size: 16px;
+}
+
+.featureLabel {
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.actionArea {
+  padding: 18px 24px 24px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-soft) 70%, transparent);
+}
+
+.googleButton {
+  width: 100%;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 18px;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 850;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+
+.googleButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22);
+}
+
+.googleButton:disabled {
+  opacity: 0.72;
+  cursor: default;
+}
+
+.trustText {
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.footerNote {
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 360px) {
+  .page {
+    padding-inline: 14px;
+  }
+
+  .hero,
+  .actionArea {
+    padding-inline: 18px;
+  }
+
+  .featureGrid {
+    padding-inline: 18px;
+  }
+
+  .title {
+    font-size: 29px;
+  }
+}
