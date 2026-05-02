@@ -1,13 +1,18 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, type CSSProperties } from 'react'
 import { addDays } from 'date-fns'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { formatDate, getParentForDate, toISODate } from '@/lib/utils'
+import styles from './TodayPanel.module.css'
 
 type TodayNavigateTab = 'calendar' | 'requests' | 'notes' | 'events' | 'medications'
 type TodayAction = { label: string; tab: TodayNavigateTab; date?: string; openComposer?: 'note' | 'event' }
+
+function toneStyle(tone: string): CSSProperties {
+  return { '--today-tone': tone } as CSSProperties
+}
 
 function noteMatchesDate(note: any, dateStr: string) {
   if (note.type === 'single') return note.date === dateStr
@@ -54,21 +59,21 @@ function getStatusLabel(status: string) {
 
 function SummaryCard({ label, value, tone }: { label: string; value: string | number; tone: string }) {
   return (
-    <div style={{ padding: 12, borderRadius: 18, border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.35, marginBottom: 5 }}>{label}</div>
-      <div style={{ fontSize: 22, lineHeight: 1, color: tone, fontWeight: 950 }}>{value}</div>
+    <div className={styles.summaryCard} style={toneStyle(tone)}>
+      <div className={styles.summaryLabel}>{label}</div>
+      <div className={styles.summaryValue}>{value}</div>
     </div>
   )
 }
 
 function TimelineItem({ title, meta, tone, onClick }: { title: string; meta: string; tone: string; onClick?: () => void }) {
   return (
-    <button onClick={onClick} style={{ width: '100%', textAlign: 'left', padding: '11px 12px', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--bg-soft)', cursor: onClick ? 'pointer' : 'default' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <div style={{ width: 9, height: 9, borderRadius: '50%', background: tone, flexShrink: 0 }} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-strong)', fontWeight: 850, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{meta}</div>
+    <button className={styles.timelineItem} onClick={onClick} style={toneStyle(tone)}>
+      <div className={styles.timelineContent}>
+        <div className={styles.timelineDot} />
+        <div className={styles.timelineCopy}>
+          <div className={styles.timelineTitle}>{title}</div>
+          <div className={styles.timelineMeta}>{meta}</div>
         </div>
       </div>
     </button>
@@ -171,21 +176,21 @@ export function TodayPanel() {
   const roleLabel = isParentForSelectedChild ? 'Progenitor' : isCollaboratorForSelectedChild ? 'Colaborador' : 'Vista limitada'
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <section className="card" style={{ padding: 18, borderRadius: 24, background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 850, textTransform: 'uppercase', letterSpacing: 0.45, marginBottom: 6 }}>Hoy · {formatDate(todayStr, 'EEEE d MMMM')}</div>
-            <div style={{ fontSize: 24, lineHeight: 1.08, color: 'var(--text-strong)', fontWeight: 950 }}>Resumen de {child.name}</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
-              <span style={{ padding: '5px 9px', borderRadius: 999, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 800 }}>{roleLabel}</span>
-              {custodyInfo ? <span style={{ padding: '5px 9px', borderRadius: 999, background: 'var(--bg-card)', border: '1px solid var(--border)', color: custodyInfo.color, fontSize: 11, fontWeight: 850 }}>Custodia de {custodyInfo.name}{custodyInfo.isMe ? ' · tú' : ''}</span> : null}
+    <div className={styles.root}>
+      <section className={`card ${styles.heroCard}`}>
+        <div className={styles.heroHeader}>
+          <div className={styles.heroCopy}>
+            <div className={styles.eyebrow}>Hoy · {formatDate(todayStr, 'EEEE d MMMM')}</div>
+            <div className={styles.heroTitle}>Resumen de {child.name}</div>
+            <div className={styles.chips}>
+              <span className={styles.chip}>{roleLabel}</span>
+              {custodyInfo ? <span className={`${styles.chip} ${styles.custodyChip}`} style={toneStyle(custodyInfo.color)}>Custodia de {custodyInfo.name}{custodyInfo.isMe ? ' · tú' : ''}</span> : null}
             </div>
           </div>
-          <button onClick={() => goTo({ label: 'Calendario', tab: 'calendar' })} style={{ flexShrink: 0, padding: '9px 11px', borderRadius: 14, border: '1px solid var(--border-hover)', background: 'var(--bg-card)', color: '#3B82F6', fontSize: 12, fontWeight: 850, cursor: 'pointer' }}>Abrir calendario</button>
+          <button className={styles.ghostButton} onClick={() => goTo({ label: 'Calendario', tab: 'calendar' })}>Abrir calendario</button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 16 }}>
+        <div className={styles.summaryGrid}>
           <SummaryCard label="Eventos" value={todayEvents.length} tone="#10B981" />
           <SummaryCard label="Cambios" value={pendingRequests.length + pendingAssignments.length} tone="#3B82F6" />
           <SummaryCard label="Notas" value={todayNotes.length} tone="#F59E0B" />
@@ -193,38 +198,38 @@ export function TodayPanel() {
         </div>
       </section>
 
-      <section className="card" style={{ padding: 16, borderRadius: 22 }}>
-        <div style={{ fontSize: 13, color: 'var(--text-strong)', fontWeight: 900, marginBottom: 10 }}>Próximo cambio</div>
+      <section className={`card ${styles.cardSection}`}>
+        <div className={styles.sectionTitle}>Próximo cambio</div>
         {nextChange ? (
-          <button onClick={() => goTo({ label: 'Próximo cambio', tab: 'calendar', date: nextChange.date })} style={{ width: '100%', textAlign: 'left', padding: 14, borderRadius: 18, border: '1px solid var(--border)', background: 'var(--bg-soft)', cursor: 'pointer' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 800, marginBottom: 4 }}>{formatDate(nextChange.date, 'EEEE d MMMM')}</div>
-            <div style={{ fontSize: 16, color: 'var(--text-strong)', fontWeight: 900 }}>Pasa a <span style={{ color: nextChange.color }}>{nextChange.name}</span></div>
+          <button className={styles.changeButton} onClick={() => goTo({ label: 'Próximo cambio', tab: 'calendar', date: nextChange.date })} style={toneStyle(nextChange.color)}>
+            <div className={styles.changeDate}>{formatDate(nextChange.date, 'EEEE d MMMM')}</div>
+            <div className={styles.changeTitle}>Pasa a <span className={styles.toneText}>{nextChange.name}</span></div>
           </button>
         ) : (
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No he encontrado un cambio en los próximos 45 días.</div>
+          <div className={styles.mutedText}>No he encontrado un cambio en los próximos 45 días.</div>
         )}
       </section>
 
-      <section className="card" style={{ padding: 16, borderRadius: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-strong)', fontWeight: 900 }}>Agenda de hoy</div>
-          {canCreateFamilyItems ? <button onClick={() => goTo({ label: 'Nuevo evento', tab: 'events', openComposer: 'event' })} style={{ border: 'none', background: 'transparent', color: '#10B981', fontSize: 12, fontWeight: 850, cursor: 'pointer' }}>+ evento</button> : null}
+      <section className={`card ${styles.cardSection}`}>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTitle}>Agenda de hoy</div>
+          {canCreateFamilyItems ? <button className={styles.linkButton} onClick={() => goTo({ label: 'Nuevo evento', tab: 'events', openComposer: 'event' })} style={toneStyle('#10B981')}>+ evento</button> : null}
         </div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {todayEvents.length === 0 && todayNotes.length === 0 && todayRequests.length === 0 ? <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No hay eventos, notas ni cambios marcados para hoy.</div> : null}
+        <div className={styles.timelineList}>
+          {todayEvents.length === 0 && todayNotes.length === 0 && todayRequests.length === 0 ? <div className={styles.mutedText}>No hay eventos, notas ni cambios marcados para hoy.</div> : null}
           {todayEvents.slice(0, 3).map(event => <TimelineItem key={`event-${event.id}`} title={event.title} meta={event.allDay ? 'Todo el día' : event.time || 'Sin hora'} tone="#10B981" onClick={() => goTo({ label: event.title, tab: 'events', date: event.date || todayStr })} />)}
           {todayRequests.slice(0, 2).map(request => <TimelineItem key={`request-${request.id}`} title={request.reason || 'Propuesta de cambio'} meta={getStatusLabel(request.status)} tone="#3B82F6" onClick={() => goTo({ label: 'Cambio', tab: 'requests', date: request.date || request.startDate || todayStr })} />)}
           {todayNotes.slice(0, 2).map(note => <TimelineItem key={`note-${note.id}`} title={note.text} meta={`Nota · ${note.createdByName || 'Progenitor'}`} tone="#F59E0B" onClick={() => goTo({ label: 'Nota', tab: 'notes', date: note.date || note.startDate || todayStr })} />)}
         </div>
       </section>
 
-      <section className="card" style={{ padding: 16, borderRadius: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-strong)', fontWeight: 900 }}>Salud y avisos</div>
-          <button onClick={() => goTo({ label: 'Medicación', tab: 'medications' })} style={{ border: 'none', background: 'transparent', color: '#EC4899', fontSize: 12, fontWeight: 850, cursor: 'pointer' }}>Ver medicación</button>
+      <section className={`card ${styles.cardSection}`}>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTitle}>Salud y avisos</div>
+          <button className={styles.linkButton} onClick={() => goTo({ label: 'Medicación', tab: 'medications' })} style={toneStyle('#EC4899')}>Ver medicación</button>
         </div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {activeMedicationsToday.length === 0 ? <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No hay medicación activa para hoy.</div> : null}
+        <div className={styles.medicationList}>
+          {activeMedicationsToday.length === 0 ? <div className={styles.mutedText}>No hay medicación activa para hoy.</div> : null}
           {activeMedicationsToday.slice(0, 3).map(plan => {
             const logs = medicationLogsToday.filter(log => log.medicationId === plan.id)
             const meta = logs.length > 0 ? `${logs.length} registro(s) hoy` : `Cada ${plan.intervalHours} h desde ${plan.firstDoseTime}`
@@ -233,10 +238,10 @@ export function TodayPanel() {
         </div>
       </section>
 
-      <section className="card" style={{ padding: 16, borderRadius: 22 }}>
-        <div style={{ fontSize: 13, color: 'var(--text-strong)', fontWeight: 900, marginBottom: 10 }}>Acciones rápidas</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <button className="btn-primary" style={{ background: '#3B82F6', color: '#fff' }} onClick={() => goTo({ label: 'Pedir cambio', tab: 'requests' })}>Pedir cambio</button>
+      <section className={`card ${styles.cardSection}`}>
+        <div className={styles.sectionTitle}>Acciones rápidas</div>
+        <div className={styles.quickActions}>
+          <button className={`btn-primary ${styles.primaryQuickAction}`} onClick={() => goTo({ label: 'Pedir cambio', tab: 'requests' })}>Pedir cambio</button>
           <button className="btn-primary btn-outline" onClick={() => goTo({ label: 'Calendario', tab: 'calendar' })}>Ver calendario</button>
           {canCreateFamilyItems ? <button className="btn-primary btn-outline" onClick={() => goTo({ label: 'Añadir nota', tab: 'notes', openComposer: 'note' })}>Añadir nota</button> : null}
           {canCreateFamilyItems ? <button className="btn-primary btn-outline" onClick={() => goTo({ label: 'Añadir evento', tab: 'events', openComposer: 'event' })}>Añadir evento</button> : null}
