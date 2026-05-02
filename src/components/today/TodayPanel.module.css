@@ -1,0 +1,232 @@
+.root {
+  display: grid;
+  gap: 12px;
+}
+
+.heroCard {
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%);
+}
+
+.cardSection {
+  padding: 16px;
+  border-radius: 22px;
+}
+
+.heroHeader,
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionHeader {
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.heroCopy,
+.timelineCopy {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  color: var(--text-strong);
+  font-size: 24px;
+  font-weight: 950;
+  line-height: 1.08;
+}
+
+.sectionTitle {
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.chip {
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.custodyChip {
+  color: var(--today-tone, var(--text-secondary));
+  font-weight: 850;
+}
+
+.ghostButton,
+.linkButton {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.ghostButton {
+  flex-shrink: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border-hover);
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: var(--blue);
+}
+
+.linkButton {
+  color: var(--today-tone, var(--blue));
+}
+
+.summaryGrid,
+.quickActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.summaryGrid {
+  margin-top: 16px;
+}
+
+.summaryCard {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-card);
+}
+
+.summaryLabel {
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  color: var(--today-tone, var(--text-strong));
+  font-size: 22px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.changeButton,
+.timelineItem {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  cursor: pointer;
+  text-align: left;
+}
+
+.changeButton {
+  padding: 14px;
+  border-radius: 18px;
+}
+
+.changeDate {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.changeTitle {
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.toneText {
+  color: var(--today-tone, var(--blue));
+}
+
+.mutedText {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.timelineList,
+.medicationList {
+  display: grid;
+  gap: 8px;
+}
+
+.timelineItem {
+  padding: 11px 12px;
+  border-radius: 16px;
+}
+
+.timelineContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.timelineDot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: var(--today-tone, var(--blue));
+}
+
+.timelineTitle,
+.timelineMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timelineTitle {
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.timelineMeta {
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.primaryQuickAction {
+  background: var(--blue) !important;
+  color: #fff !important;
+}
+
+@media (max-width: 380px) {
+  .heroHeader {
+    flex-direction: column;
+  }
+
+  .ghostButton {
+    width: 100%;
+  }
+}
