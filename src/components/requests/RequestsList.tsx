@@ -22,14 +22,130 @@ import type { ChangeRequest, CollaboratorAssignment, SchoolEvent } from '@/types
 
 function listDates(startDate: string, endDate?: string) {
   const result: string[] = []
-  const start = new Date(startDate + 'T12:00:00')
-  const end = new Date((endDate || startDate) + 'T12:00:00')
+  const start = new Date(`${startDate}T12:00:00`)
+  const end = new Date(`${endDate || startDate}T12:00:00`)
   let cur = new Date(start)
   while (cur <= end) {
     result.push(cur.toISOString().slice(0, 10))
     cur.setDate(cur.getDate() + 1)
   }
   return result
+}
+
+function compactText(value?: string, max = 110) {
+  const text = (value || '').replace(/\s+/g, ' ').trim()
+  if (!text) return ''
+  return text.length > max ? `${text.slice(0, max - 3)}...` : text
+}
+
+function badgeStyle(tone: 'warning' | 'success' | 'danger' | 'muted' | 'violet' | 'info') {
+  if (tone === 'warning') return { background: 'rgba(245,158,11,0.14)', color: '#f59e0b' }
+  if (tone === 'success') return { background: 'rgba(16,185,129,0.14)', color: '#10b981' }
+  if (tone === 'danger') return { background: 'rgba(239,68,68,0.14)', color: '#ef4444' }
+  if (tone === 'violet') return { background: 'rgba(139,92,246,0.14)', color: '#8B5CF6' }
+  if (tone === 'info') return { background: 'rgba(59,130,246,0.14)', color: '#60a5fa' }
+  return { background: 'var(--bg-soft)', color: 'var(--text-muted)' }
+}
+
+function cardPalette(tone: 'warning' | 'success' | 'danger' | 'muted' | 'violet' | 'info') {
+  if (tone === 'warning') return { border: 'rgba(245,158,11,0.28)', background: 'linear-gradient(180deg, rgba(245,158,11,0.10) 0%, var(--bg-card) 36%, var(--bg-soft) 100%)' }
+  if (tone === 'success') return { border: 'rgba(16,185,129,0.26)', background: 'linear-gradient(180deg, rgba(16,185,129,0.10) 0%, var(--bg-card) 36%, var(--bg-soft) 100%)' }
+  if (tone === 'danger') return { border: 'rgba(239,68,68,0.24)', background: 'linear-gradient(180deg, rgba(239,68,68,0.10) 0%, var(--bg-card) 36%, var(--bg-soft) 100%)' }
+  if (tone === 'violet') return { border: 'rgba(139,92,246,0.24)', background: 'linear-gradient(180deg, rgba(139,92,246,0.10) 0%, var(--bg-card) 36%, var(--bg-soft) 100%)' }
+  return { border: 'rgba(59,130,246,0.24)', background: 'linear-gradient(180deg, rgba(59,130,246,0.10) 0%, var(--bg-card) 36%, var(--bg-soft) 100%)' }
+}
+
+function actionButtonStyle(tone: 'neutral' | 'success' | 'danger') {
+  if (tone === 'success') return { background: 'rgba(16,185,129,0.14)', border: '1px solid rgba(16,185,129,0.24)', color: '#6ee7b7' }
+  if (tone === 'danger') return { background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.24)', color: '#fca5a5' }
+  return { background: 'var(--bg-soft)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }
+}
+
+function ActionButton({
+  children,
+  onClick,
+  tone = 'neutral',
+}: {
+  children: any
+  onClick: () => void
+  tone?: 'neutral' | 'success' | 'danger'
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="req-action-btn"
+      style={{
+        padding: '7px 10px',
+        borderRadius: 10,
+        fontSize: 11,
+        fontWeight: 800,
+        ...actionButtonStyle(tone),
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Section({
+  title,
+  count,
+  children,
+  collapsible,
+  open,
+  onToggle,
+  tone = 'muted',
+}: {
+  title: string
+  count: number
+  children: any
+  collapsible?: boolean
+  open?: boolean
+  onToggle?: () => void
+  tone?: 'warning' | 'success' | 'danger' | 'muted' | 'violet' | 'info'
+}) {
+  if (count === 0) return null
+  const badge = badgeStyle(tone)
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <button
+        onClick={collapsible ? onToggle : undefined}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'none',
+          border: 'none',
+          padding: '0 0 10px 0',
+          cursor: collapsible ? 'pointer' : 'default',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="section-title" style={{ margin: 0, color: 'var(--text-strong)' }}>{title}</div>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 22,
+              height: 22,
+              padding: '0 7px',
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 800,
+              ...badge,
+            }}
+          >
+            {count}
+          </span>
+        </div>
+        {collapsible ? <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{open ? 'Ocultar' : 'Mostrar'}</span> : null}
+      </button>
+      {(!collapsible || open) ? children : null}
+    </div>
+  )
 }
 
 export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: string; focusSeq?: number } = {}) {
@@ -86,29 +202,18 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
       if (isParentForSelectedChild) return a.createdByParentId === user.uid || a.collaboratorId === user.uid
       return false
     })
-    const incomingCollaboratorAssignments = collaboratorScoped.filter(a => a.status === 'pending' && a.collaboratorId === user.uid)
-    const outgoingCollaboratorAssignments = collaboratorScoped.filter(a => a.status === 'pending' && a.createdByParentId === user.uid)
-    const resolvedCollaboratorAssignments = collaboratorScoped.filter(a => ['accepted', 'rejected'].includes(a.status))
-    const cancelledCollaboratorAssignments = collaboratorScoped.filter(a => a.status === 'cancelled')
-
-    const resolved = isParentForSelectedChild
-      ? requests.filter(r => ['accepted', 'rejected'].includes(r.status))
-      : []
-    const cancelled = isParentForSelectedChild
-      ? requests.filter(r => r.status === 'cancelled')
-      : []
 
     return {
       incomingPending,
       outgoingPending,
       incomingEventAssignments,
       outgoingEventAssignments,
-      incomingCollaboratorAssignments,
-      outgoingCollaboratorAssignments,
-      resolved,
-      cancelled,
-      resolvedCollaboratorAssignments,
-      cancelledCollaboratorAssignments,
+      incomingCollaboratorAssignments: collaboratorScoped.filter(a => a.status === 'pending' && a.collaboratorId === user.uid),
+      outgoingCollaboratorAssignments: collaboratorScoped.filter(a => a.status === 'pending' && a.createdByParentId === user.uid),
+      resolved: isParentForSelectedChild ? requests.filter(r => ['accepted', 'rejected'].includes(r.status)) : [],
+      cancelled: isParentForSelectedChild ? requests.filter(r => r.status === 'cancelled') : [],
+      resolvedCollaboratorAssignments: collaboratorScoped.filter(a => ['accepted', 'rejected'].includes(a.status)),
+      cancelledCollaboratorAssignments: collaboratorScoped.filter(a => a.status === 'cancelled'),
     }
   }, [requests, collaboratorAssignments, events, user?.uid, isParentForSelectedChild, isCollaboratorForSelectedChild])
 
@@ -118,7 +223,6 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
     if (focusTargetId.startsWith('request-')) {
       const matchedResolved = grouped.resolved.some(r => `request-${r.id}` === focusTargetId)
       const matchedCancelled = grouped.cancelled.some(r => `request-${r.id}` === focusTargetId)
-
       if (matchedResolved && !showResolved) {
         setShowResolved(true)
         return
@@ -166,12 +270,14 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
     const dates = req.type === 'single'
       ? [req.date!]
       : eachDayOfInterval({ start: parseISO(req.startDate!), end: parseISO(req.endDate!) }).map(d => format(d, 'yyyy-MM-dd'))
+
     for (const date of dates) {
-      const currentOwner = getParentForDate(new Date(date + 'T12:00:00'), pattern, overrides, child, specialPeriods)
+      const currentOwner = getParentForDate(new Date(`${date}T12:00:00`), pattern, overrides, child, specialPeriods)
       const otherParent = child.parents.find(pid => pid !== currentOwner) ?? req.fromParentId
       const targetParentId = currentOwner === req.fromParentId ? otherParent : req.fromParentId
       await setOverride({ childId: req.childId, date, parentId: targetParentId, reason: req.reason, createdBy: user.uid })
     }
+
     await notifyRequester(req, true)
   }
 
@@ -196,6 +302,7 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
 
   const respondEventAssignment = async (event: SchoolEvent, accept: boolean) => {
     if (!user || !child) return
+
     if (!accept) {
       await updateEvent(event.id, { assignmentStatus: 'rejected' })
       if (event.assignmentRequestedBy) {
@@ -211,12 +318,20 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
       }
       return
     }
+
     await updateEvent(event.id, { assignmentStatus: 'accepted' })
     if (event.allDay && event.assignedParentId) {
       for (const date of listDates(event.date, event.endDate)) {
-        await setOverride({ childId: event.childId, date, parentId: event.assignedParentId, reason: `Asignación por evento: ${event.title}`, createdBy: user.uid })
+        await setOverride({
+          childId: event.childId,
+          date,
+          parentId: event.assignedParentId,
+          reason: `Asignación por evento: ${event.title}`,
+          createdBy: user.uid,
+        })
       }
     }
+
     if (event.assignmentRequestedBy) {
       await createNotification({
         userId: event.assignmentRequestedBy,
@@ -295,202 +410,260 @@ export function RequestsList({ focusTargetId, focusSeq }: { focusTargetId?: stri
     )
   }
 
-  const Card = ({ req, isIncoming }: { req: ChangeRequest; isIncoming: boolean }) => {
+  const ChangeCard = ({ req, isIncoming }: { req: ChangeRequest; isIncoming: boolean }) => {
     const dateText = req.type === 'single' ? formatDate(req.date!) : `${formatDate(req.startDate!)} → ${formatDate(req.endDate!)}`
-    const palette = req.status === 'pending'
-      ? { border: 'rgba(245,158,11,0.30)', badgeBg: 'rgba(245,158,11,0.14)', badgeColor: '#f59e0b', stripe: 'linear-gradient(180deg, rgba(245,158,11,0.10) 0%, var(--bg-card) 30%, var(--bg-soft) 100%)' }
-      : req.status === 'accepted'
-      ? { border: 'rgba(16,185,129,0.28)', badgeBg: 'rgba(16,185,129,0.14)', badgeColor: '#10b981', stripe: 'linear-gradient(180deg, rgba(16,185,129,0.10) 0%, var(--bg-card) 30%, var(--bg-soft) 100%)' }
-      : req.status === 'cancelled'
-      ? { border: 'var(--border)', badgeBg: 'var(--bg-soft)', badgeColor: 'var(--text-muted)', stripe: 'linear-gradient(180deg, rgba(148,163,184,0.08) 0%, var(--bg-card) 30%, var(--bg-soft) 100%)' }
-      : { border: 'rgba(239,68,68,0.26)', badgeBg: 'rgba(239,68,68,0.14)', badgeColor: '#ef4444', stripe: 'linear-gradient(180deg, rgba(239,68,68,0.10) 0%, var(--bg-card) 30%, var(--bg-soft) 100%)' }
+    const tone = req.status === 'pending' ? 'warning' : req.status === 'accepted' ? 'success' : req.status === 'cancelled' ? 'muted' : 'danger'
     const badgeText = req.status === 'pending' ? 'Pendiente' : req.status === 'accepted' ? 'Aceptada' : req.status === 'cancelled' ? 'Cancelada' : 'Rechazada'
+    const palette = cardPalette(tone)
+    const badge = badgeStyle(tone)
+    const compactReason = compactText(req.reason)
+
     return (
-      <div style={{ background: palette.stripe, border: `1px solid ${palette.border}`, borderRadius: 22, padding: 16, marginBottom: 10, boxShadow: 'var(--card-shadow)' }}>
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, marginBottom: 10 }}>
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            <span style={{ display:'inline-flex', alignItems:'center', width:'fit-content', padding:'5px 10px', borderRadius: 999, background: palette.badgeBg, color: palette.badgeColor, fontSize: 11, fontWeight: 800 }}>{badgeText}</span>
-            <div style={{ color:'var(--text-strong)', fontSize: 14, fontWeight: 800 }}>{isIncoming ? req.fromParentName : 'Tú'} pide cambio</div>
+      <div style={{ background: palette.background, border: `1px solid ${palette.border}`, borderRadius: 22, padding: 14, marginBottom: 10, boxShadow: 'var(--card-shadow)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
+              <span style={{ color: 'var(--text-strong)', fontSize: 14, fontWeight: 800 }}>{isIncoming ? `${req.fromParentName} te propone un cambio` : 'Solicitud de cambio enviada'}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 999, fontSize: 10, fontWeight: 800, ...badge }}>{badgeText}</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700 }}>{dateText}</div>
           </div>
-          <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:700, textAlign:'right' }}>{req.type === 'single' ? 'Día concreto' : 'Rango'}</div>
+          <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-muted)', fontWeight: 800, background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 999, padding: '3px 8px' }}>{req.type === 'single' ? 'Día' : 'Rango'}</span>
         </div>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize: 12, color:'var(--text-secondary)', background:'var(--bg-soft)', border:'1px solid var(--border)', padding:'7px 10px', borderRadius: 12, marginBottom: 10 }}>
-          <span>📅</span>
-          <span style={{ fontWeight: 700 }}>{dateText}</span>
-        </div>
-        <div style={{ fontSize: 12, color:'var(--text-secondary)', lineHeight: 1.5 }}><span style={{ color:'var(--text-muted)' }}>Motivo: </span>{req.reason}</div>
-        {isIncoming && req.status === 'pending' && (
-          <div style={{ display:'flex', gap:8, marginTop: 14 }}>
-            <button className="req-action-btn btn-reject" onClick={() => handleReject(req)}>✕ Rechazar</button>
-            <button className="req-action-btn btn-accept" onClick={() => handleAccept(req)}>✓ Aceptar</button>
+
+        {compactReason ? <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45, marginTop: 8 }}>{compactReason}</div> : null}
+
+        {isIncoming && req.status === 'pending' ? (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <ActionButton tone="danger" onClick={() => handleReject(req)}>Rechazar</ActionButton>
+            <ActionButton tone="success" onClick={() => handleAccept(req)}>Aceptar</ActionButton>
           </div>
-        )}
-        {!isIncoming && req.status === 'pending' && (
-          <div style={{ display:'flex', gap:8, marginTop: 14 }}>
-            <button className="req-action-btn btn-reject" onClick={() => handleCancelOwn(req)}>Cancelar solicitud</button>
+        ) : null}
+
+        {!isIncoming && req.status === 'pending' ? (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <ActionButton tone="danger" onClick={() => handleCancelOwn(req)}>Cancelar</ActionButton>
           </div>
-        )}
-        {req.status === 'cancelled' && (
-          <div style={{ display:'flex', gap:8, marginTop: 14 }}>
-            <button className="req-action-btn btn-reject" onClick={() => deleteRequest(req.id)}>Eliminar</button>
+        ) : null}
+
+        {req.status === 'cancelled' ? (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <ActionButton tone="danger" onClick={() => deleteRequest(req.id)}>Eliminar</ActionButton>
           </div>
-        )}
+        ) : null}
       </div>
     )
   }
 
   const CollaboratorCard = ({ assignment, incoming }: { assignment: CollaboratorAssignment; incoming: boolean }) => {
-    const statusTone = assignment.status === 'accepted' ? '#10b981' : assignment.status === 'rejected' ? '#ef4444' : assignment.status === 'cancelled' ? 'var(--text-muted)' : '#8B5CF6'
-    const statusLabel = assignment.status === 'accepted' ? 'Aceptada' : assignment.status === 'rejected' ? 'Rechazada' : assignment.status === 'cancelled' ? 'Cancelada' : 'Pendiente'
+    const tone = assignment.status === 'accepted' ? 'success' : assignment.status === 'rejected' ? 'danger' : assignment.status === 'cancelled' ? 'muted' : 'violet'
+    const badgeText = assignment.status === 'accepted' ? 'Aceptada' : assignment.status === 'rejected' ? 'Rechazada' : assignment.status === 'cancelled' ? 'Cancelada' : 'Pendiente'
+    const palette = cardPalette(tone)
+    const badge = badgeStyle(tone)
+    const slotText = assignment.type === 'partial_slot' && assignment.startTime && assignment.endTime ? `${assignment.startTime}-${assignment.endTime}` : 'Día completo'
+    const compactNotes = compactText(assignment.notes)
+
     return (
-      <div style={{ background:'linear-gradient(180deg, rgba(139,92,246,0.10) 0%, var(--bg-card) 30%, var(--bg-soft) 100%)', border:'1px solid rgba(139,92,246,0.26)', borderRadius:22, padding:16, marginBottom:10, boxShadow:'var(--card-shadow)' }}>
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, marginBottom:10 }}>
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            <span style={{ display:'inline-flex', alignItems:'center', width:'fit-content', padding:'5px 10px', borderRadius:999, background:'rgba(139,92,246,0.14)', color:'#8B5CF6', fontSize:11, fontWeight:800 }}>{statusLabel}</span>
-            <div style={{ color:'var(--text-strong)', fontSize:14, fontWeight:800 }}>{incoming ? `${assignment.createdByParentName} te propone una asignación` : `Has asignado a ${assignment.collaboratorName}`}</div>
+      <div style={{ background: palette.background, border: `1px solid ${palette.border}`, borderRadius: 22, padding: 14, marginBottom: 10, boxShadow: 'var(--card-shadow)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
+              <span style={{ color: 'var(--text-strong)', fontSize: 14, fontWeight: 800 }}>{incoming ? `${assignment.createdByParentName} te asigna este apoyo` : `Has asignado a ${assignment.collaboratorName}`}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 999, fontSize: 10, fontWeight: 800, ...badge }}>{badgeText}</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700 }}>{formatDate(assignment.date)} · {slotText}</div>
           </div>
-          <div style={{ fontSize:11, color:statusTone, fontWeight:800, textAlign:'right' }}>{assignment.type === 'partial_slot' ? 'TRAMO' : 'DÍA'}</div>
+          <span style={{ flexShrink: 0, fontSize: 10, color: 'var(--text-muted)', fontWeight: 800, background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 999, padding: '3px 8px' }}>{assignment.type === 'partial_slot' ? 'Tramo' : 'Día'}</span>
         </div>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text-secondary)', background:'var(--bg-soft)', border:'1px solid var(--border)', padding:'7px 10px', borderRadius:12, marginBottom:10 }}>
-          <span>🤝</span>
-          <span style={{ fontWeight:700 }}>{formatDate(assignment.date)}{assignment.type === 'partial_slot' && assignment.startTime && assignment.endTime ? ` · ${assignment.startTime}-${assignment.endTime}` : ' · Día completo'}</span>
-        </div>
-        {assignment.notes ? <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.5 }}><span style={{ color:'var(--text-muted)' }}>Observaciones: </span>{assignment.notes}</div> : null}
-        {incoming && assignment.status === 'pending' && (
-          <div style={{ display:'flex', gap:8, marginTop:14 }}>
-            <button className="req-action-btn btn-reject" onClick={() => respondCollaborator(assignment, false)}>✕ Rechazar</button>
-            <button className="req-action-btn btn-accept" onClick={() => respondCollaborator(assignment, true)}>✓ Aceptar</button>
+
+        {compactNotes ? <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45, marginTop: 8 }}>{compactNotes}</div> : null}
+
+        {incoming && assignment.status === 'pending' ? (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <ActionButton tone="danger" onClick={() => respondCollaborator(assignment, false)}>Rechazar</ActionButton>
+            <ActionButton tone="success" onClick={() => respondCollaborator(assignment, true)}>Aceptar</ActionButton>
           </div>
-        )}
-        {!incoming && assignment.status === 'pending' && (
-          <div style={{ display:'flex', gap:8, marginTop:14 }}>
-            <button className="req-action-btn btn-reject" onClick={() => cancelOutgoingCollaborator(assignment)}>Cancelar asignación</button>
+        ) : null}
+
+        {!incoming && assignment.status === 'pending' ? (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <ActionButton tone="danger" onClick={() => cancelOutgoingCollaborator(assignment)}>Cancelar</ActionButton>
           </div>
-        )}
+        ) : null}
       </div>
     )
   }
 
   const EventAssignmentCard = ({ event, incoming }: { event: SchoolEvent; incoming: boolean }) => {
     const assignedName = event.assignedParentId && child ? child.parentNames?.[event.assignedParentId] : 'el otro progenitor'
-    const openEvent = () => {
-      navigateToTarget({ tab: 'events', childId: event.childId, date: event.date, focusTargetId: `event-${event.id}` })
-    }
+    const openEvent = () => navigateToTarget({ tab: 'events', childId: event.childId, date: event.date, focusTargetId: `event-${event.id}` })
+    const compactNotes = compactText(event.notes)
+    const dateText = `${formatDate(event.date)}${event.endDate ? ` → ${formatDate(event.endDate)}` : ''}`
+    const timeText = event.allDay ? 'Todo el día' : event.time && event.endTime ? `${event.time}-${event.endTime}` : event.time || 'Sin hora'
+    const palette = cardPalette('info')
+    const badge = badgeStyle('info')
+
     return (
-      <div style={{ background:'linear-gradient(180deg, rgba(59,130,246,0.10) 0%, var(--bg-card) 30%, var(--bg-soft) 100%)', border:'1px solid rgba(59,130,246,0.26)', borderRadius:22, padding:16, marginBottom:10, boxShadow:'var(--card-shadow)' }}>
-        <div style={{ marginBottom:10 }}>
-          <span style={{ display:'inline-flex', alignItems:'center', padding:'5px 10px', borderRadius:999, background:'rgba(59,130,246,0.14)', color:'#60a5fa', fontSize:11, fontWeight:800 }}>Asignación de evento pendiente</span>
-        </div>
-        <button onClick={openEvent} style={{ width:'100%', textAlign:'left', background:'none', border:'none', padding:0, cursor:'pointer' }}>
-          <div style={{ color:'var(--text-strong)', fontSize:14, fontWeight:800, marginBottom:6 }}>{incoming ? `${event.assignmentRequestedByName || 'El otro progenitor'} quiere asignarte este evento` : `Has pedido asignar este evento a ${assignedName}`}</div>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text-secondary)', background:'var(--bg-soft)', border:'1px solid var(--border)', padding:'7px 10px', borderRadius:12, marginBottom:10 }}>🎓 <span style={{ fontWeight:700 }}>{event.title}</span> · <span>{formatDate(event.date)}{event.endDate ? ` → ${formatDate(event.endDate)}` : ''}</span></div>
-          <div style={{ fontSize:12, color:'var(--text-secondary)', lineHeight:1.45 }}>{event.allDay ? 'Evento de todo el día' : `Hora: ${event.time || 'Sin hora'}`}</div>
+      <div style={{ background: palette.background, border: `1px solid ${palette.border}`, borderRadius: 22, padding: 14, marginBottom: 10, boxShadow: 'var(--card-shadow)' }}>
+        <button onClick={openEvent} style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
+                <span style={{ color: 'var(--text-strong)', fontSize: 14, fontWeight: 800 }}>{incoming ? `${event.assignmentRequestedByName || 'El otro progenitor'} quiere asignarte este evento` : `Has pedido asignar este evento a ${assignedName}`}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 999, fontSize: 10, fontWeight: 800, ...badge }}>Pendiente</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700 }}>{event.title}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{dateText} · {timeText}</div>
+            </div>
+          </div>
+          {compactNotes ? <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45, marginTop: 8 }}>{compactNotes}</div> : null}
         </button>
-        <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap' }}>
-          <button className="req-action-btn" style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)' }} onClick={openEvent}>Abrir evento</button>
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          <ActionButton onClick={openEvent}>Abrir</ActionButton>
           {incoming ? (
             <>
-              <button className="req-action-btn btn-reject" onClick={() => respondEventAssignment(event, false)}>✕ Rechazar</button>
-              <button className="req-action-btn btn-accept" onClick={() => respondEventAssignment(event, true)}>✓ Aceptar</button>
+              <ActionButton tone="danger" onClick={() => respondEventAssignment(event, false)}>Rechazar</ActionButton>
+              <ActionButton tone="success" onClick={() => respondEventAssignment(event, true)}>Aceptar</ActionButton>
             </>
           ) : (
-            <button className="req-action-btn btn-reject" onClick={() => cancelOutgoingEventAssignment(event)}>Cancelar asignación</button>
+            <ActionButton tone="danger" onClick={() => cancelOutgoingEventAssignment(event)}>Cancelar</ActionButton>
           )}
         </div>
       </div>
     )
   }
 
-  const Section = ({ title, count, children, collapsible, open, onToggle, tone = 'default' }: any) => {
-    if (count === 0) return null
-    const toneColor = tone === 'warning' ? '#f59e0b' : tone === 'info' ? '#60a5fa' : tone === 'success' ? '#10b981' : tone === 'violet' ? '#8B5CF6' : 'var(--text-secondary)'
+  const renderRequestCard = (req: ChangeRequest, isIncoming: boolean) => {
+    const searchId = `request-${req.id}`
     return (
-      <div style={{ marginBottom: 14 }}>
-        <button onClick={collapsible ? onToggle : undefined} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', background:'none', border:'none', padding:'0 0 10px 0', cursor: collapsible ? 'pointer' : 'default' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div className="section-title" style={{ margin:0, color:'var(--text-strong)' }}>{title}</div>
-            <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', minWidth:22, height:22, padding:'0 7px', borderRadius:999, background:'var(--bg-soft)', border:'1px solid var(--border)', color:toneColor, fontSize:11, fontWeight:800 }}>{count}</span>
-          </div>
-          {collapsible && <span style={{ color:'var(--text-muted)', fontSize:12 }}>{open ? 'Ocultar' : 'Mostrar'}</span>}
-        </button>
-        {(!collapsible || open) && children}
+      <div
+        key={req.id}
+        ref={el => { cardRefs.current[searchId] = el }}
+        style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(245,158,11,0.45), 0 18px 40px rgba(245,158,11,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}
+      >
+        <ChangeCard req={req} isIncoming={isIncoming} />
       </div>
     )
   }
 
-  const renderRequestCard = (req: ChangeRequest, isIncoming: boolean) => {
-    const searchId = `request-${req.id}`
-    return <div key={req.id} ref={el => { cardRefs.current[searchId] = el }} style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(245,158,11,0.45), 0 18px 40px rgba(245,158,11,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}><Card req={req} isIncoming={isIncoming} /></div>
-  }
-
   const renderCollaboratorCard = (assignment: CollaboratorAssignment, incoming: boolean) => {
     const searchId = `collaborator-assignment-${assignment.id}`
-    return <div key={assignment.id} ref={el => { cardRefs.current[searchId] = el }} style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(139,92,246,0.45), 0 18px 40px rgba(139,92,246,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}><CollaboratorCard assignment={assignment} incoming={incoming} /></div>
+    return (
+      <div
+        key={assignment.id}
+        ref={el => { cardRefs.current[searchId] = el }}
+        style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(139,92,246,0.45), 0 18px 40px rgba(139,92,246,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}
+      >
+        <CollaboratorCard assignment={assignment} incoming={incoming} />
+      </div>
+    )
   }
 
   const renderEventAssignmentCard = (event: SchoolEvent, incoming: boolean) => {
     const searchId = `event-${event.id}`
-    return <div key={event.id} ref={el => { cardRefs.current[searchId] = el }} style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(59,130,246,0.45), 0 18px 40px rgba(59,130,246,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}><EventAssignmentCard event={event} incoming={incoming} /></div>
+    return (
+      <div
+        key={event.id}
+        ref={el => { cardRefs.current[searchId] = el }}
+        style={highlightedId === searchId ? { borderRadius: 22, boxShadow: '0 0 0 2px rgba(59,130,246,0.45), 0 18px 40px rgba(59,130,246,0.14)', transition: 'box-shadow 0.2s ease' } : undefined}
+      >
+        <EventAssignmentCard event={event} incoming={incoming} />
+      </div>
+    )
   }
 
   if (isCollaboratorForSelectedChild && !isParentForSelectedChild) {
     const collaboratorPending = grouped.incomingCollaboratorAssignments.length
     const collaboratorResolved = grouped.resolvedCollaboratorAssignments.length
-    const collaboratorCancelled = grouped.cancelledCollaboratorAssignments.length
 
     return (
       <div>
-        <div className="card" style={{ marginBottom:16, padding:16, borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+        <div className="card" style={{ marginBottom: 16, padding: 16, borderRadius: 20, background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:4 }}>Coordinación</div>
-              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                <div className="page-title" style={{ marginBottom:0 }}>Asignaciones</div>
-                {collaboratorPending > 0 && <span style={{ background:'rgba(139,92,246,0.14)', color:'#8B5CF6', fontSize:11, fontWeight:800, padding:'4px 10px', borderRadius:999 }}>{collaboratorPending} pendientes</span>}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>Coordinación</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div className="page-title" style={{ marginBottom: 0 }}>Asignaciones</div>
+                {collaboratorPending > 0 ? <span style={{ ...badgeStyle('violet'), fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999 }}>{collaboratorPending} pendientes</span> : null}
               </div>
-              <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:4 }}>Aquí solo ves las asignaciones que te han enviado como colaborador.</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>Solo ves lo que te han enviado como colaborador.</div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(2, auto)', gap:8 }}>
-              <div style={{ padding:'8px 10px', borderRadius:12, background:'rgba(139,92,246,0.10)', border:'1px solid rgba(139,92,246,0.20)', color:'#c4b5fd', fontSize:11, fontWeight:800 }}>Pendientes: {collaboratorPending}</div>
-              <div style={{ padding:'8px 10px', borderRadius:12, background:'rgba(16,185,129,0.10)', border:'1px solid rgba(16,185,129,0.20)', color:'#6ee7b7', fontSize:11, fontWeight:800 }}>Resueltas: {collaboratorResolved}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: 8 }}>
+              <div style={{ ...badgeStyle('violet'), fontSize: 11, fontWeight: 800, padding: '8px 10px', borderRadius: 12 }}>Pendientes: {collaboratorPending}</div>
+              <div style={{ ...badgeStyle('success'), fontSize: 11, fontWeight: 800, padding: '8px 10px', borderRadius: 12 }}>Resueltas: {collaboratorResolved}</div>
             </div>
           </div>
         </div>
-        <Section title="Asignaciones pendientes" count={grouped.incomingCollaboratorAssignments.length} tone="violet">{grouped.incomingCollaboratorAssignments.map(a => renderCollaboratorCard(a, true))}</Section>
-        <Section title="Resueltas" count={grouped.resolvedCollaboratorAssignments.length} collapsible open={showResolved} onToggle={() => setShowResolved(v => !v)} tone="success">{grouped.resolvedCollaboratorAssignments.map(a => renderCollaboratorCard(a, true))}</Section>
-        <Section title="Canceladas" count={grouped.cancelledCollaboratorAssignments.length} collapsible open={showCancelled} onToggle={() => setShowCancelled(v => !v)}>{grouped.cancelledCollaboratorAssignments.map(a => renderCollaboratorCard(a, true))}</Section>
+
+        <Section title="Pendientes" count={grouped.incomingCollaboratorAssignments.length} tone="violet">
+          {grouped.incomingCollaboratorAssignments.map(a => renderCollaboratorCard(a, true))}
+        </Section>
+        <Section title="Resueltas" count={grouped.resolvedCollaboratorAssignments.length} collapsible open={showResolved} onToggle={() => setShowResolved(v => !v)} tone="success">
+          {grouped.resolvedCollaboratorAssignments.map(a => renderCollaboratorCard(a, true))}
+        </Section>
+        <Section title="Canceladas" count={grouped.cancelledCollaboratorAssignments.length} collapsible open={showCancelled} onToggle={() => setShowCancelled(v => !v)} tone="muted">
+          {grouped.cancelledCollaboratorAssignments.map(a => renderCollaboratorCard(a, true))}
+        </Section>
       </div>
     )
   }
 
-  const totalPending = grouped.incomingPending.length + grouped.outgoingPending.length + grouped.incomingEventAssignments.length + grouped.outgoingEventAssignments.length + grouped.incomingCollaboratorAssignments.length + grouped.outgoingCollaboratorAssignments.length
+  const totalPending =
+    grouped.incomingPending.length +
+    grouped.outgoingPending.length +
+    grouped.incomingEventAssignments.length +
+    grouped.outgoingEventAssignments.length +
+    grouped.incomingCollaboratorAssignments.length +
+    grouped.outgoingCollaboratorAssignments.length
+
+  const totalResolved = grouped.resolved.length + grouped.resolvedCollaboratorAssignments.length
 
   return (
     <div>
-      <div className="card" style={{ marginBottom:16, padding:16, borderRadius:20, background:'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+      <div className="card" style={{ marginBottom: 16, padding: 16, borderRadius: 20, background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize:11, color:'var(--text-muted)', fontWeight:800, textTransform:'uppercase', letterSpacing:0.4, marginBottom:4 }}>Coordinación</div>
-            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-              <div className="page-title" style={{ marginBottom:0 }}>Cambios</div>
-              {totalPending > 0 && <span style={{ background:'rgba(245,158,11,0.14)', color:'#f59e0b', fontSize:11, fontWeight:800, padding:'4px 10px', borderRadius:999 }}>{totalPending} pendientes</span>}
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>Coordinación</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div className="page-title" style={{ marginBottom: 0 }}>Cambios</div>
+              {totalPending > 0 ? <span style={{ ...badgeStyle('warning'), fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999 }}>{totalPending} pendientes</span> : null}
             </div>
-            <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:4 }}>Solicitudes de cambio y asignaciones entre progenitores, además de asignaciones a colaboradores.</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>Solicitudes y asignaciones con menos ruido y más claridad.</div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(2, auto)', gap:8 }}>
-            <div style={{ padding:'8px 10px', borderRadius:12, background:'rgba(59,130,246,0.10)', border:'1px solid rgba(59,130,246,0.20)', color:'#93c5fd', fontSize:11, fontWeight:800 }}>Recibidas: {grouped.incomingPending.length + grouped.incomingEventAssignments.length + grouped.incomingCollaboratorAssignments.length}</div>
-            <div style={{ padding:'8px 10px', borderRadius:12, background:'rgba(16,185,129,0.10)', border:'1px solid rgba(16,185,129,0.20)', color:'#6ee7b7', fontSize:11, fontWeight:800 }}>Resueltas: {grouped.resolved.length + grouped.resolvedCollaboratorAssignments.length}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: 8 }}>
+            <div style={{ ...badgeStyle('warning'), fontSize: 11, fontWeight: 800, padding: '8px 10px', borderRadius: 12 }}>Pendientes: {totalPending}</div>
+            <div style={{ ...badgeStyle('success'), fontSize: 11, fontWeight: 800, padding: '8px 10px', borderRadius: 12 }}>Resueltas: {totalResolved}</div>
           </div>
         </div>
       </div>
-      <Section title="Pendientes recibidas" count={grouped.incomingPending.length} tone="warning">{grouped.incomingPending.map(r => renderRequestCard(r, true))}</Section>
-      <Section title="Asignaciones de eventos pendientes" count={grouped.incomingEventAssignments.length} tone="info">{grouped.incomingEventAssignments.map(e => renderEventAssignmentCard(e, true))}</Section>
-      <Section title="Asignaciones a colaboradores recibidas" count={grouped.incomingCollaboratorAssignments.length} tone="violet">{grouped.incomingCollaboratorAssignments.map(a => renderCollaboratorCard(a, true))}</Section>
-      <Section title="Pendientes enviadas" count={grouped.outgoingPending.length} tone="info">{grouped.outgoingPending.map(r => renderRequestCard(r, false))}</Section>
-      <Section title="Asignaciones de eventos enviadas" count={grouped.outgoingEventAssignments.length} tone="info">{grouped.outgoingEventAssignments.map(e => renderEventAssignmentCard(e, false))}</Section>
-      <Section title="Asignaciones a colaboradores enviadas" count={grouped.outgoingCollaboratorAssignments.length} tone="violet">{grouped.outgoingCollaboratorAssignments.map(a => renderCollaboratorCard(a, false))}</Section>
-      <Section title="Resueltas" count={grouped.resolved.length + grouped.resolvedCollaboratorAssignments.length} collapsible open={showResolved} onToggle={() => setShowResolved(v => !v)} tone="success">{grouped.resolved.map(r => renderRequestCard(r, r.toParentId === user?.uid))}{grouped.resolvedCollaboratorAssignments.map(a => renderCollaboratorCard(a, a.collaboratorId === user?.uid))}</Section>
-      <Section title="Canceladas" count={grouped.cancelled.length + grouped.cancelledCollaboratorAssignments.length} collapsible open={showCancelled} onToggle={() => setShowCancelled(v => !v)}>{grouped.cancelled.map(r => renderRequestCard(r, r.toParentId === user?.uid))}{grouped.cancelledCollaboratorAssignments.map(a => renderCollaboratorCard(a, a.collaboratorId === user?.uid))}</Section>
+
+      <Section title="Solicitudes recibidas" count={grouped.incomingPending.length} tone="warning">
+        {grouped.incomingPending.map(req => renderRequestCard(req, true))}
+      </Section>
+      <Section title="Solicitudes enviadas" count={grouped.outgoingPending.length} tone="warning">
+        {grouped.outgoingPending.map(req => renderRequestCard(req, false))}
+      </Section>
+      <Section title="Eventos pendientes para ti" count={grouped.incomingEventAssignments.length} tone="info">
+        {grouped.incomingEventAssignments.map(event => renderEventAssignmentCard(event, true))}
+      </Section>
+      <Section title="Eventos pendientes enviados" count={grouped.outgoingEventAssignments.length} tone="info">
+        {grouped.outgoingEventAssignments.map(event => renderEventAssignmentCard(event, false))}
+      </Section>
+      <Section title="Asignaciones a colaborador recibidas" count={grouped.incomingCollaboratorAssignments.length} tone="violet">
+        {grouped.incomingCollaboratorAssignments.map(a => renderCollaboratorCard(a, true))}
+      </Section>
+      <Section title="Asignaciones a colaborador enviadas" count={grouped.outgoingCollaboratorAssignments.length} tone="violet">
+        {grouped.outgoingCollaboratorAssignments.map(a => renderCollaboratorCard(a, false))}
+      </Section>
+      <Section title="Resueltas" count={totalResolved} collapsible open={showResolved} onToggle={() => setShowResolved(v => !v)} tone="success">
+        {grouped.resolved.map(req => renderRequestCard(req, req.toParentId === user?.uid))}
+        {grouped.resolvedCollaboratorAssignments.map(a => renderCollaboratorCard(a, a.collaboratorId === user?.uid))}
+      </Section>
+      <Section title="Canceladas" count={grouped.cancelled.length + grouped.cancelledCollaboratorAssignments.length} collapsible open={showCancelled} onToggle={() => setShowCancelled(v => !v)} tone="muted">
+        {grouped.cancelled.map(req => renderRequestCard(req, req.toParentId === user?.uid))}
+        {grouped.cancelledCollaboratorAssignments.map(a => renderCollaboratorCard(a, a.collaboratorId === user?.uid))}
+      </Section>
     </div>
   )
 }
