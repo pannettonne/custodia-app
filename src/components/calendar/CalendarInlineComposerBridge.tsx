@@ -27,11 +27,34 @@ export function CalendarInlineComposerBridge() {
   if (!inlineComposer) return null
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 120, background: 'rgba(0,0,0,0.52)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '74px 14px 18px' }} onClick={() => setInlineComposer(null)}>
-      <div style={{ width: '100%', maxWidth: 560, maxHeight: 'calc(100dvh - 92px)', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
-        {inlineComposer.type === 'event'
-          ? <EventForm key={inlineComposer.seq} event={null} initialDate={inlineComposer.date} onClose={() => setInlineComposer(null)} />
-          : <CalendarInlineNoteForm key={inlineComposer.seq} date={inlineComposer.date} onClose={() => setInlineComposer(null)} />}
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background: 'var(--bg-primary)',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        padding: 'calc(env(safe-area-inset-top) + 18px) 14px calc(env(safe-area-inset-bottom) + 112px)',
+      }}
+      onClick={() => setInlineComposer(null)}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 560,
+          margin: '0 auto',
+          minHeight: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 130px)',
+          display: 'flex',
+          alignItems: 'flex-start',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ width: '100%' }}>
+          {inlineComposer.type === 'event'
+            ? <EventForm key={inlineComposer.seq} event={null} initialDate={inlineComposer.date} onClose={() => setInlineComposer(null)} />
+            : <CalendarInlineNoteForm key={inlineComposer.seq} date={inlineComposer.date} onClose={() => setInlineComposer(null)} />}
+        </div>
       </div>
     </div>
   )
