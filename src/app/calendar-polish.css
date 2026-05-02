@@ -1,0 +1,105 @@
+.app-main .day-headers {
+  gap: 4px;
+  margin: 2px 0 7px;
+}
+
+.app-main .day-header {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.42px;
+  text-transform: uppercase;
+}
+
+.app-main .cal-grid {
+  gap: 6px;
+}
+
+.app-main .cal-cell {
+  min-height: 54px;
+  border-radius: 17px;
+  border-color: color-mix(in srgb, var(--border) 84%, transparent);
+  background: color-mix(in srgb, var(--bg-card) 76%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent);
+  transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s, filter 0.16s;
+}
+
+.app-main .cal-cell:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-hover);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.app-main .cal-cell.today {
+  border-color: color-mix(in srgb, var(--blue) 42%, var(--border));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--blue) 16%, transparent),
+    0 10px 24px color-mix(in srgb, var(--blue) 12%, transparent);
+}
+
+.app-main .cal-cell.empty {
+  background: color-mix(in srgb, var(--bg-soft) 72%, transparent);
+  border-style: dashed;
+}
+
+.app-main .cal-day-num {
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: -0.2px;
+}
+
+.app-main .cal-day-name {
+  margin-top: 5px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.15px;
+  opacity: 0.9;
+}
+
+.app-main .cal-modified-dot {
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #fbbf24 16%, transparent);
+}
+
+.app-main .cal-today-dot {
+  bottom: 5px;
+  width: 5px;
+  height: 5px;
+}
+
+.app-main .calendar-month-title {
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -0.45px;
+}
+
+.app-main .calendar-nav-btn {
+  border-color: var(--border-hover);
+  background: color-mix(in srgb, var(--bg-card) 86%, transparent);
+  color: var(--text-secondary);
+  box-shadow: var(--card-shadow);
+}
+
+.app-main .calendar-nav-btn:hover {
+  color: var(--text-strong);
+  background: var(--bg-card-hover);
+}
+
+@media (max-width: 380px) {
+  .app-main .cal-grid {
+    gap: 4px;
+  }
+
+  .app-main .cal-cell {
+    min-height: 49px;
+    border-radius: 15px;
+  }
+
+  .app-main .cal-day-num {
+    font-size: 12px;
+  }
+}
