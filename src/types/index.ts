@@ -230,6 +230,8 @@ export type EventCategory =
   | 'excursion'
   | 'examen'
   | 'extraescolar'
+  | 'cumpleanos'
+  | 'medico'
   | 'festivo'
   | 'vacaciones'
   | 'otro'
