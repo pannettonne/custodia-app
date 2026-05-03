@@ -1,3 +1,5 @@
+@import './premium-consistency.css';
+
 .app-main a[href^='tel:'],
 .app-main a[href^='mailto:'],
 .app-main a[href*='wa.me'],
