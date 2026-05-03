@@ -1,15 +1,14 @@
+body.custodia-more-open .app-main > :not(.more-real-screen) {
+  display: none !important;
+}
+
 .more-real-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding: calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 118px);
-  background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 16%, transparent) 0, transparent 36%),
-    radial-gradient(circle at bottom left, color-mix(in srgb, #10b981 10%, transparent) 0, transparent 34%),
-    var(--bg-primary);
+  position: static;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+  padding: 0 0 8px;
+  background: transparent;
 }
 
 .more-real-shell {
@@ -183,8 +182,8 @@
 
 @media (max-width: 390px) {
   .more-real-screen {
-    padding-inline: 10px;
-    padding-top: calc(env(safe-area-inset-top) + 10px);
+    padding-inline: 0;
+    padding-top: 0;
   }
 
   .more-real-hero {
