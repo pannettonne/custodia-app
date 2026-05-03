@@ -154,28 +154,54 @@ export function CalendarCompactDayDetail() {
           </div>
 
           {isParentForSelectedChild ? (
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <button
-                type="button"
-                aria-label="Abrir acciones rápidas del día"
-                onClick={() => setMenuOpen(open => !open)}
-                style={{ width: 54, height: 54, borderRadius: 999, border: '1px solid rgba(59,130,246,0.22)', background: 'linear-gradient(180deg, rgba(59,130,246,0.14) 0%, rgba(37,99,235,0.22) 100%)', color: '#3B82F6', fontSize: 30, fontWeight: 800, lineHeight: 1, cursor: 'pointer', boxShadow: '0 14px 30px rgba(59,130,246,0.16)' }}
-              >
-                +
-              </button>
-              {menuOpen ? (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 214, padding: 8, borderRadius: 18, border: '1px solid var(--border)', background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', boxShadow: '0 22px 42px rgba(15,23,42,0.18)', zIndex: 90 }}>
-                  <div style={{ padding: '5px 8px 9px', color: 'var(--text-muted)', fontSize: 10, fontWeight: 900, letterSpacing: 0.45, textTransform: 'uppercase' }}>Añadir al día</div>
-                  <QuickAction icon="📌" label="Nuevo evento" hint="Cita, colegio, actividad" color="#10b981" onClick={openEvent} />
-                  <QuickAction icon="🔄" label="Nuevo cambio" hint="Solicitud puntual" color="#60a5fa" onClick={openChange} />
-                  {canAssignCollaborator ? <QuickAction icon="🤝" label="Nueva asignación" hint="Familiar o cuidador" color="#8B5CF6" onClick={openCollaborator} /> : null}
-                  <QuickAction icon="📝" label="Nueva nota" hint="Aviso u observación" color="#f59e0b" onClick={openNote} />
-                </div>
-              ) : null}
-            </div>
+            <button
+              type="button"
+              aria-label="Abrir acciones rápidas del día"
+              onClick={() => setMenuOpen(true)}
+              style={{ width: 54, height: 54, borderRadius: 999, border: '1px solid rgba(59,130,246,0.22)', background: 'linear-gradient(180deg, rgba(59,130,246,0.14) 0%, rgba(37,99,235,0.22) 100%)', color: '#3B82F6', fontSize: 30, fontWeight: 800, lineHeight: 1, cursor: 'pointer', boxShadow: '0 14px 30px rgba(59,130,246,0.16)', flexShrink: 0 }}
+            >
+              +
+            </button>
           ) : null}
         </div>
       </section>
+
+      {menuOpen ? (
+        <>
+          <div
+            aria-hidden="true"
+            onClick={() => setMenuOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 9800, background: 'rgba(15,23,42,0.18)' }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Añadir al día"
+            style={{ position: 'fixed', left: 14, right: 14, bottom: 'calc(env(safe-area-inset-bottom) + 104px)', zIndex: 9801, maxWidth: 560, margin: '0 auto', padding: 12, borderRadius: 26, border: '1px solid var(--border-hover)', background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', boxShadow: '0 24px 56px rgba(15,23,42,0.24)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '4px 4px 10px' }}>
+              <div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 900, letterSpacing: 0.45, textTransform: 'uppercase' }}>Añadir al día</div>
+                <div style={{ color: 'var(--text-strong)', fontSize: 15, fontWeight: 950, marginTop: 2 }}>{formatDate(date)}</div>
+              </div>
+              <button
+                type="button"
+                aria-label="Cerrar acciones rápidas"
+                onClick={() => setMenuOpen(false)}
+                style={{ width: 36, height: 36, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: 18, fontWeight: 900, cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ display: 'grid', gap: 6 }}>
+              <QuickAction icon="📌" label="Nuevo evento" hint="Cita, colegio, actividad" color="#10b981" onClick={openEvent} />
+              <QuickAction icon="🔄" label="Nuevo cambio" hint="Solicitud puntual" color="#60a5fa" onClick={openChange} />
+              {canAssignCollaborator ? <QuickAction icon="🤝" label="Nueva asignación" hint="Familiar o cuidador" color="#8B5CF6" onClick={openCollaborator} /> : null}
+              <QuickAction icon="📝" label="Nueva nota" hint="Aviso u observación" color="#f59e0b" onClick={openNote} />
+            </div>
+          </div>
+        </>
+      ) : null}
 
       <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
         {selectedOverride ? (
@@ -273,11 +299,11 @@ export function CalendarCompactDayDetail() {
 
 function QuickAction({ icon, label, hint, color, onClick }: { icon: string; label: string; hint: string; color: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '10px 11px', borderRadius: 13, border: 'none', background: 'transparent', color: 'var(--text-strong)', cursor: 'pointer' }}>
-      <span style={{ width: 30, height: 30, borderRadius: 999, background: `${color}18`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{icon}</span>
+    <button type="button" onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 11, textAlign: 'left', padding: '12px 11px', borderRadius: 15, border: '1px solid transparent', background: 'var(--bg-card)', color: 'var(--text-strong)', cursor: 'pointer' }}>
+      <span style={{ width: 36, height: 36, borderRadius: 999, background: `${color}18`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>{icon}</span>
       <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 12, fontWeight: 900, color }}>{label}</span>
-        <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', marginTop: 2 }}>{hint}</span>
+        <span style={{ display: 'block', fontSize: 13, fontWeight: 950, color }}>{label}</span>
+        <span style={{ display: 'block', fontSize: 11, fontWeight: 750, color: 'var(--text-muted)', marginTop: 2 }}>{hint}</span>
       </span>
     </button>
   )
