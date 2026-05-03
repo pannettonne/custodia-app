@@ -18,16 +18,21 @@
   min-height: 47px !important;
   border-radius: 17px !important;
   border: 1px solid color-mix(in srgb, var(--border) 86%, transparent) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent) !important;
+  transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s, filter 0.14s !important;
+}
+
+.app-main > div:has(.calendar-month-title) .cal-cell.empty {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 94%, transparent) 0%, color-mix(in srgb, var(--bg-soft) 72%, transparent) 100%) !important;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 5%, transparent) !important;
-  transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s, filter 0.14s !important;
 }
 
 .app-main > div:has(.calendar-month-title) .cal-cell:hover {
   transform: translateY(-1px) scale(1.03) !important;
   border-color: var(--border-hover) !important;
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent),
+    0 10px 20px rgba(15, 23, 42, 0.08) !important;
 }
 
 .app-main > div:has(.calendar-month-title) .cal-cell:active {
@@ -37,6 +42,7 @@
 .app-main > div:has(.calendar-month-title) .cal-cell.today {
   border-color: color-mix(in srgb, var(--blue) 52%, var(--border) 48%) !important;
   box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent),
     0 0 0 3px color-mix(in srgb, var(--blue) 13%, transparent),
     0 14px 28px rgba(59, 130, 246, 0.16) !important;
 }
@@ -60,6 +66,7 @@
   font-size: 13px !important;
   font-weight: 950 !important;
   letter-spacing: -0.2px !important;
+  text-shadow: 0 1px 10px rgba(15, 23, 42, 0.18) !important;
 }
 
 .app-main > div:has(.calendar-month-title) .cal-day-name {
@@ -68,6 +75,7 @@
   font-weight: 950 !important;
   letter-spacing: 0.15px !important;
   opacity: 0.92 !important;
+  text-shadow: 0 1px 10px rgba(15, 23, 42, 0.16) !important;
 }
 
 .app-main > div:has(.calendar-month-title) .cal-modified-dot {
