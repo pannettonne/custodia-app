@@ -1,0 +1,229 @@
+.app-main > .page-title + div:has(.theme-segment),
+.app-main > div:has(.theme-segment) {
+  display: grid;
+  gap: 14px;
+}
+
+.app-main > .page-title:has(+ div .theme-segment) {
+  position: relative;
+  margin-bottom: 14px !important;
+  padding: 22px 18px 20px 72px !important;
+  border-radius: 30px !important;
+  border: 1px solid var(--border-hover) !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 15%, transparent) 0, transparent 42%),
+    radial-gradient(circle at bottom left, color-mix(in srgb, #8b5cf6 10%, transparent) 0, transparent 36%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.10) !important;
+  font-size: 27px !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.9px !important;
+}
+
+.app-main > .page-title:has(+ div .theme-segment)::before {
+  content: '⚙️';
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  box-shadow: var(--card-shadow);
+  font-size: 22px;
+}
+
+.app-main > .page-title:has(+ div .theme-segment)::after {
+  content: 'Cuenta, familia, avisos y permisos';
+  display: block;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.app-main > div:has(.theme-segment) > .card,
+.app-main > .page-title + div:has(.theme-segment) > .card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 27px !important;
+  border-color: var(--border-hover) !important;
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08) !important;
+}
+
+.app-main > div:has(.theme-segment) > .card::after,
+.app-main > .page-title + div:has(.theme-segment) > .card::after {
+  content: '';
+  position: absolute;
+  right: -46px;
+  top: -52px;
+  width: 118px;
+  height: 118px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--blue) 5%, transparent);
+  pointer-events: none;
+}
+
+.theme-segment {
+  padding: 5px !important;
+  border-radius: 22px !important;
+  border: 1px solid var(--border-hover) !important;
+  background: var(--bg-soft) !important;
+  gap: 6px !important;
+}
+
+.theme-segment button {
+  min-height: 42px !important;
+  border-radius: 17px !important;
+  font-weight: 950 !important;
+  transition: transform 0.14s, box-shadow 0.14s, background 0.14s !important;
+}
+
+.theme-segment button.active {
+  color: #fff !important;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%) !important;
+  box-shadow: 0 12px 26px rgba(59, 130, 246, 0.22) !important;
+}
+
+.theme-segment button:active,
+.child-item:active,
+.parent-chip:active,
+.btn-accept-invite:active {
+  transform: scale(0.985) !important;
+}
+
+.child-item,
+.parent-item,
+.invite-pending-row {
+  border-radius: 20px !important;
+  border-color: var(--border-hover) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+.child-item.selected {
+  border-color: color-mix(in srgb, var(--blue) 42%, var(--border-hover) 58%) !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 12%, transparent) 0, transparent 48%),
+    var(--bg-card) !important;
+}
+
+.child-item-avatar,
+.parent-avatar {
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10) !important;
+}
+
+.parent-chip {
+  min-height: 44px !important;
+  border-radius: 18px !important;
+  border-color: var(--border-hover) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05) !important;
+}
+
+.parent-chip.selected {
+  border-color: color-mix(in srgb, var(--blue) 44%, var(--border-hover) 56%) !important;
+  box-shadow: 0 12px 26px rgba(59, 130, 246, 0.13) !important;
+}
+
+.invite-pending {
+  border-radius: 27px !important;
+  border: 1px solid var(--border-hover) !important;
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08) !important;
+}
+
+.btn-accept-invite {
+  min-height: 39px !important;
+  border-radius: 15px !important;
+  font-weight: 950 !important;
+  box-shadow: 0 10px 22px rgba(16, 185, 129, 0.18) !important;
+}
+
+.app-main .card[style*='rgba(239,68,68'] {
+  border-radius: 27px !important;
+  background:
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.10) 0, transparent 38%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 16px 38px rgba(239, 68, 68, 0.08) !important;
+}
+
+.empty-state {
+  min-height: 280px;
+  padding: 26px 20px !important;
+  border-radius: 30px !important;
+  border: 1px solid var(--border-hover) !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 12%, transparent) 0, transparent 38%),
+    radial-gradient(circle at bottom left, color-mix(in srgb, #10b981 8%, transparent) 0, transparent 34%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.10) !important;
+}
+
+.empty-state-icon {
+  width: 62px !important;
+  height: 62px !important;
+  border-radius: 23px !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.10) !important;
+}
+
+.empty-state-title {
+  color: var(--text-strong) !important;
+  font-size: 19px !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.45px !important;
+}
+
+.empty-state-sub,
+.empty-state-text {
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.45 !important;
+}
+
+.header-popup-menu,
+.notifications-popup-menu,
+.user-popup-menu {
+  border-radius: 24px !important;
+  border: 1px solid var(--border-hover) !important;
+  background: var(--bg-primary) !important;
+  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.24) !important;
+}
+
+.notification-item {
+  border-radius: 17px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card) !important;
+}
+
+.notification-item:active {
+  transform: scale(0.99) !important;
+}
+
+@media (max-width: 390px) {
+  .app-main > .page-title:has(+ div .theme-segment) {
+    padding: 20px 16px 18px 66px !important;
+    font-size: 24px !important;
+    border-radius: 28px !important;
+  }
+
+  .app-main > .page-title:has(+ div .theme-segment)::before {
+    left: 16px;
+    width: 38px;
+    height: 38px;
+    border-radius: 15px;
+  }
+
+  .empty-state {
+    min-height: 240px;
+    border-radius: 28px !important;
+  }
+}
