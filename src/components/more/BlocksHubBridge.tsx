@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { RejectedItemsCleanupPanel } from '@/components/requests/RejectedItemsCleanupPanel'
 
@@ -45,7 +45,7 @@ export function BlocksHubBridge() {
         <button
           type="button"
           className="more-real-card more-blocks-card"
-          style={{ '--more-tone': '#ef4444' } as React.CSSProperties}
+          style={{ '--more-tone': '#ef4444' } as CSSProperties}
           onClick={() => setBlocksOpen(true)}
         >
           <span className="more-real-card-copy">
