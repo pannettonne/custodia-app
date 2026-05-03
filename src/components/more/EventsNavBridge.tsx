@@ -18,13 +18,25 @@ function findMoreGrid() {
   return document.querySelector<HTMLElement>('.more-real-grid')
 }
 
+function syncMoreCards() {
+  const grid = findMoreGrid()
+  if (!grid) return null
+
+  for (const card of Array.from(grid.querySelectorAll<HTMLElement>('.more-real-card'))) {
+    const title = (card.querySelector('.more-real-card-title')?.textContent || '').trim().toLowerCase()
+    if (title === 'eventos') card.style.display = 'none'
+  }
+
+  return grid
+}
+
 export function EventsNavBridge() {
   const [moreGrid, setMoreGrid] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
 
-    const rewriteBottomNav = () => {
+    const syncNavigation = () => {
       for (const button of getBottomNavButtons()) {
         if (!isNotesBottomButton(button)) continue
         button.setAttribute('data-custodia-events-tab', 'true')
@@ -38,12 +50,12 @@ export function EventsNavBridge() {
           if ((label.textContent || '').trim().toLowerCase() === 'notas') label.textContent = 'Eventos'
         }
       }
-      setMoreGrid(findMoreGrid())
+      setMoreGrid(syncMoreCards())
     }
 
-    rewriteBottomNav()
-    const observer = new MutationObserver(rewriteBottomNav)
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'class'] })
+    syncNavigation()
+    const observer = new MutationObserver(syncNavigation)
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'class', 'style'] })
 
     const handleClick = (event: MouseEvent) => {
       const target = event.target
