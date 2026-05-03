@@ -10,10 +10,24 @@
   background: var(--bg-card) !important;
   border: 1px solid var(--border) !important;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06) !important;
+  transition: transform 0.14s, border-color 0.14s, box-shadow 0.14s !important;
+}
+
+.app-main div[role='dialog'][aria-label='Añadir al día'] button:not([aria-label]):active {
+  transform: scale(0.985) !important;
+  border-color: var(--border-hover) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
 }
 
 .app-main div[role='dialog'][aria-label='Añadir al día'] button[aria-label='Cerrar acciones rápidas'] {
   background: var(--bg-card) !important;
   border-color: var(--border-hover) !important;
   color: var(--text-strong) !important;
+}
+
+@media (max-height: 700px) {
+  .app-main div[role='dialog'][aria-label='Añadir al día'] {
+    bottom: calc(env(safe-area-inset-bottom) + 92px) !important;
+    max-height: calc(100dvh - 150px) !important;
+  }
 }
