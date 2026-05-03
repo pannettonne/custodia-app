@@ -1,0 +1,160 @@
+.app-main > div:has(input[placeholder='Nombre del documento']) {
+  display: grid;
+  gap: 14px !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .page-title {
+  position: relative;
+  margin-bottom: 0 !important;
+  padding: 22px 18px 20px 72px !important;
+  border-radius: 30px !important;
+  border: 1px solid var(--border-hover) !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 18%, transparent) 0, transparent 42%),
+    radial-gradient(circle at bottom left, color-mix(in srgb, var(--green) 10%, transparent) 0, transparent 36%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.10) !important;
+  font-size: 27px !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.9px !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .page-title::before {
+  content: '🔐';
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  box-shadow: var(--card-shadow);
+  font-size: 22px;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .page-title::after {
+  content: 'Caja fuerte familiar · documentos cifrados y privados';
+  display: block;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card {
+  border-radius: 26px !important;
+  border-color: var(--border-hover) !important;
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:first-of-type {
+  position: relative;
+  overflow: hidden;
+  padding: 17px !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:first-of-type::before {
+  content: 'Cifrado local antes de subir · acceso por permisos';
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 12px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  background: rgba(16, 185, 129, 0.10);
+  color: #10b981;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:first-of-type > div:first-child > div:first-child,
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:nth-of-type(2) > div:first-child,
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:nth-of-type(3) > div:first-child {
+  color: var(--text-strong) !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.25px !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) .settings-input {
+  min-height: 44px !important;
+  border-radius: 17px !important;
+  border-color: var(--border-hover) !important;
+  background: var(--bg-card) !important;
+  font-weight: 750 !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) .btn-primary {
+  min-height: 44px !important;
+  width: auto !important;
+  padding-inline: 16px !important;
+  border-radius: 17px !important;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%) !important;
+  box-shadow: 0 14px 28px rgba(59, 130, 246, 0.24) !important;
+  font-weight: 950 !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) button {
+  transition: transform 0.14s, box-shadow 0.14s, border-color 0.14s, opacity 0.14s !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) button:active {
+  transform: scale(0.985) !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:nth-of-type(2) {
+  padding: 14px !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:nth-of-type(3) {
+  overflow: hidden !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:nth-of-type(3) > div:first-child {
+  padding: 16px 17px !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 9%, transparent) 0, transparent 48%),
+    var(--bg-card) !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:nth-of-type(3) > div:last-child > div {
+  background: color-mix(in srgb, var(--bg-card) 82%, transparent) !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:nth-of-type(3) div[style*='border-top'] {
+  border-top-color: var(--border) !important;
+}
+
+.app-main > div:has(input[placeholder='Nombre del documento']) > .card:nth-of-type(3) div[style*='width: 44px'] {
+  border-radius: 15px !important;
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--blue) 12%, transparent) 0, transparent 62%),
+    var(--bg-soft) !important;
+  color: var(--text-strong) !important;
+}
+
+@media (max-width: 390px) {
+  .app-main > div:has(input[placeholder='Nombre del documento']) > .page-title {
+    padding: 20px 16px 18px 66px !important;
+    font-size: 24px !important;
+    border-radius: 28px !important;
+  }
+
+  .app-main > div:has(input[placeholder='Nombre del documento']) > .page-title::before {
+    left: 16px;
+    width: 38px;
+    height: 38px;
+    border-radius: 15px;
+  }
+
+  .app-main > div:has(input[placeholder='Nombre del documento']) > .page-title::after {
+    font-size: 11px;
+  }
+}
