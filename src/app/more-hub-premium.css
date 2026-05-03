@@ -1,0 +1,165 @@
+.floating-more-menu {
+  left: 16px !important;
+  right: 16px !important;
+  bottom: calc(env(safe-area-inset-bottom) + 92px) !important;
+  width: auto !important;
+  max-width: 620px !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  padding: 74px 14px 16px !important;
+  border-radius: 32px !important;
+  border: 1px solid var(--border-hover) !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 14%, transparent) 0, transparent 34%),
+    radial-gradient(circle at bottom left, color-mix(in srgb, #10b981 9%, transparent) 0, transparent 34%),
+    var(--bg-primary) !important;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.26) !important;
+  z-index: 120 !important;
+}
+
+.floating-more-menu::before {
+  content: 'Más funciones';
+  position: absolute;
+  left: 18px;
+  top: 17px;
+  color: var(--text-strong);
+  font-size: 27px;
+  font-weight: 950;
+  letter-spacing: -0.9px;
+  line-height: 1;
+}
+
+.floating-more-menu::after {
+  content: 'Herramientas para organizar, cuidar y coordinar';
+  position: absolute;
+  left: 19px;
+  top: 48px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.floating-more-item {
+  position: relative !important;
+  min-height: 118px !important;
+  padding: 16px 14px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+  border-radius: 26px !important;
+  border: 1px solid var(--border) !important;
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  color: var(--text-strong) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08) !important;
+  overflow: hidden !important;
+}
+
+.floating-more-item img {
+  position: absolute !important;
+  right: 17px !important;
+  bottom: 16px !important;
+  width: 34px !important;
+  height: 34px !important;
+  padding: 14px !important;
+  border-radius: 22px !important;
+  background: color-mix(in srgb, var(--blue) 11%, var(--bg-card) 89%) !important;
+  box-sizing: content-box !important;
+  opacity: 1 !important;
+}
+
+.floating-more-item span,
+.floating-more-item div {
+  color: inherit !important;
+}
+
+.floating-more-item {
+  font-size: 18px !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.45px !important;
+  text-align: left !important;
+}
+
+.floating-more-item::after {
+  display: block;
+  max-width: calc(100% - 58px);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.28;
+  letter-spacing: 0;
+}
+
+.floating-more-item:nth-of-type(1) { order: 1; }
+.floating-more-item:nth-of-type(2) { order: 2; }
+.floating-more-item:nth-of-type(5) { order: 3; }
+.floating-more-item:nth-of-type(4) { order: 4; }
+.floating-more-item:nth-of-type(3) { order: 5; }
+.floating-more-item:nth-of-type(6) { order: 6; }
+.floating-more-item:nth-of-type(7) { order: 7; grid-column: span 2; min-height: 92px !important; }
+
+.floating-more-item:nth-of-type(1)::after { content: 'Citas, colegio y actividades'; }
+.floating-more-item:nth-of-type(2)::after { content: 'Archivos seguros y privados'; }
+.floating-more-item:nth-of-type(3)::after { content: 'Ropa y objetos importantes'; }
+.floating-more-item:nth-of-type(4)::after { content: 'Personas y datos útiles'; }
+.floating-more-item:nth-of-type(5)::after { content: 'Tratamientos y tomas'; }
+.floating-more-item:nth-of-type(6)::after { content: 'Resumen y evolución'; }
+.floating-more-item:nth-of-type(7)::after { content: 'Familia, permisos y configuración'; }
+
+.floating-more-item:nth-of-type(1) img { background: color-mix(in srgb, #8b5cf6 15%, var(--bg-card) 85%) !important; }
+.floating-more-item:nth-of-type(2) img { background: color-mix(in srgb, #3b82f6 14%, var(--bg-card) 86%) !important; }
+.floating-more-item:nth-of-type(3) img { background: color-mix(in srgb, #f59e0b 15%, var(--bg-card) 85%) !important; }
+.floating-more-item:nth-of-type(4) img { background: color-mix(in srgb, #10b981 14%, var(--bg-card) 86%) !important; }
+.floating-more-item:nth-of-type(5) img { background: color-mix(in srgb, #ef4444 13%, var(--bg-card) 87%) !important; }
+.floating-more-item:nth-of-type(6) img { background: color-mix(in srgb, #6366f1 14%, var(--bg-card) 86%) !important; }
+.floating-more-item:nth-of-type(7) img { background: color-mix(in srgb, #64748b 14%, var(--bg-card) 86%) !important; }
+
+.floating-more-item.active,
+.floating-more-item:hover {
+  border-color: var(--border-hover) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.12) !important;
+}
+
+.floating-more-item:active {
+  transform: scale(0.985) !important;
+}
+
+@media (max-width: 390px) {
+  .floating-more-menu {
+    left: 12px !important;
+    right: 12px !important;
+    gap: 10px !important;
+    padding: 70px 12px 14px !important;
+    border-radius: 30px !important;
+  }
+
+  .floating-more-menu::before {
+    font-size: 24px;
+  }
+
+  .floating-more-menu::after {
+    font-size: 11px;
+  }
+
+  .floating-more-item {
+    min-height: 108px !important;
+    border-radius: 24px !important;
+    font-size: 16px !important;
+    padding: 14px 12px !important;
+  }
+
+  .floating-more-item::after {
+    font-size: 11px;
+  }
+
+  .floating-more-item img {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 12px !important;
+    border-radius: 20px !important;
+  }
+}
