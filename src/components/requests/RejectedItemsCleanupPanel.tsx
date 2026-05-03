@@ -9,7 +9,7 @@ import { showToast } from '@/lib/toast'
 import { formatDate } from '@/lib/utils'
 import { AvailabilityBlocksPanel } from './AvailabilityBlocksPanel'
 
-export function RejectedItemsCleanupPanel() {
+export function RejectedItemsCleanupPanel({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth()
   const { requests, collaboratorAssignments, children, selectedChildId } = useAppStore()
 
@@ -32,23 +32,23 @@ export function RejectedItemsCleanupPanel() {
   }, [collaboratorAssignments, user?.uid, isParentForSelectedChild, isCollaboratorForSelectedChild])
 
   const totalItems = rejectedRequests.length + removableCollaboratorAssignments.length
-  if (!child) return null
+  if (!embedded || !child) return null
 
   return (
-    <>
+    <div className="blocks-cleanup-panel">
       <AvailabilityBlocksPanel />
       {totalItems > 0 && (
-        <div className="card" style={{ marginTop: 12, padding: 14, borderRadius: 20, background: 'linear-gradient(180deg, rgba(239,68,68,0.06) 0%, var(--bg-card) 100%)', border: '1px solid rgba(239,68,68,0.18)' }}>
-          <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6 }}>Limpieza</div>
-          <div style={{ fontSize: 14, color: 'var(--text-strong)', fontWeight: 800, marginBottom: 4 }}>Elementos rechazados o cerrados</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10 }}>Puedes eliminar desde aquí cualquier solicitud rechazada y las asignaciones a colaboradores rechazadas o canceladas.</div>
+        <div className="card blocks-cleanup-card">
+          <div className="blocks-cleanup-kicker">Limpieza</div>
+          <div className="blocks-cleanup-title">Elementos rechazados o cerrados</div>
+          <div className="blocks-cleanup-subtitle">Puedes eliminar desde aquí cualquier solicitud rechazada y las asignaciones a colaboradores rechazadas o canceladas.</div>
 
           {rejectedRequests.length > 0 && (
             <div style={{ marginBottom: removableCollaboratorAssignments.length > 0 ? 10 : 0 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Solicitudes rechazadas</div>
+              <div className="blocks-cleanup-section-title">Solicitudes rechazadas</div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {rejectedRequests.map(item => (
-                  <div key={item.id} style={{ padding: '10px 12px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.16)', background: 'var(--bg-card)' }}>
+                  <div key={item.id} className="blocks-cleanup-item">
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                       <div style={{ fontSize: 13, color: 'var(--text-strong)', fontWeight: 800 }}>{item.fromParentName}</div>
                       <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 800 }}>RECHAZADA</div>
@@ -66,10 +66,10 @@ export function RejectedItemsCleanupPanel() {
 
           {removableCollaboratorAssignments.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Asignaciones a colaboradores</div>
+              <div className="blocks-cleanup-section-title">Asignaciones a colaboradores</div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {removableCollaboratorAssignments.map(item => (
-                  <div key={item.id} style={{ padding: '10px 12px', borderRadius: 16, border: '1px solid rgba(239,68,68,0.16)', background: 'var(--bg-card)' }}>
+                  <div key={item.id} className="blocks-cleanup-item">
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
                       <div style={{ fontSize: 13, color: 'var(--text-strong)', fontWeight: 800 }}>{item.collaboratorName}</div>
                       <div style={{ fontSize: 11, color: item.status === 'rejected' ? '#ef4444' : 'var(--text-muted)', fontWeight: 800 }}>{item.status === 'rejected' ? 'RECHAZADA' : 'CANCELADA'}</div>
@@ -86,6 +86,6 @@ export function RejectedItemsCleanupPanel() {
           )}
         </div>
       )}
-    </>
+    </div>
   )
 }
