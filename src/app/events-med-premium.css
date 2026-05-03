@@ -1,0 +1,114 @@
+/* Premium polish for Events and Medication screens */
+
+.more-notes-card .more-real-icon-wrap {
+  background: color-mix(in srgb, #3B82F6 14%, var(--bg-card) 86%);
+}
+
+.app-main > div > div:first-child:has(.page-title) {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 18px 20px !important;
+  margin-bottom: 16px !important;
+  border-radius: 32px !important;
+  border: 1px solid var(--border-hover) !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 18%, transparent) 0, transparent 42%),
+    radial-gradient(circle at bottom left, color-mix(in srgb, #8b5cf6 10%, transparent) 0, transparent 36%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.10) !important;
+}
+
+.app-main > div > div:first-child:has(.page-title)::after {
+  content: '';
+  position: absolute;
+  right: -44px;
+  top: -48px;
+  width: 126px;
+  height: 126px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--blue) 9%, transparent);
+  pointer-events: none;
+}
+
+.app-main > div > div:first-child:has(.page-title) .page-title {
+  margin: 0 !important;
+  color: var(--text-strong) !important;
+  font-size: 30px !important;
+  font-weight: 950 !important;
+  letter-spacing: -1px !important;
+  line-height: 1.02 !important;
+}
+
+.app-main > div > div:first-child:has(.page-title) .page-title::before {
+  content: 'AGENDA';
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.62px;
+  text-transform: uppercase;
+}
+
+.app-main > div > div:first-child:has(.page-title) .page-title + div {
+  margin-top: 8px !important;
+  max-width: 36ch !important;
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  line-height: 1.45 !important;
+}
+
+.app-main > div > div:first-child:has(.page-title) button,
+.app-main > div > div:first-child:has(.page-title) .btn-primary {
+  position: relative;
+  z-index: 1;
+  min-height: 42px !important;
+  border-radius: 17px !important;
+  font-weight: 950 !important;
+  box-shadow: 0 12px 26px rgba(59, 130, 246, 0.14) !important;
+}
+
+.app-main:has(input[placeholder='Nombre del medicamento']) > div > div:first-child:has(.page-title) {
+  background:
+    radial-gradient(circle at top right, rgba(236, 72, 153, 0.15) 0, transparent 42%),
+    radial-gradient(circle at bottom left, rgba(239, 68, 68, 0.10) 0, transparent 36%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+}
+
+.app-main:has(input[placeholder='Nombre del medicamento']) .page-title::before {
+  content: 'SALUD' !important;
+  color: #ec4899 !important;
+}
+
+.app-main:has(.page-title) .card {
+  border-radius: 28px !important;
+  border-color: var(--border-hover) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08) !important;
+}
+
+.app-main:has(.page-title) .settings-input,
+.app-main:has(.page-title) .settings-select,
+.app-main:has(.page-title) .settings-textarea,
+.app-main:has(.page-title) input,
+.app-main:has(.page-title) select,
+.app-main:has(.page-title) textarea {
+  border-radius: 17px !important;
+}
+
+.app-main:has(.page-title) .btn-primary,
+.app-main:has(.page-title) .req-action-btn {
+  border-radius: 999px !important;
+  font-weight: 950 !important;
+}
+
+@media (max-width: 390px) {
+  .app-main > div > div:first-child:has(.page-title) {
+    border-radius: 30px !important;
+    padding: 20px 16px 18px !important;
+  }
+
+  .app-main > div > div:first-child:has(.page-title) .page-title {
+    font-size: 27px !important;
+  }
+}
