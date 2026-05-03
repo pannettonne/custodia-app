@@ -1,4 +1,5 @@
 @import './more-real-screen.css';
+@import './blocks-hub-premium.css';
 
 .floating-more-menu {
   position: fixed !important;
