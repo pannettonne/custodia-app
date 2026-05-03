@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { EventForm } from '@/components/events/location/EventForm'
@@ -44,11 +45,23 @@ export function CalendarInlineComposerBridge() {
   const { children, selectedChildId } = useAppStore()
   const [inlineComposer, setInlineComposer] = useState<InlineComposer>(null)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [mainElement, setMainElement] = useState<HTMLElement | null>(null)
 
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
   const isParentForSelectedChild = !!child && !!user?.uid && child.parents.includes(user.uid)
   const isCollaboratorForSelectedChild = !!child && !!user?.uid && !!child.collaborators?.includes(user.uid)
   const moreCards = isParentForSelectedChild ? MORE_CARDS_PARENT : isCollaboratorForSelectedChild ? MORE_CARDS_COLLABORATOR : MORE_CARDS_BASIC
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    setMainElement(document.querySelector('.app-main'))
+  }, [])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.body.classList.toggle('custodia-more-open', moreOpen)
+    return () => document.body.classList.remove('custodia-more-open')
+  }, [moreOpen])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -99,7 +112,7 @@ export function CalendarInlineComposerBridge() {
 
   return (
     <>
-      {moreOpen ? <MoreHubScreen cards={moreCards} onClose={() => setMoreOpen(false)} onNavigate={navigateFromMore} /> : null}
+      {moreOpen && mainElement ? createPortal(<MoreHubScreen cards={moreCards} onClose={() => setMoreOpen(false)} onNavigate={navigateFromMore} />, mainElement) : null}
       {inlineComposer ? (
         <div
           style={{
@@ -138,14 +151,8 @@ export function CalendarInlineComposerBridge() {
 
 function MoreHubScreen({ cards, onClose, onNavigate }: { cards: MoreCard[]; onClose: () => void; onNavigate: (target: MoreTarget) => void }) {
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Más funciones"
-      className="more-real-screen"
-      onClick={onClose}
-    >
-      <div className="more-real-shell" onClick={event => event.stopPropagation()}>
+    <section aria-label="Más funciones" className="more-real-screen">
+      <div className="more-real-shell">
         <div className="more-real-hero">
           <div>
             <div className="more-real-kicker">CustodiaApp</div>
@@ -167,6 +174,6 @@ function MoreHubScreen({ cards, onClose, onNavigate }: { cards: MoreCard[]; onCl
           ))}
         </div>
       </div>
-    </div>
+    </section>
   )
 }
