@@ -18,6 +18,7 @@ import { ThemeProvider } from '@/lib/theme-context'
 import { CalendarInlineComposerBridge } from '@/components/calendar/CalendarInlineComposerBridge'
 import { MoreTabBehaviorGuard } from '@/components/more/MoreTabBehaviorGuard'
 import { BlocksHubBridge } from '@/components/more/BlocksHubBridge'
+import { EventsNavBridge } from '@/components/more/EventsNavBridge'
 
 export const metadata: Metadata = {
   title: 'CustodiaApp',
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <MoreTabBehaviorGuard />
             <BlocksHubBridge />
+            <EventsNavBridge />
             <CalendarInlineComposerBridge />
             {children}
           </AuthProvider>
