@@ -1,0 +1,134 @@
+.app-header {
+  padding: 10px 4px 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.app-header > div {
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 13px 13px !important;
+  border-radius: 28px !important;
+  border: 1px solid var(--border-hover) !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 13%, transparent) 0, transparent 38%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08) !important;
+}
+
+.app-header > div::after {
+  content: '';
+  position: absolute;
+  right: -48px;
+  top: -54px;
+  width: 126px;
+  height: 126px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--blue) 9%, transparent);
+  pointer-events: none;
+}
+
+.app-header-left {
+  position: relative;
+  z-index: 1;
+  align-items: center !important;
+}
+
+.app-logo {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 15px !important;
+  border: 1px solid color-mix(in srgb, #fff 72%, transparent) !important;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12) !important;
+}
+
+.app-title {
+  color: var(--text-strong) !important;
+  font-size: 22px !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.65px !important;
+}
+
+.app-subtitle {
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.app-header button,
+.app-header select {
+  position: relative;
+  z-index: 1;
+}
+
+.app-header button[title='Buscar'],
+.app-header .notif-btn,
+.app-header .user-avatar,
+.app-header select {
+  height: 40px !important;
+  min-height: 40px !important;
+  border-radius: 16px !important;
+  border-color: var(--border-hover) !important;
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent) !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+.app-header button[title='Buscar'],
+.app-header .notif-btn,
+.app-header .user-avatar {
+  width: 40px !important;
+}
+
+.app-header .user-avatar {
+  background: linear-gradient(180deg, #0ea5b7 0%, #0891a5 100%) !important;
+  color: #fff !important;
+  font-size: 17px !important;
+  font-weight: 900 !important;
+}
+
+.app-header select {
+  max-width: 118px !important;
+  color: var(--text-strong) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.notif-count {
+  top: -5px !important;
+  right: -5px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  border: 2px solid var(--bg-card) !important;
+  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.22) !important;
+}
+
+@media (max-width: 390px) {
+  .app-header > div {
+    padding: 12px 11px !important;
+    border-radius: 26px !important;
+  }
+
+  .app-logo {
+    width: 39px !important;
+    height: 39px !important;
+  }
+
+  .app-title {
+    font-size: 20px !important;
+  }
+
+  .app-header button[title='Buscar'],
+  .app-header .notif-btn,
+  .app-header .user-avatar {
+    width: 37px !important;
+    height: 37px !important;
+    min-height: 37px !important;
+    border-radius: 15px !important;
+  }
+
+  .app-header select {
+    max-width: 104px !important;
+    height: 37px !important;
+    min-height: 37px !important;
+    padding-inline: 8px !important;
+  }
+}
