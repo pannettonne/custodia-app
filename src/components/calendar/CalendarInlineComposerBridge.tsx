@@ -40,6 +40,11 @@ function isMoreNavButton(target: EventTarget | null) {
   return hasMoreIcon || text === 'más'
 }
 
+function getAppMainElement() {
+  if (typeof document === 'undefined') return null
+  return document.querySelector<HTMLElement>('.app-main')
+}
+
 export function CalendarInlineComposerBridge() {
   const { user } = useAuth()
   const { children, selectedChildId } = useAppStore()
@@ -53,15 +58,14 @@ export function CalendarInlineComposerBridge() {
   const moreCards = isParentForSelectedChild ? MORE_CARDS_PARENT : isCollaboratorForSelectedChild ? MORE_CARDS_COLLABORATOR : MORE_CARDS_BASIC
 
   useEffect(() => {
-    if (typeof document === 'undefined') return
-    setMainElement(document.querySelector<HTMLElement>('.app-main'))
+    setMainElement(getAppMainElement())
   }, [])
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    document.body.classList.toggle('custodia-more-open', moreOpen)
+    document.body.classList.toggle('custodia-more-open', moreOpen && !!mainElement)
     return () => document.body.classList.remove('custodia-more-open')
-  }, [moreOpen])
+  }, [moreOpen, mainElement])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -86,8 +90,10 @@ export function CalendarInlineComposerBridge() {
       event.preventDefault()
       event.stopPropagation()
       event.stopImmediatePropagation()
+      const appMain = getAppMainElement()
+      setMainElement(appMain)
       setInlineComposer(null)
-      setMoreOpen(current => !current)
+      setMoreOpen(current => appMain ? !current : false)
     }
     window.addEventListener('click', handler, { capture: true })
     return () => window.removeEventListener('click', handler, { capture: true } as any)
