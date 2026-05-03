@@ -199,9 +199,12 @@ button:focus-visible,
 }
 
 .bottom-nav {
-  max-width: calc(100% - 18px) !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
+  position: sticky !important;
+  bottom: calc(env(safe-area-inset-bottom) + 12px) !important;
+  width: calc(100% - 24px) !important;
+  max-width: 456px !important;
+  margin: 0 auto 12px !important;
+  transform: none !important;
 }
 
 .floating-more-menu {
@@ -265,7 +268,13 @@ button:focus-visible,
   .app-main {
     padding-left: 12px !important;
     padding-right: 12px !important;
-    padding-bottom: 104px !important;
+    padding-bottom: 112px !important;
+  }
+
+  .bottom-nav {
+    bottom: calc(env(safe-area-inset-bottom) + 10px) !important;
+    width: calc(100% - 18px) !important;
+    margin-bottom: 10px !important;
   }
 
   .app-main .card,
