@@ -54,7 +54,7 @@ export function CalendarInlineComposerBridge() {
 
   useEffect(() => {
     if (typeof document === 'undefined') return
-    setMainElement(document.querySelector('.app-main'))
+    setMainElement(document.querySelector<HTMLElement>('.app-main'))
   }, [])
 
   useEffect(() => {
