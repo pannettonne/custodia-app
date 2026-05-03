@@ -1,0 +1,292 @@
+/* Final visual consistency layer.
+   Keep this file imported last so it normalizes the accumulated UI polish packs. */
+
+:root {
+  --premium-radius-card: 28px;
+  --premium-radius-panel: 32px;
+  --premium-radius-control: 17px;
+  --premium-shadow-card: 0 18px 42px rgba(15, 23, 42, 0.08);
+  --premium-shadow-float: 0 26px 64px rgba(15, 23, 42, 0.22);
+  --premium-focus: 0 0 0 4px color-mix(in srgb, var(--blue) 14%, transparent);
+}
+
+html,
+body,
+.app-shell,
+.app-main {
+  overflow-x: hidden !important;
+}
+
+.app-shell {
+  width: 100%;
+  isolation: isolate;
+}
+
+.app-main {
+  scroll-padding-bottom: 120px;
+}
+
+.app-main > * {
+  max-width: 100%;
+}
+
+.app-main .card,
+.app-main .req-card,
+.app-main .invite-pending,
+.modal,
+.header-popup-menu,
+.notifications-popup-menu,
+.user-popup-menu {
+  border-color: var(--border-hover) !important;
+}
+
+.app-main .card,
+.app-main .req-card,
+.app-main .invite-pending {
+  border-radius: var(--premium-radius-card) !important;
+  box-shadow: var(--premium-shadow-card) !important;
+}
+
+.modal,
+.floating-more-menu {
+  border-radius: var(--premium-radius-panel) !important;
+  box-shadow: var(--premium-shadow-float) !important;
+}
+
+button,
+[role='button'],
+.nav-btn,
+.popup-menu-item,
+.floating-more-item,
+.notification-item,
+.child-item,
+.parent-chip,
+.type-btn,
+.theme-segment button,
+.calendar-nav-btn,
+.modal-close,
+.notif-btn,
+.user-avatar {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:not(:disabled),
+[role='button']:not(:disabled),
+.nav-btn,
+.popup-menu-item,
+.floating-more-item,
+.notification-item,
+.child-item,
+.parent-chip,
+.type-btn,
+.theme-segment button,
+.calendar-nav-btn,
+.modal-close,
+.notif-btn,
+.user-avatar {
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease, opacity 0.14s ease !important;
+}
+
+button:not(:disabled):active,
+[role='button']:not(:disabled):active,
+.nav-btn:active,
+.popup-menu-item:active,
+.floating-more-item:active,
+.notification-item:active,
+.child-item:active,
+.parent-chip:active,
+.type-btn:active,
+.theme-segment button:active,
+.calendar-nav-btn:active,
+.modal-close:active,
+.notif-btn:active,
+.user-avatar:active {
+  transform: scale(0.985) !important;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.58 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+input,
+select,
+textarea,
+.settings-input,
+.settings-select,
+.settings-textarea,
+.quick-input {
+  max-width: 100%;
+}
+
+.settings-input,
+.settings-select,
+.quick-input {
+  min-height: 45px !important;
+}
+
+.settings-input,
+.settings-select,
+.settings-textarea,
+.quick-input,
+.type-toggle,
+.theme-segment {
+  border-radius: var(--premium-radius-control) !important;
+}
+
+.settings-input:focus,
+.settings-select:focus,
+.settings-textarea:focus,
+.quick-input:focus,
+button:focus-visible,
+[role='button']:focus-visible,
+.nav-btn:focus-visible,
+.floating-more-item:focus-visible,
+.popup-menu-item:focus-visible {
+  outline: none !important;
+  box-shadow: var(--premium-focus) !important;
+}
+
+.btn-primary,
+.quick-btn,
+.modal-footer button:not(.btn-outline) {
+  min-height: 45px !important;
+  border-radius: var(--premium-radius-control) !important;
+  font-weight: 950 !important;
+}
+
+.btn-outline,
+.modal-footer .btn-outline {
+  border-color: var(--border-hover) !important;
+  background: var(--bg-card) !important;
+  color: var(--text-secondary) !important;
+}
+
+.btn-outline:hover,
+.modal-footer .btn-outline:hover {
+  color: var(--text-strong) !important;
+  border-color: color-mix(in srgb, var(--blue) 35%, var(--border-hover) 65%) !important;
+}
+
+.page-title,
+.section-title,
+.modal-title,
+.empty-state-title {
+  text-wrap: balance;
+}
+
+.empty-state,
+.success-state {
+  border-radius: var(--premium-radius-card) !important;
+}
+
+.empty-state-sub,
+.empty-state-text,
+.success-sub,
+.modal-sub,
+.popup-empty {
+  text-wrap: pretty;
+}
+
+.nav-badge,
+.notif-count {
+  line-height: 1 !important;
+}
+
+.bottom-nav {
+  max-width: calc(100% - 18px) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.floating-more-menu {
+  max-width: calc(100vw - 20px) !important;
+}
+
+.floating-more-item,
+.notification-item,
+.popup-menu-item {
+  min-width: 0 !important;
+}
+
+.floating-more-item img,
+.nav-btn img,
+.app-header img {
+  flex-shrink: 0;
+}
+
+.modal-overlay {
+  padding-left: max(14px, env(safe-area-inset-left)) !important;
+  padding-right: max(14px, env(safe-area-inset-right)) !important;
+}
+
+.modal {
+  width: min(100%, 520px) !important;
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.header-popup-menu,
+.notifications-popup-menu,
+.user-popup-menu {
+  background: var(--bg-primary) !important;
+}
+
+:root[data-theme='light'] .app-main .card,
+:root[data-theme='light'] .app-main .req-card,
+:root[data-theme='light'] .app-main .invite-pending {
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07) !important;
+}
+
+:root[data-theme='dark'] .app-main .card,
+:root[data-theme='dark'] .app-main .req-card,
+:root[data-theme='dark'] .app-main .invite-pending {
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.16) !important;
+}
+
+:root[data-theme='dark'] .modal,
+:root[data-theme='dark'] .floating-more-menu,
+:root[data-theme='dark'] .header-popup-menu {
+  box-shadow: 0 26px 64px rgba(0, 0, 0, 0.34) !important;
+}
+
+@media (max-width: 390px) {
+  :root {
+    --premium-radius-card: 26px;
+    --premium-radius-panel: 30px;
+  }
+
+  .app-main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: 104px !important;
+  }
+
+  .app-main .card,
+  .app-main .req-card,
+  .app-main .invite-pending {
+    padding-left: 13px !important;
+    padding-right: 13px !important;
+  }
+
+  .page-title {
+    word-break: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
