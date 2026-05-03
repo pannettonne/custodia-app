@@ -1,0 +1,144 @@
+/* Fix PR #99 visual regressions: More grid + hero consistency. Redeploy trigger. */
+
+/* Más: balanced 2-column grid, no hanging full-width Notes card */
+.more-real-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+}
+
+.more-real-card {
+  grid-column: auto !important;
+}
+
+.more-real-card:last-child:nth-child(odd) {
+  grid-column: auto !important;
+  min-height: 112px !important;
+}
+
+.more-notes-card {
+  grid-column: auto !important;
+  min-height: 112px !important;
+}
+
+.more-notes-card .more-real-card-subtitle {
+  max-width: 12ch !important;
+}
+
+.more-notes-card .more-real-icon-wrap {
+  background: color-mix(in srgb, #3b82f6 14%, var(--bg-card) 86%) !important;
+}
+
+/* Prevent the generic hero style from styling inner title pills/cards */
+.app-main:has(.req-action-btn) > div > div:first-child:has(.page-title),
+.app-main:has(.req-action-btn) > div:first-child:has(.page-title),
+.app-main:has(input[placeholder='Nombre del medicamento']) > div > div:first-child:has(.page-title),
+.app-main:has(input[placeholder='Nombre del medicamento']) > div:first-child:has(.page-title) {
+  display: block !important;
+}
+
+/* Remove the unwanted inner rounded title box in Cambios/Medicación */
+.app-main:has(.req-action-btn) .page-title,
+.app-main:has(input[placeholder='Nombre del medicamento']) .page-title {
+  display: block !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.app-main:has(.req-action-btn) .page-title::after,
+.app-main:has(input[placeholder='Nombre del medicamento']) .page-title::after {
+  display: none !important;
+}
+
+/* Cambios: same hero language as Eventos, with correct label */
+.app-main:has(.req-action-btn) > .page-title,
+.app-main:has(.req-action-btn) > div > div:first-child:has(.page-title) {
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 22px 18px 20px !important;
+  margin-bottom: 16px !important;
+  border-radius: 32px !important;
+  border: 1px solid var(--border-hover) !important;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--blue) 18%, transparent) 0, transparent 42%),
+    radial-gradient(circle at bottom left, color-mix(in srgb, #8b5cf6 10%, transparent) 0, transparent 36%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.10) !important;
+}
+
+.app-main:has(.req-action-btn) .page-title::before {
+  content: 'COORDINACIÓN' !important;
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: var(--text-muted) !important;
+  font-size: 10px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.62px !important;
+  text-transform: uppercase !important;
+}
+
+.app-main:has(.req-action-btn) .page-title {
+  color: var(--text-strong) !important;
+  font-size: 30px !important;
+  font-weight: 950 !important;
+  letter-spacing: -1px !important;
+  line-height: 1.02 !important;
+}
+
+/* Medicación: same hero structure, health tone */
+.app-main:has(input[placeholder='Nombre del medicamento']) > div > div:first-child:has(.page-title) {
+  position: relative !important;
+  overflow: hidden !important;
+  padding: 22px 18px 20px !important;
+  margin-bottom: 16px !important;
+  border-radius: 32px !important;
+  border: 1px solid var(--border-hover) !important;
+  background:
+    radial-gradient(circle at top right, rgba(236, 72, 153, 0.15) 0, transparent 42%),
+    radial-gradient(circle at bottom left, rgba(239, 68, 68, 0.10) 0, transparent 36%),
+    linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%) !important;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.10) !important;
+}
+
+.app-main:has(input[placeholder='Nombre del medicamento']) .page-title::before {
+  content: 'SALUD' !important;
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: #ec4899 !important;
+  font-size: 10px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.62px !important;
+  text-transform: uppercase !important;
+}
+
+.app-main:has(input[placeholder='Nombre del medicamento']) .page-title {
+  color: var(--text-strong) !important;
+  font-size: 30px !important;
+  font-weight: 950 !important;
+  letter-spacing: -1px !important;
+  line-height: 1.02 !important;
+}
+
+/* Keep Eventos as reference: avoid duplicate labels if existing component already has one */
+.app-main:has(.page-title) .page-title::before {
+  line-height: 1.1 !important;
+}
+
+@media (max-width: 390px) {
+  .app-main:has(.req-action-btn) > .page-title,
+  .app-main:has(.req-action-btn) > div > div:first-child:has(.page-title),
+  .app-main:has(input[placeholder='Nombre del medicamento']) > div > div:first-child:has(.page-title) {
+    border-radius: 30px !important;
+    padding: 20px 16px 18px !important;
+  }
+
+  .app-main:has(.req-action-btn) .page-title,
+  .app-main:has(input[placeholder='Nombre del medicamento']) .page-title {
+    font-size: 27px !important;
+  }
+}
