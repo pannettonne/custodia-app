@@ -1,6 +1,7 @@
 @import './more-real-screen.css';
 @import './blocks-hub-premium.css';
 @import './events-med-premium.css';
+@import './fix-more-heroes-layout.css';
 
 .floating-more-menu {
   position: fixed !important;
