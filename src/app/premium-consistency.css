@@ -23,7 +23,7 @@ body,
 }
 
 .app-main {
-  scroll-padding-bottom: 120px;
+  scroll-padding-bottom: 130px;
 }
 
 .app-main > * {
@@ -199,12 +199,15 @@ button:focus-visible,
 }
 
 .bottom-nav {
-  position: sticky !important;
-  bottom: calc(env(safe-area-inset-bottom) + 12px) !important;
-  width: calc(100% - 24px) !important;
-  max-width: 456px !important;
-  margin: 0 auto 12px !important;
-  transform: none !important;
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: calc(env(safe-area-inset-bottom) + 10px) !important;
+  width: min(456px, calc(100vw - 18px)) !important;
+  max-width: calc(100vw - 18px) !important;
+  margin: 0 !important;
+  transform: translateX(-50%) !important;
+  z-index: 90 !important;
 }
 
 .floating-more-menu {
@@ -268,13 +271,12 @@ button:focus-visible,
   .app-main {
     padding-left: 12px !important;
     padding-right: 12px !important;
-    padding-bottom: 112px !important;
+    padding-bottom: 128px !important;
   }
 
   .bottom-nav {
-    bottom: calc(env(safe-area-inset-bottom) + 10px) !important;
-    width: calc(100% - 18px) !important;
-    margin-bottom: 10px !important;
+    bottom: calc(env(safe-area-inset-bottom) + 8px) !important;
+    width: calc(100vw - 18px) !important;
   }
 
   .app-main .card,
