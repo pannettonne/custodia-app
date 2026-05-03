@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { EventForm } from '@/components/events/location/EventForm'
@@ -157,7 +157,7 @@ function MoreHubScreen({ cards, onClose, onNavigate }: { cards: MoreCard[]; onCl
 
         <div className="more-real-grid">
           {cards.map(card => (
-            <button key={card.id} type="button" className="more-real-card" style={{ '--more-tone': card.tone } as React.CSSProperties} onClick={() => onNavigate(card.id)}>
+            <button key={card.id} type="button" className="more-real-card" style={{ '--more-tone': card.tone } as CSSProperties} onClick={() => onNavigate(card.id)}>
               <span className="more-real-card-copy">
                 <span className="more-real-card-title">{card.title}</span>
                 <span className="more-real-card-subtitle">{card.subtitle}</span>
