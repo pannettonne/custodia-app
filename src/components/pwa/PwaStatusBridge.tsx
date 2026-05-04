@@ -117,7 +117,7 @@ export function PwaStatusBridge() {
       showOfflineNotice()
     }
 
-    const blockSubmit = (event: SubmitEvent) => {
+    const blockSubmit = (event: Event) => {
       if (online) return
       event.preventDefault()
       event.stopPropagation()
