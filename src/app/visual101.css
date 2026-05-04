@@ -1,0 +1,28 @@
+/* Redeploy trigger for visual title cleanup. */
+
+.page-title {
+  text-wrap: balance;
+}
+
+.card > div:first-child:has(.page-title) {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+.card > div:first-child:has(.page-title)::after {
+  display: none !important;
+  content: none !important;
+}
+
+.card > div:first-child:has(.page-title) .page-title {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}

@@ -30,13 +30,60 @@ function syncMoreCards() {
   return grid
 }
 
+function injectHeroCleanupStyles() {
+  if (typeof document === 'undefined' || document.getElementById('custodia-hero-cleanup')) return
+  const style = document.createElement('style')
+  style.id = 'custodia-hero-cleanup'
+  style.textContent = `
+    .app-main .card > div:first-child:has(.page-title) {
+      padding: 0 !important;
+      margin: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      outline: 0 !important;
+      overflow: visible !important;
+    }
+    .app-main .card > div:first-child:has(.page-title)::after {
+      display: none !important;
+      content: none !important;
+    }
+    .app-main .card > div:first-child:has(.page-title) .page-title {
+      padding: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    .app-main:has(.req-action-btn) .card > div:first-child:has(.page-title) .page-title::before {
+      display: none !important;
+      content: none !important;
+    }
+    .app-main:has(input[placeholder='Nombre del medicamento']) .card > div:first-child:has(.page-title) .page-title::before {
+      content: 'SALUD' !important;
+      display: block !important;
+      margin-bottom: 8px !important;
+      color: #ec4899 !important;
+      font-size: 10px !important;
+      font-weight: 950 !important;
+      letter-spacing: 0.62px !important;
+      text-transform: uppercase !important;
+    }
+  `
+  document.head.appendChild(style)
+}
+
 export function EventsNavBridge() {
   const [moreGrid, setMoreGrid] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
 
+    injectHeroCleanupStyles()
+
     const syncNavigation = () => {
+      injectHeroCleanupStyles()
       for (const button of getBottomNavButtons()) {
         if (!isNotesBottomButton(button)) continue
         button.setAttribute('data-custodia-events-tab', 'true')
