@@ -2,7 +2,8 @@ body.custodia-blocks-open .app-main > :not(.blocks-menu-screen) {
   display: none !important;
 }
 
-body.custodia-blocks-open .more-real-screen {
+body.custodia-blocks-open .more-real-screen,
+body.custodia-blocks-open .more-tab-screen {
   display: none !important;
 }
 
@@ -17,6 +18,30 @@ body.custodia-blocks-open.custodia-more-open .app-main > .blocks-menu-screen {
   display: grid;
   gap: 14px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 106px);
+}
+
+.blocks-tab-screen {
+  position: fixed !important;
+  top: var(--blocks-screen-top) !important;
+  bottom: var(--blocks-screen-bottom) !important;
+  left: var(--blocks-screen-left) !important;
+  width: var(--blocks-screen-width) !important;
+  max-width: none !important;
+  z-index: 79 !important;
+  background: var(--bg-primary) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 16px 14px 18px !important;
+  box-sizing: border-box !important;
+}
+
+.blocks-tab-screen-inner {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  gap: 14px;
 }
 
 .blocks-menu-hero {
@@ -211,6 +236,10 @@ body.custodia-blocks-open.custodia-more-open .app-main > .blocks-menu-screen {
 @media (max-width: 390px) {
   .blocks-menu-screen {
     padding-bottom: calc(env(safe-area-inset-bottom) + 98px);
+  }
+
+  .blocks-tab-screen {
+    padding: 14px 10px 16px !important;
   }
 
   .blocks-menu-hero {
