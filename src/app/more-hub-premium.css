@@ -147,6 +147,24 @@
   transform: scale(0.985) !important;
 }
 
+.app-main[data-custodia-more-open='true'] > :not(.more-real-screen),
+body.custodia-more-open .app-main > :not(.more-real-screen) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.app-main[data-custodia-more-open='true'] > .more-real-screen,
+body.custodia-more-open .app-main > .more-real-screen {
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.app-main[data-custodia-more-open='true'] {
+  overflow-y: auto !important;
+}
+
 @media (max-width: 390px) {
   .floating-more-menu {
     top: calc(env(safe-area-inset-top) + 108px) !important;
