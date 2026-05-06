@@ -4,11 +4,14 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { RejectedItemsCleanupPanel } from '@/components/requests/RejectedItemsCleanupPanel'
 
-type ScreenBounds = { top: number; bottom: number; left: number; width: number }
-
 function findMoreGrid() {
   if (typeof document === 'undefined') return null
   return document.querySelector<HTMLElement>('.more-tab-screen-grid, .more-real-grid')
+}
+
+function findAppMain() {
+  if (typeof document === 'undefined') return null
+  return document.querySelector<HTMLElement>('.app-main')
 }
 
 function isMoreContextOpen() {
@@ -16,31 +19,23 @@ function isMoreContextOpen() {
   return document.body.classList.contains('custodia-more-screen-open') || document.body.classList.contains('custodia-more-open')
 }
 
-function readBounds(): ScreenBounds {
-  const header = document.querySelector<HTMLElement>('.app-header')
-  const nav = document.querySelector<HTMLElement>('.bottom-nav')
-  const shell = document.querySelector<HTMLElement>('.app-shell')
-  const shellRect = shell?.getBoundingClientRect()
-  const headerBottom = Math.max(0, header?.getBoundingClientRect().bottom ?? 0)
-  const navTop = nav?.getBoundingClientRect().top ?? window.innerHeight
-  return {
-    top: headerBottom + 4,
-    bottom: Math.max(88, window.innerHeight - navTop + 8),
-    left: shellRect?.left ?? 0,
-    width: shellRect?.width ?? window.innerWidth,
-  }
+function resetMainScroll(mainElement: HTMLElement | null) {
+  if (!mainElement) return
+  mainElement.scrollTop = 0
+  if (typeof window !== 'undefined') window.requestAnimationFrame(() => { mainElement.scrollTop = 0 })
 }
 
 export function BlocksHubBridge() {
   const [gridElement, setGridElement] = useState<HTMLElement | null>(null)
+  const [mainElement, setMainElement] = useState<HTMLElement | null>(null)
   const [blocksOpen, setBlocksOpen] = useState(false)
-  const [bounds, setBounds] = useState<ScreenBounds | null>(null)
 
   useEffect(() => {
     if (typeof document === 'undefined') return
 
     const sync = () => {
       setGridElement(findMoreGrid())
+      setMainElement(findAppMain())
       if (!isMoreContextOpen()) setBlocksOpen(false)
     }
 
@@ -53,20 +48,9 @@ export function BlocksHubBridge() {
   useEffect(() => {
     if (typeof document === 'undefined') return
     document.body.classList.toggle('custodia-blocks-open', blocksOpen)
+    if (blocksOpen) resetMainScroll(findAppMain())
     return () => document.body.classList.remove('custodia-blocks-open')
   }, [blocksOpen])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const update = () => setBounds(readBounds())
-    update()
-    window.addEventListener('resize', update)
-    window.addEventListener('orientationchange', update)
-    return () => {
-      window.removeEventListener('resize', update)
-      window.removeEventListener('orientationchange', update)
-    }
-  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -76,7 +60,9 @@ export function BlocksHubBridge() {
   }, [])
 
   const openBlocks = () => {
-    setBounds(readBounds())
+    const appMain = findAppMain()
+    setMainElement(appMain)
+    resetMainScroll(appMain)
     setBlocksOpen(true)
   }
 
@@ -98,31 +84,20 @@ export function BlocksHubBridge() {
       )
     : null
 
-  const screen = blocksOpen && bounds
+  const screen = blocksOpen && mainElement
     ? createPortal(
-        <section
-          className="blocks-menu-screen blocks-tab-screen"
-          aria-label="Bloqueos y limpieza"
-          style={{
-            '--blocks-screen-top': `${bounds.top}px`,
-            '--blocks-screen-bottom': `${bounds.bottom}px`,
-            '--blocks-screen-left': `${bounds.left}px`,
-            '--blocks-screen-width': `${bounds.width}px`,
-          } as CSSProperties}
-        >
-          <div className="blocks-tab-screen-inner">
-            <div className="blocks-menu-hero">
-              <div>
-                <div className="blocks-menu-kicker">Más</div>
-                <h1 className="blocks-menu-title">Bloqueos</h1>
-                <p className="blocks-menu-subtitle">Elementos rechazados, bloqueos de disponibilidad y limpieza.</p>
-              </div>
-              <button type="button" className="blocks-menu-back" onClick={() => setBlocksOpen(false)}>Volver</button>
+        <section className="blocks-menu-screen blocks-main-screen" aria-label="Bloqueos y limpieza">
+          <div className="blocks-menu-hero">
+            <div>
+              <div className="blocks-menu-kicker">Más</div>
+              <h1 className="blocks-menu-title">Bloqueos</h1>
+              <p className="blocks-menu-subtitle">Elementos rechazados, bloqueos de disponibilidad y limpieza.</p>
             </div>
-            <RejectedItemsCleanupPanel embedded />
+            <button type="button" className="blocks-menu-back" onClick={() => setBlocksOpen(false)}>Volver</button>
           </div>
+          <RejectedItemsCleanupPanel embedded />
         </section>,
-        document.body
+        mainElement
       )
     : null
 
