@@ -45,6 +45,11 @@ function getAppMainElement() {
   return document.querySelector<HTMLElement>('.app-main')
 }
 
+function setBodyMoreOpen(open: boolean) {
+  if (typeof document === 'undefined') return
+  document.body.classList.toggle('custodia-more-open', open)
+}
+
 export function CalendarInlineComposerBridge() {
   const { user } = useAuth()
   const { children, selectedChildId } = useAppStore()
@@ -57,27 +62,35 @@ export function CalendarInlineComposerBridge() {
   const isCollaboratorForSelectedChild = !!child && !!user?.uid && !!child.collaborators?.includes(user.uid)
   const moreCards = isParentForSelectedChild ? MORE_CARDS_PARENT : isCollaboratorForSelectedChild ? MORE_CARDS_COLLABORATOR : MORE_CARDS_BASIC
 
+  const closeMore = () => {
+    setBodyMoreOpen(false)
+    setMoreOpen(false)
+  }
+
   useEffect(() => {
     setMainElement(getAppMainElement())
   }, [])
 
   useEffect(() => {
-    if (typeof document === 'undefined') return
-    document.body.classList.toggle('custodia-more-open', moreOpen && !!mainElement)
-    return () => document.body.classList.remove('custodia-more-open')
+    setBodyMoreOpen(moreOpen && !!mainElement)
+    return () => setBodyMoreOpen(false)
   }, [moreOpen, mainElement])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<any>).detail
-      if ((detail?.openComposer !== 'event' && detail?.openComposer !== 'note') || !detail?.date) return
-      event.preventDefault()
-      setMoreOpen(false)
-      setInlineComposer({ type: detail.openComposer, date: detail.date, seq: Date.now() })
-      window.setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: 'calendar', childId: detail.childId, date: detail.date } }))
-      }, 0)
+      if ((detail?.openComposer === 'event' || detail?.openComposer === 'note') && detail?.date) {
+        event.preventDefault()
+        closeMore()
+        setInlineComposer({ type: detail.openComposer, date: detail.date, seq: Date.now() })
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: 'calendar', childId: detail.childId, date: detail.date } }))
+        }, 0)
+        return
+      }
+
+      closeMore()
     }
     window.addEventListener('custodia:navigate', handler, { capture: true })
     return () => window.removeEventListener('custodia:navigate', handler, { capture: true } as any)
@@ -93,7 +106,11 @@ export function CalendarInlineComposerBridge() {
       const appMain = getAppMainElement()
       setMainElement(appMain)
       setInlineComposer(null)
-      setMoreOpen(current => appMain ? !current : false)
+      setMoreOpen(current => {
+        const next = appMain ? !current : false
+        setBodyMoreOpen(next && !!appMain)
+        return next
+      })
     }
     window.addEventListener('click', handler, { capture: true })
     return () => window.removeEventListener('click', handler, { capture: true } as any)
@@ -103,7 +120,7 @@ export function CalendarInlineComposerBridge() {
     if (typeof window === 'undefined') return
     const handler = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setMoreOpen(false)
+        closeMore()
         setInlineComposer(null)
       }
     }
@@ -112,13 +129,13 @@ export function CalendarInlineComposerBridge() {
   }, [])
 
   const navigateFromMore = (target: MoreTarget) => {
-    setMoreOpen(false)
+    closeMore()
     window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: target, childId: child?.id } }))
   }
 
   return (
     <>
-      {moreOpen && mainElement ? createPortal(<MoreHubScreen cards={moreCards} onClose={() => setMoreOpen(false)} onNavigate={navigateFromMore} />, mainElement) : null}
+      {moreOpen && mainElement ? createPortal(<MoreHubScreen cards={moreCards} onClose={closeMore} onNavigate={navigateFromMore} />, mainElement) : null}
       {inlineComposer ? (
         <div
           style={{
