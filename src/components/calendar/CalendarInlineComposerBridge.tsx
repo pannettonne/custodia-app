@@ -45,9 +45,17 @@ function getAppMainElement() {
   return document.querySelector<HTMLElement>('.app-main')
 }
 
-function setBodyMoreOpen(open: boolean) {
-  if (typeof document === 'undefined') return
-  document.body.classList.toggle('custodia-more-open', open)
+function setMoreScreenState(mainElement: HTMLElement | null, open: boolean) {
+  if (typeof document !== 'undefined') {
+    document.body.classList.toggle('custodia-more-open', open)
+  }
+
+  if (!mainElement) return
+  if (open) {
+    mainElement.setAttribute('data-custodia-more-open', 'true')
+  } else {
+    mainElement.removeAttribute('data-custodia-more-open')
+  }
 }
 
 export function CalendarInlineComposerBridge() {
@@ -62,8 +70,8 @@ export function CalendarInlineComposerBridge() {
   const isCollaboratorForSelectedChild = !!child && !!user?.uid && !!child.collaborators?.includes(user.uid)
   const moreCards = isParentForSelectedChild ? MORE_CARDS_PARENT : isCollaboratorForSelectedChild ? MORE_CARDS_COLLABORATOR : MORE_CARDS_BASIC
 
-  const closeMore = () => {
-    setBodyMoreOpen(false)
+  const closeMore = (targetMain: HTMLElement | null = mainElement) => {
+    setMoreScreenState(targetMain, false)
     setMoreOpen(false)
   }
 
@@ -72,8 +80,8 @@ export function CalendarInlineComposerBridge() {
   }, [])
 
   useEffect(() => {
-    setBodyMoreOpen(moreOpen && !!mainElement)
-    return () => setBodyMoreOpen(false)
+    setMoreScreenState(mainElement, moreOpen && !!mainElement)
+    return () => setMoreScreenState(mainElement, false)
   }, [moreOpen, mainElement])
 
   useEffect(() => {
@@ -108,7 +116,7 @@ export function CalendarInlineComposerBridge() {
       setInlineComposer(null)
       setMoreOpen(current => {
         const next = appMain ? !current : false
-        setBodyMoreOpen(next && !!appMain)
+        setMoreScreenState(appMain, next)
         return next
       })
     }
