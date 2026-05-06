@@ -1,0 +1,26 @@
+.app-main[data-custodia-more-open='true'] > :not(.more-real-screen),
+body.custodia-more-open .app-main > :not(.more-real-screen) {
+  display: none !important;
+}
+
+.app-main[data-custodia-more-open='true'] > .more-real-screen,
+body.custodia-more-open .app-main > .more-real-screen {
+  display: block !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  transform: none !important;
+}
+
+.app-main[data-custodia-more-open='true'] > .more-real-screen .more-real-grid,
+body.custodia-more-open .app-main > .more-real-screen .more-real-grid {
+  align-content: start !important;
+  margin-top: 0 !important;
+}
+
+.app-main[data-custodia-more-open='true'] {
+  overflow-y: auto !important;
+  scroll-behavior: auto !important;
+}
