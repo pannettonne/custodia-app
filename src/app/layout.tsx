@@ -15,10 +15,12 @@ import './settings-feedback-premium.css'
 import './contacts-polish.css'
 import './pwa-status.css'
 import './more-hub-screen-fix.css'
+import './more-tab-screen.css'
 import { AuthProvider } from '@/lib/auth-context'
 import { ThemeProvider } from '@/lib/theme-context'
 import { CalendarInlineComposerBridge } from '@/components/calendar/CalendarInlineComposerBridge'
 import { MoreTabBehaviorGuard } from '@/components/more/MoreTabBehaviorGuard'
+import { MoreTabScreenBridge } from '@/components/more/MoreTabScreenBridge'
 import { BlocksHubBridge } from '@/components/more/BlocksHubBridge'
 import { EventsNavBridge } from '@/components/more/EventsNavBridge'
 import { PwaStatusBridge } from '@/components/pwa/PwaStatusBridge'
@@ -73,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <AuthProvider>
             <PwaStatusBridge />
+            <MoreTabScreenBridge />
             <MoreTabBehaviorGuard />
             <BlocksHubBridge />
             <EventsNavBridge />
