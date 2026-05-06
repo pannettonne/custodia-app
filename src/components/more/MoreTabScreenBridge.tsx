@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 
@@ -54,11 +54,18 @@ function readBounds(): ScreenBounds {
   }
 }
 
+function clearLegacyMoreState() {
+  if (typeof document === 'undefined') return
+  document.body.classList.remove('custodia-more-open')
+  document.querySelectorAll<HTMLElement>('.app-main[data-custodia-more-open="true"]').forEach(element => element.removeAttribute('data-custodia-more-open'))
+}
+
 export function MoreTabScreenBridge() {
   const { user } = useAuth()
   const { children, selectedChildId } = useAppStore()
   const [open, setOpen] = useState(false)
   const [bounds, setBounds] = useState<ScreenBounds | null>(null)
+  const openRef = useRef(false)
 
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
   const isParentForSelectedChild = !!child && !!user?.uid && child.parents.includes(user.uid)
@@ -66,8 +73,10 @@ export function MoreTabScreenBridge() {
   const cards = isParentForSelectedChild ? MORE_CARDS_PARENT : isCollaboratorForSelectedChild ? MORE_CARDS_COLLABORATOR : MORE_CARDS_BASIC
 
   useEffect(() => {
+    openRef.current = open
     if (typeof document === 'undefined') return
     document.body.classList.toggle('custodia-more-screen-open', open)
+    if (open) clearLegacyMoreState()
     return () => document.body.classList.remove('custodia-more-screen-open')
   }, [open])
 
@@ -85,7 +94,11 @@ export function MoreTabScreenBridge() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const closeOnNavigate = () => setOpen(false)
+    const closeOnNavigate = () => {
+      openRef.current = false
+      setOpen(false)
+      clearLegacyMoreState()
+    }
     window.addEventListener('custodia:navigate', closeOnNavigate)
     return () => window.removeEventListener('custodia:navigate', closeOnNavigate)
   }, [])
@@ -97,19 +110,30 @@ export function MoreTabScreenBridge() {
         event.preventDefault()
         event.stopPropagation()
         event.stopImmediatePropagation()
+        clearLegacyMoreState()
         setBounds(readBounds())
-        setOpen(current => !current)
+        setOpen(current => {
+          const next = !current
+          openRef.current = next
+          return next
+        })
         return
       }
 
-      if (open && isAnyBottomNavButton(event.target)) setOpen(false)
+      if (openRef.current && isAnyBottomNavButton(event.target)) {
+        openRef.current = false
+        setOpen(false)
+        clearLegacyMoreState()
+      }
     }
     window.addEventListener('click', handler, { capture: true })
     return () => window.removeEventListener('click', handler, { capture: true } as any)
-  }, [open])
+  }, [])
 
   const navigateTo = (target: MoreTarget) => {
+    openRef.current = false
     setOpen(false)
+    clearLegacyMoreState()
     window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: target, childId: child?.id } }))
   }
 
