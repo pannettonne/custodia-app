@@ -1,0 +1,78 @@
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) *,
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) *::before,
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) *::after {
+  box-sizing: border-box !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) input,
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) textarea,
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) select,
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .settings-input,
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .settings-textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) div[style*='grid-template-columns'] {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .settings-label + div[style*='grid-template-columns'],
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) div[style*='repeat(4'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) button {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .date-pair {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .date-pair > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .type-toggle {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .type-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 390px) {
+  .app-main .card:has(input[placeholder='Ej: Revisión pediatra']) {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  .app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .date-pair,
+  .app-main .card:has(input[placeholder='Ej: Revisión pediatra']) .type-toggle {
+    grid-template-columns: 1fr !important;
+  }
+}
