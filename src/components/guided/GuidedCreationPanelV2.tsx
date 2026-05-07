@@ -1,1 +1,1 @@
-export { GuidedCreationPanel } from './GuidedCreationPanelV3'
+export { GuidedCreationPanel } from './GuidedCreationPanelV4'
