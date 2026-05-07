@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
-import { GuidedCreationPanel } from './GuidedCreationPanel'
+import { GuidedCreationPanel } from './GuidedCreationPanelV2'
 
 function findMoreGrid() {
   if (typeof document === 'undefined') return null
@@ -59,7 +59,7 @@ export function GuidedCreationBridge() {
         <div className="guided-creation-overlay" role="dialog" aria-modal="true" aria-label="Creación guiada">
           <div className="guided-creation-shell">
             <div className="guided-creation-topbar">
-              <button type="button" className="guided-creation-back" onClick={() => setOpen(false)}>← Volver a Más</button>
+              <button type="button" className="guided-creation-back" onClick={() => setOpen(false)}>Volver a Más</button>
               <button type="button" className="guided-creation-close" aria-label="Cerrar creación guiada" onClick={() => setOpen(false)}>×</button>
             </div>
             <GuidedCreationPanel />
