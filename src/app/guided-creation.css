@@ -1,0 +1,77 @@
+.guided-creation-card {
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.10) 0%, var(--bg-card) 52%, var(--bg-soft) 100%) !important;
+  border-color: rgba(124, 58, 237, 0.24) !important;
+}
+
+.guided-creation-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  background: var(--bg-primary);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 104px);
+}
+
+.guided-creation-shell {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+
+.guided-creation-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.guided-creation-back,
+.guided-creation-close {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.guided-creation-back {
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+
+.guided-creation-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  font-size: 18px;
+}
+
+.guided-creation-overlay .settings-input,
+.guided-creation-overlay .settings-select,
+.guided-creation-overlay .settings-textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.guided-creation-overlay .date-pair {
+  width: 100%;
+  max-width: 100%;
+}
+
+.guided-creation-overlay .type-toggle {
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (max-width: 420px) {
+  .guided-creation-overlay {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
