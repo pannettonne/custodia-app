@@ -1,0 +1,132 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import { useAppStore } from '@/store/app'
+import { createEvent } from '@/lib/db'
+import { showToast } from '@/lib/toast'
+import { CAT_CONFIG, notifyEventAssignmentPending } from '@/components/events/location/shared'
+import { AssignmentSelector } from '@/components/events/location/AssignmentSelector'
+import { DocumentAssociations } from '@/components/documents/DocumentAssociations'
+import type { EventCategory, EventReminderAudience } from '@/types'
+
+const STEPS = ['Qué crear', 'Tipo', 'Nombre', 'Cuándo', 'Dónde', 'Custodia', 'Opciones', 'Resumen']
+const todayISO = () => new Date().toISOString().slice(0, 10)
+const questionFor = (step: number) => ['¿Qué quieres crear?', '¿Qué tipo de evento es?', '¿Cómo lo llamamos?', '¿Cuándo será?', '¿Dónde será?', '¿Quieres asignarlo a alguien?', '¿Quieres añadir algo más?', '¿Está todo correcto?'][step] || ''
+const progressStyle = (index: number, current: number) => ({ flex: 1, height: 5, borderRadius: 999, background: index <= current ? 'linear-gradient(90deg,#7c3aed,#4f46e5)' : 'rgba(148,163,184,.24)' })
+
+export function GuidedCreationPanel() {
+  const { user } = useAuth()
+  const { children, selectedChildId, setSelectedChildId } = useAppStore()
+  const child = useMemo(() => children.find(item => item.id === selectedChildId) || null, [children, selectedChildId])
+
+  const [step, setStep] = useState(0)
+  const [category, setCategory] = useState<EventCategory>('medico')
+  const [title, setTitle] = useState('Cita médica')
+  const [date, setDate] = useState(todayISO())
+  const [endDate, setEndDate] = useState('')
+  const [allDay, setAllDay] = useState(false)
+  const [time, setTime] = useState('10:30')
+  const [endTime, setEndTime] = useState('')
+  const [locationName, setLocationName] = useState('')
+  const [locationAddress, setLocationAddress] = useState('')
+  const [assignedParentId, setAssignedParentId] = useState('')
+  const [reminderEnabled, setReminderEnabled] = useState(false)
+  const [reminderDaysBefore, setReminderDaysBefore] = useState(1)
+  const [reminderAudience, setReminderAudience] = useState<EventReminderAudience>('self')
+  const [notes, setNotes] = useState('')
+  const [documentIds, setDocumentIds] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const validTime = allDay || !endTime || !time || time < endTime
+  const validDate = !!date && (!endDate || endDate >= date)
+  const canNext = step === 0 ? !!child : step === 2 ? !!title.trim() : step === 3 ? validDate && validTime : true
+
+  const goNext = () => {
+    if (!canNext) {
+      setError(step === 0 ? 'Selecciona primero un menor en la app.' : 'Completa esta pantalla para continuar.')
+      return
+    }
+    setError('')
+    setStep(value => Math.min(STEPS.length - 1, value + 1))
+  }
+
+  const save = async () => {
+    if (!user || !child || saving || !title.trim() || !validDate || !validTime) return
+    setSaving(true)
+    setError('')
+    try {
+      const otherParentId = child.parents.find(pid => pid !== user.uid)
+      const wantsAssignment = !!assignedParentId && !!otherParentId
+      const eventId = await createEvent({
+        childId: child.id,
+        createdBy: user.uid,
+        title: title.trim(),
+        category,
+        date,
+        endDate: endDate || undefined,
+        allDay,
+        time: allDay ? undefined : time || undefined,
+        endTime: allDay ? undefined : endTime || undefined,
+        notes: notes.trim() || undefined,
+        documentIds,
+        recurrence: 'none',
+        assignedParentId: wantsAssignment ? assignedParentId : undefined,
+        assignmentStatus: wantsAssignment ? 'pending' : undefined,
+        assignmentRequestedBy: wantsAssignment ? user.uid : undefined,
+        assignmentRequestedByName: wantsAssignment ? (user.displayName || user.email || 'Progenitor') : undefined,
+        assignmentRequestToParentId: wantsAssignment ? otherParentId : undefined,
+        reminderEnabled,
+        reminderDaysBefore: reminderEnabled ? reminderDaysBefore : undefined,
+        reminderAudience: reminderEnabled ? reminderAudience : undefined,
+        locationName: locationName.trim() || undefined,
+        locationAddress: locationAddress.trim() || undefined,
+      } as any)
+      if (wantsAssignment && otherParentId) {
+        await notifyEventAssignmentPending({
+          toUserId: otherParentId,
+          childId: child.id,
+          childName: child.name,
+          eventTitle: title.trim(),
+          dateKey: date,
+          requesterName: user.displayName || user.email || 'Progenitor',
+        })
+      }
+      setSelectedChildId(child.id)
+      showToast({ message: 'Evento creado desde la creación guiada.', tone: 'success' })
+      window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: 'events', childId: child.id, date, focusTargetId: `event-${eventId}` } }))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo guardar el evento.'
+      setError(message)
+      showToast({ message, tone: 'error' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const renderChoices = () => {
+    const items = [
+      ['Evento', 'Citas, colegio, actividades y vacaciones.', true],
+      ['Cambio', 'Próximamente.', false],
+      ['Bloqueo', 'Próximamente.', false],
+      ['Tratamiento', 'Próximamente.', false],
+      ['Nota', 'Próximamente.', false],
+    ] as const
+    return <div style={{ display: 'grid', gap: 10 }}>{items.map(([name, subtitle, enabled]) => <button key={name} type="button" onClick={() => enabled ? goNext() : showToast({ message: 'Ese flujo lo añadiremos después.', tone: 'info' })} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, border: `1px solid ${enabled ? '#7c3aed' : 'var(--border)'}`, background: enabled ? 'rgba(124,58,237,.10)' : 'var(--bg-card)', color: 'var(--text-strong)', cursor: 'pointer', textAlign: 'left' }}><span style={{ width: 28, height: 28, borderRadius: 10, background: enabled ? 'rgba(124,58,237,.14)' : 'var(--bg-soft)', display: 'grid', placeItems: 'center', fontSize: 13 }}>{enabled ? '＋' : '•'}</span><span style={{ flex: 1 }}><strong>{name}</strong><br /><small style={{ color: 'var(--text-secondary)' }}>{subtitle}</small></span><span style={{ color: enabled ? '#7c3aed' : 'var(--text-muted)', fontSize: enabled ? 16 : 10, fontWeight: 900 }}>{enabled ? '›' : 'Pronto'}</span></button>)}</div>
+  }
+
+  const renderBody = () => {
+    if (step === 0) return renderChoices()
+    if (step === 1) return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>{Object.entries(CAT_CONFIG).map(([key, value]) => <button key={key} type="button" onClick={() => { const next = key as EventCategory; setCategory(next); setTitle(value.label === 'Médico' ? 'Cita médica' : value.label) }} style={{ minHeight: 64, borderRadius: 16, border: `1px solid ${category === key ? value.color : 'var(--border)'}`, background: category === key ? `${value.color}1f` : 'var(--bg-card)', color: category === key ? value.color : 'var(--text-secondary)', cursor: 'pointer', display: 'grid', placeItems: 'center', gap: 3, padding: '9px 6px' }}><span style={{ fontSize: 16, lineHeight: 1 }}>{value.icon}</span><strong style={{ fontSize: 13, lineHeight: 1.1, textAlign: 'center' }}>{value.label}</strong></button>)}</div>
+    if (step === 2) return <div><input value={title} onChange={event => setTitle(event.target.value)} className="settings-input" placeholder="Ej: Revisión pediatra" /><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>{['Cita médica', 'Reunión colegio', 'Extraescolar', 'Cumpleaños'].map(item => <button key={item} type="button" onClick={() => setTitle(item)} style={{ border: '1px solid var(--border)', borderRadius: 999, background: 'var(--bg-soft)', color: 'var(--text-secondary)', padding: '7px 10px', fontWeight: 800 }}>{item}</button>)}</div></div>
+    if (step === 3) return <div style={{ display: 'grid', gap: 10 }}><label><div className="settings-label">Fecha desde</div><input type="date" value={date} onChange={event => { const next = event.target.value; setDate(next); if (endDate && endDate < next) setEndDate('') }} className="settings-input" /></label><label><div className="settings-label">Fecha hasta (opcional)</div><input type="date" value={endDate} min={date || undefined} onChange={event => setEndDate(event.target.value)} className="settings-input" /></label><div className="type-toggle"><button type="button" className={`type-btn ${allDay ? 'active' : ''}`} onClick={() => { setAllDay(true); setTime(''); setEndTime('') }}>Todo el día</button><button type="button" className={`type-btn ${!allDay ? 'active' : ''}`} onClick={() => setAllDay(false)}>Con hora</button></div>{!allDay && <div className="date-pair"><label><div className="date-pair-label">Hora desde</div><input type="time" value={time} onChange={event => setTime(event.target.value)} className="settings-input" /></label><label><div className="date-pair-label">Hora hasta</div><input type="time" value={endTime} min={time || undefined} onChange={event => setEndTime(event.target.value)} className="settings-input" /></label></div>}</div>
+    if (step === 4) return <div style={{ display: 'grid', gap: 10 }}><label><div className="settings-label">Lugar</div><input value={locationName} onChange={event => setLocationName(event.target.value)} className="settings-input" placeholder="Ej: Clínica Sanitas" /></label><label><div className="settings-label">Dirección (opcional)</div><input value={locationAddress} onChange={event => setLocationAddress(event.target.value)} className="settings-input" placeholder="Calle, número, ciudad" /></label></div>
+    if (step === 5) return <div style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 18, background: 'var(--bg-card)' }}>{child && child.parents.length > 1 ? <AssignmentSelector child={child} assignedParentId={assignedParentId} setAssignedParentId={setAssignedParentId} /> : <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>No hay otro progenitor configurado para asignar este evento.</div>}</div>
+    if (step === 6) return <div style={{ display: 'grid', gap: 12 }}><div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 18, background: 'var(--bg-card)', display: 'grid', gap: 10 }}><label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}><span><strong>Recordatorio</strong><br /><small style={{ color: 'var(--text-secondary)' }}>Aviso antes del evento</small></span><input type="checkbox" checked={reminderEnabled} onChange={event => setReminderEnabled(event.target.checked)} /></label>{reminderEnabled ? <><select className="settings-input" value={reminderDaysBefore} onChange={event => setReminderDaysBefore(Number(event.target.value))}><option value={0}>El mismo día</option><option value={1}>1 día antes</option><option value={2}>2 días antes</option><option value={3}>3 días antes</option><option value={7}>7 días antes</option></select><select className="settings-input" value={reminderAudience} onChange={event => setReminderAudience(event.target.value as EventReminderAudience)}><option value="self">Solo para mí</option><option value="all_parents">Para ambos progenitores</option></select></> : null}</div><label><div className="settings-label">Notas opcionales</div><textarea value={notes} onChange={event => setNotes(event.target.value)} className="settings-textarea" rows={3} placeholder="Añade detalles importantes..." /></label>{child ? <DocumentAssociations childId={child.id} value={documentIds} onChange={setDocumentIds} /> : null}</div>
+    const rows = [['Menor', child?.name || '—'], ['Tipo', CAT_CONFIG[category]?.label || 'Evento'], ['Título', title], ['Fecha', endDate ? `${date} → ${endDate}` : date], ['Hora', allDay ? 'Todo el día' : `${time || 'Sin hora'}${endTime ? `-${endTime}` : ''}`], ['Lugar', locationName || locationAddress || 'Sin lugar'], ['Asignación', assignedParentId && child ? child.parentNames?.[assignedParentId] || 'Progenitor' : 'No'], ['Recordatorio', reminderEnabled ? `${reminderDaysBefore} día(s) antes` : 'No'], ['Documentos', documentIds.length ? String(documentIds.length) : 'No']]
+    return <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 20, background: 'var(--bg-card)' }}>{rows.map(([label, value]) => <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 12 }}><strong>{label}</strong><span style={{ color: 'var(--text-strong)', fontWeight: 900, textAlign: 'right' }}>{value}</span></div>)}</div>
+  }
+
+  return <section style={{ display: 'grid', gap: 14, width: '100%', maxWidth: 620, margin: '0 auto', paddingBottom: 18 }}><div className="card" style={{ padding: 18, borderRadius: 26, background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', border: '1px solid rgba(124,58,237,0.24)' }}><div style={{ color: '#7c3aed', fontSize: 10, fontWeight: 950, letterSpacing: .5, textTransform: 'uppercase', marginBottom: 5 }}>Creación guiada</div><h1 style={{ margin: 0, color: 'var(--text-strong)', fontSize: 24, lineHeight: 1.05 }}>Una pregunta cada vez</h1><p style={{ margin: '8px 0 0', color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.45 }}>Crea un evento para {child?.name || 'el menor seleccionado'} paso a paso.</p></div><div className="card" style={{ padding: 16, borderRadius: 26, background: 'var(--bg-card)', border: '1px solid var(--border)' }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}><span style={{ background: 'rgba(124,58,237,.12)', color: '#8b5cf6', borderRadius: 999, padding: '6px 9px', fontSize: 11, fontWeight: 950 }}>Paso {step + 1} de {STEPS.length}</span><span style={{ color: 'var(--text-muted)', fontSize: 11, fontWeight: 850 }}>{STEPS[step]}</span></div><div style={{ display: 'flex', gap: 5, marginBottom: 18 }}>{STEPS.map((item, index) => <span key={item} style={progressStyle(index, step)} />)}</div><div style={{ marginBottom: 16 }}><div style={{ color: '#7c3aed', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', marginBottom: 6 }}>{STEPS[step]}</div><h2 style={{ margin: 0, color: 'var(--text-strong)', fontSize: 21 }}>{questionFor(step)}</h2></div>{renderBody()}{error && <div style={{ marginTop: 12, padding: 9, borderRadius: 12, background: 'rgba(239,68,68,.12)', color: '#fca5a5', fontSize: 12, fontWeight: 800 }}>{error}</div>}<div style={{ display: 'flex', gap: 8, marginTop: 16 }}><button type="button" className="btn-primary btn-outline" style={{ flex: 1 }} onClick={() => setStep(value => Math.max(0, value - 1))} disabled={step === 0 || saving}>Anterior</button>{step < STEPS.length - 1 ? <button type="button" style={{ flex: 1, padding: 11, borderRadius: 13, border: 'none', background: canNext ? 'linear-gradient(135deg,#7c3aed,#4f46e5)' : 'rgba(255,255,255,.08)', color: canNext ? '#fff' : '#6b7280', fontWeight: 900 }} onClick={goNext} disabled={!canNext || saving}>Siguiente</button> : <button type="button" style={{ flex: 1, padding: 11, borderRadius: 13, border: 'none', background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', color: '#fff', fontWeight: 900 }} onClick={save} disabled={saving}>{saving ? 'Guardando...' : 'Guardar evento'}</button>}</div></div></section>
+}
