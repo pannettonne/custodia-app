@@ -189,95 +189,95 @@ export function EventForm({ event, onClose, initialDate }) {
   }
 
   return (
-    <div className="card" style={{ marginBottom: 14, borderColor: 'rgba(16,185,129,0.3)', borderRadius: 24, background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', padding: 16 }}>
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom: 14 }}>
-        <div>
+    <div className="card event-form-card" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflowX: 'hidden', marginBottom: 14, borderColor: 'rgba(16,185,129,0.3)', borderRadius: 24, background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-soft) 100%)', padding: 16 }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom: 14, minWidth: 0 }}>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-strong)' }}>{event ? 'Editar evento' : 'Nuevo evento'}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Primero lo básico. Lo demás solo si hace falta.</div>
         </div>
-        <div style={{ padding:'6px 10px', borderRadius:999, background:'rgba(16,185,129,0.12)', color:'#10b981', fontSize:11, fontWeight:800 }}>{showMoreOptions ? 'Completo' : 'Rápido'}</div>
+        <div style={{ flexShrink: 0, padding:'6px 10px', borderRadius:999, background:'rgba(16,185,129,0.12)', color:'#10b981', fontSize:11, fontWeight:800 }}>{showMoreOptions ? 'Completo' : 'Rápido'}</div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, minWidth: 0 }}>
         <div className="settings-label">Título</div>
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Revisión pediatra" className="settings-input" />
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Revisión pediatra" className="settings-input" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
       </div>
 
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, minWidth: 0 }}>
         <div className="settings-label">Tipo</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%', maxWidth: '100%', minWidth: 0, gap: 8, overflow: 'hidden' }}>
           {Object.entries(CAT_CONFIG).map(([key, value]) => (
-            <button key={key} type="button" onClick={() => setCategory(key)} style={{ padding: '9px 6px', borderRadius: 14, border: `1px solid ${category === key ? value.color : 'var(--border)'}`, background: category === key ? `${value.color}22` : 'var(--bg-soft)', color: category === key ? value.color : 'var(--text-secondary)', fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minHeight: 62, justifyContent:'center' }}>
+            <button key={key} type="button" onClick={() => setCategory(key)} style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '9px 6px', borderRadius: 14, border: `1px solid ${category === key ? value.color : 'var(--border)'}`, background: category === key ? `${value.color}22` : 'var(--bg-soft)', color: category === key ? value.color : 'var(--text-secondary)', fontSize: 11, fontWeight: 800, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minHeight: 62, justifyContent:'center', overflow: 'hidden' }}>
               <span style={{ fontSize: 17, lineHeight: 1 }}>{value.icon}</span>
-              <span style={{ lineHeight: 1.1 }}>{value.label}</span>
+              <span style={{ lineHeight: 1.1, maxWidth: '100%', textAlign: 'center', overflowWrap: 'anywhere' }}>{value.label}</span>
             </button>
           ))}
         </div>
-        {category === 'otro' && <input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Nombre de la categoría" className="settings-input" style={{ marginTop: 8 }} />}
+        {category === 'otro' && <input value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Nombre de la categoría" className="settings-input" style={{ marginTop: 8, width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />}
       </div>
 
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, minWidth: 0 }}>
         <div className="settings-label">Fecha</div>
-        <input type="date" value={date} onChange={e => { const next = e.target.value; setDate(next); if (!endDate || endDate < next) setEndDate(next); if (!recurrenceUntil || recurrenceUntil < next) setRecurrenceUntil(next) }} className="settings-input" />
+        <input type="date" value={date} onChange={e => { const next = e.target.value; setDate(next); if (!endDate || endDate < next) setEndDate(next); if (!recurrenceUntil || recurrenceUntil < next) setRecurrenceUntil(next) }} className="settings-input" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
       </div>
 
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, minWidth: 0 }}>
         <div className="settings-label">Duración</div>
-        <div className="type-toggle">
+        <div className="type-toggle" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           <button type="button" className={`type-btn ${allDay ? 'active' : ''}`} onClick={() => { setAllDay(true); setTime(''); setEndTime('') }}>☀️ Todo el día</button>
           <button type="button" className={`type-btn ${!allDay ? 'active' : ''}`} onClick={() => setAllDay(false)}>🕒 Con hora</button>
         </div>
       </div>
 
       {!allDay && (
-        <div style={{ marginBottom: 12 }}>
-          <div className="date-pair">
-            <div>
+        <div style={{ marginBottom: 12, minWidth: 0 }}>
+          <div className="date-pair" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
               <div className="date-pair-label">Hora desde</div>
-              <input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" />
+              <input type="time" value={time} onChange={e => setTime(e.target.value)} className="settings-input" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div className="date-pair-label">Hora hasta</div>
-              <input type="time" value={endTime} min={time || undefined} onChange={e => setEndTime(e.target.value)} className="settings-input" />
+              <input type="time" value={endTime} min={time || undefined} onChange={e => setEndTime(e.target.value)} className="settings-input" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
             </div>
           </div>
           {!hasValidTimeRange && <div style={{ marginTop: 6, fontSize: 11, color: '#f87171' }}>La hora hasta debe ser posterior a la hora desde.</div>}
         </div>
       )}
 
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, minWidth: 0 }}>
         <div className="settings-label">Ubicación</div>
         <LocationField locationQuery={locationQuery} setLocationQuery={setLocationQuery} locationName={locationName} setLocationName={setLocationName} locationAddress={locationAddress} setLocationAddress={setLocationAddress} setLocationLatitude={setLocationLatitude} setLocationLongitude={setLocationLongitude} setLocationPlaceId={setLocationPlaceId} locationResults={locationResults} locationLoading={locationLoading} clearLocation={clearLocation} selectLocation={selectLocation} />
       </div>
 
-      <button type="button" onClick={() => setShowMoreOptions(prev => !prev)} style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, border:'1px solid var(--border)', background:'var(--bg-soft)', borderRadius:16, padding:'12px 14px', marginBottom: showMoreOptions ? 12 : 14, cursor:'pointer' }}>
-        <div style={{ textAlign:'left' }}>
+      <button type="button" onClick={() => setShowMoreOptions(prev => !prev)} style={{ width:'100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, border:'1px solid var(--border)', background:'var(--bg-soft)', borderRadius:16, padding:'12px 14px', marginBottom: showMoreOptions ? 12 : 14, cursor:'pointer' }}>
+        <div style={{ textAlign:'left', minWidth: 0 }}>
           <div style={{ fontSize:13, fontWeight:800, color:'var(--text-strong)' }}>{showMoreOptions ? 'Menos opciones' : 'Más opciones'}</div>
           <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:3 }}>{showMoreOptions ? 'Ocultar repetición, asignación, recordatorio, notas y documentos' : 'Abrir ajustes avanzados del evento'}</div>
         </div>
-        <div style={{ fontSize:20, color:'var(--text-secondary)', lineHeight:1 }}>{showMoreOptions ? '−' : '+'}</div>
+        <div style={{ flexShrink: 0, fontSize:20, color:'var(--text-secondary)', lineHeight:1 }}>{showMoreOptions ? '−' : '+'}</div>
       </button>
 
       {showMoreOptions && (
-        <div style={{ display:'grid', gap: 12, marginBottom: 14 }}>
-          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
+        <div style={{ display:'grid', gap: 12, marginBottom: 14, minWidth: 0 }}>
+          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)', minWidth: 0, overflowX: 'hidden' }}>
             <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Repetición y rango</div>
             <div style={{ marginBottom: 10 }}>
-              <div className="date-pair">
-                <div>
+              <div className="date-pair" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                <div style={{ minWidth: 0 }}>
                   <div className="date-pair-label">Termina el (opcional)</div>
-                  <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" />
+                  <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div className="date-pair-label">Estado</div>
-                  <div className="settings-input" style={{ display:'flex', alignItems:'center', color:'var(--text-muted)' }}>{endDate ? 'Evento con rango' : 'Solo un día'}</div>
+                  <div className="settings-input" style={{ display:'flex', alignItems:'center', color:'var(--text-muted)', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>{endDate ? 'Evento con rango' : 'Solo un día'}</div>
                 </div>
               </div>
             </div>
             <RecurrenceFields event={event} recurrence={recurrence} setRecurrence={setRecurrence} recurrenceWeekdays={recurrenceWeekdays} toggleWeekday={toggleWeekday} recurrenceUntil={recurrenceUntil} setRecurrenceUntil={setRecurrenceUntil} monthlyDay={monthlyDay} setMonthlyDay={setMonthlyDay} date={date} />
           </div>
 
-          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
+          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)', minWidth: 0, overflowX: 'hidden' }}>
             <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Asignación</div>
             {custodyChangeLocked ? (
               <div style={{ padding: '12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-soft)', fontSize: 12, color: 'var(--text-muted)' }}>
@@ -288,16 +288,16 @@ export function EventForm({ event, onClose, initialDate }) {
             )}
           </div>
 
-          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
+          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)', minWidth: 0, overflowX: 'hidden' }}>
             <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Recordatorio</div>
             <ReminderSettings reminderEnabled={reminderEnabled} setReminderEnabled={setReminderEnabled} reminderDaysBefore={reminderDaysBefore} setReminderDaysBefore={setReminderDaysBefore} reminderAudience={reminderAudience} setReminderAudience={setReminderAudience} />
           </div>
 
-          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)' }}>
+          <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)', minWidth: 0, overflowX: 'hidden' }}>
             <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Notas y documentos</div>
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: 12, minWidth: 0 }}>
               <div className="settings-label">Observaciones</div>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={3} className="settings-textarea" />
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Detalles adicionales..." rows={3} className="settings-textarea" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
             </div>
             {child ? <DocumentAssociations childId={child.id} value={documentIds} onChange={setDocumentIds} /> : null}
             {linkedDocuments.length > 0 ? <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>{linkedDocuments.map(doc => <span key={doc.id} style={{ background:'var(--bg-soft)', border:'1px solid var(--border)', color:'var(--text-secondary)', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:999 }}>📎 {doc.title || 'Documento'}</span>)}</div> : null}
@@ -307,9 +307,9 @@ export function EventForm({ event, onClose, initialDate }) {
 
       {error && <div style={{ marginBottom: 10, padding: '8px 10px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', color: '#fca5a5', fontSize: 12 }}>{error}</div>}
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn-primary btn-outline" style={{ flex: 1 }} onClick={onClose}>Cancelar</button>
-        <button style={{ flex: 1, padding: 11, borderRadius: 12, border: 'none', background: isValid && !loading ? '#10b981' : 'rgba(255,255,255,0.08)', color: isValid && !loading ? '#fff' : '#6b7280', fontSize: 13, fontWeight: 700, cursor: isValid && !loading ? 'pointer' : 'not-allowed' }} onClick={handleSubmit} disabled={!isValid || loading}>{loading ? 'Guardando...' : event ? 'Guardar cambios' : 'Guardar evento'}</button>
+      <div style={{ display: 'flex', gap: 8, minWidth: 0 }}>
+        <button className="btn-primary btn-outline" style={{ flex: 1, minWidth: 0 }} onClick={onClose}>Cancelar</button>
+        <button style={{ flex: 1, minWidth: 0, padding: 11, borderRadius: 12, border: 'none', background: isValid && !loading ? '#10b981' : 'rgba(255,255,255,0.08)', color: isValid && !loading ? '#fff' : '#6b7280', fontSize: 13, fontWeight: 700, cursor: isValid && !loading ? 'pointer' : 'not-allowed' }} onClick={handleSubmit} disabled={!isValid || loading}>{loading ? 'Guardando...' : event ? 'Guardar cambios' : 'Guardar evento'}</button>
       </div>
     </div>
   )
