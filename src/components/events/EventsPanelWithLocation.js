@@ -67,8 +67,10 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
     const Section = ({ title, count, open, onToggle, children, }) => {
         if (count === 0)
             return null;
-        return (_jsxs("div", { style: { marginBottom: 14 }, children: [_jsxs("button", { onClick: onToggle, style: {
+        return (_jsxs("div", { style: { marginBottom: 14, width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }, children: [_jsxs("button", { onClick: onToggle, style: {
                         width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -76,7 +78,14 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
                         border: 'none',
                         padding: '0 0 8px 0',
                         cursor: 'pointer',
-                    }, children: [_jsxs("div", { className: "section-title", style: { margin: 0 }, children: [title, " (", count, ")"] }), _jsx("span", { style: { color: 'var(--text-muted)', fontSize: 12 }, children: open ? 'Ocultar' : 'Mostrar' })] }), open && children] }));
+                    }, children: [_jsxs("div", { className: "section-title", style: { margin: 0, minWidth: 0 }, children: [title, " (", count, ")"] }), _jsx("span", { style: { color: 'var(--text-muted)', fontSize: 12, flexShrink: 0 }, children: open ? 'Ocultar' : 'Mostrar' })] }), open && children] }));
+    };
+    const openFormForEvent = (event) => {
+        setEditingEvent(event);
+        setShowForm(true);
+        const main = document.querySelector('.app-main');
+        if (main)
+            main.scrollTop = 0;
     };
     const renderEventCard = (event) => {
         const searchId = `event-${event.id}`;
@@ -87,13 +96,18 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
                     borderRadius: 22,
                     boxShadow: '0 0 0 2px rgba(16,185,129,0.45), 0 20px 44px rgba(16,185,129,0.16)',
                     transition: 'box-shadow 0.2s ease',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    overflowX: 'hidden',
                 }
-                : undefined, children: _jsx(EventCard, { event: event, onEdit: () => {
-                    setEditingEvent(event);
-                    setShowForm(true);
-                } }) }, event.id));
+                : { maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }, children: _jsx(EventCard, { event: event, onEdit: () => openFormForEvent(event) }) }, event.id));
     };
-    return (_jsxs("div", { children: [_jsx("div", { className: "card", style: {
+    return (_jsxs("div", { className: "events-panel-root", style: { width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden', boxSizing: 'border-box' }, children: [_jsx("div", { className: "card", style: {
+                    width: '100%',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                    overflowX: 'hidden',
                     marginBottom: 16,
                     padding: 16,
                     borderRadius: 20,
@@ -104,14 +118,15 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
                         justifyContent: 'space-between',
                         gap: 12,
                         flexWrap: 'wrap',
-                    }, children: [_jsxs("div", { children: [_jsx("div", { style: {
+                        minWidth: 0,
+                    }, children: [_jsxs("div", { style: { minWidth: 0, flex: '1 1 180px' }, children: [_jsx("div", { style: {
                                         fontSize: 11,
                                         color: 'var(--text-muted)',
                                         fontWeight: 800,
                                         textTransform: 'uppercase',
                                         letterSpacing: 0.4,
                                         marginBottom: 4,
-                                    }, children: "Agenda escolar" }), _jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }, children: [_jsx("div", { className: "page-title", style: { marginBottom: 0 }, children: "Eventos" }), todayEvents.length + upcoming.length > 0 && (_jsxs("span", { style: {
+                                    }, children: "Agenda escolar" }), _jsxs("div", { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }, children: [_jsx("div", { className: "page-title", style: { marginBottom: 0 }, children: "Eventos" }), todayEvents.length + upcoming.length > 0 && (_jsxs("span", { style: {
                                                 background: 'rgba(16,185,129,0.15)',
                                                 color: '#10b981',
                                                 fontSize: 11,
@@ -121,7 +136,11 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
                                             }, children: [todayEvents.length + upcoming.length, " activos"] }))] }), _jsx("div", { style: { fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }, children: "Tus eventos ya creados ahora tambi\u00E9n se ven m\u00E1s limpios y consistentes." })] }), _jsx("button", { onClick: () => {
                                 setEditingEvent(null);
                                 setShowForm(true);
+                                const main = document.querySelector('.app-main');
+                                if (main)
+                                    main.scrollTop = 0;
                             }, style: {
+                                flexShrink: 0,
                                 background: '#10b981',
                                 border: 'none',
                                 borderRadius: 12,
@@ -131,7 +150,7 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
                                 fontWeight: 800,
                                 cursor: 'pointer',
                                 boxShadow: '0 10px 24px rgba(16,185,129,0.22)',
-                            }, children: "+ Evento" })] }) }), _jsx("div", { style: { display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 14 }, children: [['all', '🗓️', 'Todos'], ...Object.entries(CAT_CONFIG).map(([key, value]) => [key, value.icon, value.label])].map(([key, icon, label]) => (_jsxs("button", { onClick: () => setFilter(key), style: {
+                            }, children: "+ Evento" })] }) }), !showForm && _jsx("div", { style: { display: 'flex', gap: 6, overflowX: 'auto', overflowY: 'hidden', maxWidth: '100%', minWidth: 0, paddingBottom: 4, marginBottom: 14 }, children: [['all', '🗓️', 'Todos'], ...Object.entries(CAT_CONFIG).map(([key, value]) => [key, value.icon, value.label])].map(([key, icon, label]) => (_jsxs("button", { onClick: () => setFilter(key), style: {
                         flexShrink: 0,
                         padding: '7px 12px',
                         borderRadius: 999,
@@ -144,8 +163,8 @@ export function EventsPanel({ focusTargetId, focusSeq, initialCreateDate, create
                         display: 'flex',
                         alignItems: 'center',
                         gap: 4,
-                    }, children: [_jsx("span", { style: { fontSize: 13 }, children: icon }), label] }, key))) }), showForm && (_jsx(EventForm, { event: editingEvent, onClose: () => {
-                    setShowForm(false);
-                    setEditingEvent(null);
-                }, initialDate: initialCreateDate })), !showForm && filtered.length === 0 ? (_jsxs("div", { className: "empty-state", children: [_jsx("div", { className: "empty-state-icon", children: "\uD83C\uDF93" }), _jsx("div", { className: "empty-state-title", children: "Sin eventos" }), _jsx("div", { className: "empty-state-sub", children: "A\u00F1ade reuniones, ex\u00E1menes, vacaciones..." })] })) : null, _jsx(Section, { title: "Asignaciones pendientes", count: pendingAssignments.length, open: showPendingAssignments, onToggle: () => setShowPendingAssignments(value => !value), children: _jsx("div", { children: pendingAssignments.map(renderEventCard) }) }), todayEvents.length > 0 && (_jsxs("div", { style: { marginBottom: 14 }, children: [_jsxs("div", { className: "section-title", style: { marginBottom: 8 }, children: ["Hoy (", todayEvents.length, ")"] }), _jsx("div", { children: todayEvents.map(renderEventCard) })] })), _jsx(Section, { title: "Pr\u00F3ximos", count: upcoming.length, open: showUpcoming, onToggle: () => setShowUpcoming(value => !value), children: _jsx("div", { children: upcoming.map(renderEventCard) }) }), _jsx(Section, { title: "Pasados", count: past.length, open: showPast, onToggle: () => setShowPast(value => !value), children: _jsx("div", { children: past.map(renderEventCard) }) })] }));
+                    }, children: [_jsx("span", { style: { fontSize: 13 }, children: icon }), label] }, key))) }), showForm && (_jsx("div", { style: { width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }, children: _jsx(EventForm, { event: editingEvent, onClose: () => {
+                        setShowForm(false);
+                        setEditingEvent(null);
+                    }, initialDate: initialCreateDate }) })), !showForm && filtered.length === 0 ? (_jsxs("div", { className: "empty-state", children: [_jsx("div", { className: "empty-state-icon", children: "\uD83C\uDF93" }), _jsx("div", { className: "empty-state-title", children: "Sin eventos" }), _jsx("div", { className: "empty-state-sub", children: "A\u00F1ade reuniones, ex\u00E1menes, vacaciones..." })] })) : null, !showForm && _jsx(Section, { title: "Asignaciones pendientes", count: pendingAssignments.length, open: showPendingAssignments, onToggle: () => setShowPendingAssignments(value => !value), children: _jsx("div", { style: { width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }, children: pendingAssignments.map(renderEventCard) }) }), !showForm && todayEvents.length > 0 && (_jsxs("div", { style: { marginBottom: 14, width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }, children: [_jsxs("div", { className: "section-title", style: { marginBottom: 8 }, children: ["Hoy (", todayEvents.length, ")"] }), _jsx("div", { style: { width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }, children: todayEvents.map(renderEventCard) })] })), !showForm && _jsx(Section, { title: "Pr\u00F3ximos", count: upcoming.length, open: showUpcoming, onToggle: () => setShowUpcoming(value => !value), children: _jsx("div", { style: { width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }, children: upcoming.map(renderEventCard) }) }), !showForm && _jsx(Section, { title: "Pasados", count: past.length, open: showPast, onToggle: () => setShowPast(value => !value), children: _jsx("div", { style: { width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }, children: past.map(renderEventCard) }) })] }));
 }
