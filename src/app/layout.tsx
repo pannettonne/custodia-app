@@ -17,9 +17,11 @@ import './pwa-status.css'
 import './more-hub-screen-fix.css'
 import './more-tab-screen.css'
 import './event-form-mobile-fix.css'
+import './guided-creation.css'
 import { AuthProvider } from '@/lib/auth-context'
 import { ThemeProvider } from '@/lib/theme-context'
 import { PwaStatusBridge } from '@/components/pwa/PwaStatusBridge'
+import { GuidedCreationBridge } from '@/components/guided/GuidedCreationBridge'
 
 export const metadata: Metadata = {
   title: 'CustodiaApp',
@@ -71,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <AuthProvider>
             <PwaStatusBridge />
+            <GuidedCreationBridge />
             {children}
           </AuthProvider>
         </ThemeProvider>
