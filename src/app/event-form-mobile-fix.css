@@ -65,6 +65,42 @@
   min-width: 0 !important;
 }
 
+.event-form-card {
+  width: calc(100vw - 56px) !important;
+  max-width: calc(100vw - 56px) !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  overflow-x: hidden !important;
+}
+
+.event-form-card > div,
+.event-form-card input,
+.event-form-card textarea,
+.event-form-card button,
+.event-form-card .settings-input,
+.event-form-card .settings-textarea,
+.event-form-card .date-pair,
+.event-form-card .type-toggle {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.event-form-card div[style*='grid-template-columns'] {
+  width: 100% !important;
+  max-width: 100% !important;
+  grid-template-columns: 1fr !important;
+}
+
+.app-main {
+  overflow-x: hidden !important;
+}
+
+.app-main > * {
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
 @media (max-width: 390px) {
   .app-main .card:has(input[placeholder='Ej: Revisión pediatra']) {
     padding-left: 14px !important;
