@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-const APP_VERSION = '2026.05.04.1'
+const APP_VERSION = '2026.05.07.1'
 const CHECK_INTERVAL_MS = 5 * 60 * 1000
 
 const WRITE_WORDS = [
