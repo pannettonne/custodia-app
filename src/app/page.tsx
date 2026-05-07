@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context'
 import { LoginPage } from '@/components/ui/LoginPage'
-import { AppShellWithToday } from '@/components/ui/AppShellWithToday'
+import { AppShellRealTabs } from '@/components/ui/AppShellRealTabs'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -24,5 +24,5 @@ export default function Home() {
   }
 
   if (!user) return <LoginPage />
-  return <AppShellWithToday />
+  return <AppShellRealTabs />
 }
