@@ -64,6 +64,22 @@ npx vercel --prod
 3. Ambos ven el mismo calendario en tiempo real
 4. Cualquiera puede pedir cambios de día desde el calendario
 
+## 📱 Iconos PWA/iPhone
+
+Para los iconos instalables de Nexo, usar siempre **PNG estático real** servido desde `public/`.
+
+Regla rápida:
+
+- `public/icon.png` → PNG cuadrado con fondo blanco, símbolo centrado y sin texto.
+- `public/apple-touch-icon.png` → PNG cuadrado con fondo blanco para iOS.
+- `public/favicon.png` y `public/icons/icon-192.png` → mismo estilo.
+- `manifest.json` debe apuntar a `/icon.png`.
+- `layout.tsx` debe apuntar a `/icon.png` y `/apple-touch-icon.png`.
+
+No usar SVG, rutas dinámicas de Next, PNG transparente, `fetch('/icon.png')` desde route handlers ni el logo horizontal completo como icono PWA.
+
+Ver la guía completa en [`docs/pwa-icons.md`](docs/pwa-icons.md).
+
 ## 🗂️ Estructura
 
 ```
