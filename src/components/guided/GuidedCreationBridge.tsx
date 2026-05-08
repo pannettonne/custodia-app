@@ -16,15 +16,25 @@ function findMoreGrid() {
   return document.querySelector<HTMLElement>('.more-real-grid.more-tab-screen-grid, .more-real-grid')
 }
 
+function includesText(haystack: string, needle?: string) {
+  return !!needle && haystack.includes(needle.toLowerCase())
+}
+
 export function GuidedCreationBridge() {
   const { user } = useAuth()
-  const { children, selectedChildId, setSelectedChildId } = useAppStore()
+  const { children, selectedChildId, setSelectedChildId, events, notes, medications, availabilityBlocks, requests } = useAppStore()
   const [moreGrid, setMoreGrid] = useState<HTMLElement | null>(null)
   const [open, setOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<GuidedEditTarget | null>(null)
 
   const child = useMemo(() => children.find(item => item.id === selectedChildId) ?? null, [children, selectedChildId])
   const canUseGuidedCreation = !!child && !!user?.uid && child.parents.includes(user.uid)
+
+  const openGuidedEditor = (target: GuidedEditTarget) => {
+    if (target.item?.childId) setSelectedChildId(target.item.childId)
+    setEditTarget(target)
+    setOpen(true)
+  }
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -50,13 +60,43 @@ export function GuidedCreationBridge() {
     const openEditor = (event: Event) => {
       const detail = (event as CustomEvent<GuidedEditTarget>).detail
       if (!detail?.type || !detail?.item) return
-      if (detail.item.childId) setSelectedChildId(detail.item.childId)
-      setEditTarget(detail)
-      setOpen(true)
+      openGuidedEditor(detail)
     }
     window.addEventListener('custodia:guided-edit', openEditor as EventListener)
     return () => window.removeEventListener('custodia:guided-edit', openEditor as EventListener)
   }, [setSelectedChildId])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const captureEditClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      const button = target?.closest('button')
+      if (!button) return
+      const label = `${button.getAttribute('aria-label') || ''} ${button.getAttribute('title') || ''} ${button.textContent || ''}`.toLowerCase()
+      if (!label.includes('editar')) return
+      const card = button.closest('.card') as HTMLElement | null
+      const text = (card?.textContent || '').toLowerCase()
+      if (!text) return
+      const eventItem = events.find(item => includesText(text, item.title))
+      const noteItem = notes.find(item => includesText(text, item.text?.slice(0, 40)))
+      const treatmentItem = medications.find(item => includesText(text, item.name))
+      const blockItem = availabilityBlocks.find(item => includesText(text, item.note) || includesText(text, item.userName))
+      const requestItem = requests.find(item => includesText(text, item.reason?.slice(0, 40)))
+      const found = label.includes('evento') && eventItem ? { type: 'event' as const, item: eventItem }
+        : treatmentItem ? { type: 'treatment' as const, item: treatmentItem }
+        : noteItem ? { type: 'note' as const, item: noteItem }
+        : blockItem ? { type: 'block' as const, item: blockItem }
+        : requestItem ? { type: 'change' as const, item: requestItem }
+        : eventItem ? { type: 'event' as const, item: eventItem }
+        : null
+      if (!found) return
+      event.preventDefault()
+      event.stopPropagation()
+      openGuidedEditor(found)
+    }
+    document.addEventListener('click', captureEditClick, true)
+    return () => document.removeEventListener('click', captureEditClick, true)
+  }, [events, notes, medications, availabilityBlocks, requests, setSelectedChildId])
 
   const close = () => {
     setOpen(false)
