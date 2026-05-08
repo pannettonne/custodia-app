@@ -32,14 +32,13 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
-      { url: '/favicon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-      { url: '/nexo-apple-touch-icon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/apple-touch-icon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/apple-touch-icon-precomposed.png', sizes: '192x192', type: 'image/png' },
     ],
     shortcut: ['/favicon.png'],
   },
@@ -78,9 +77,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Nexo" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png" />
-        <link rel="icon" type="image/png" href="/icon.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="192x192" href="/apple-touch-icon-precomposed.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon.png" />
         <link rel="shortcut icon" type="image/png" href="/favicon.png" />
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
