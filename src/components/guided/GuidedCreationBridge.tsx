@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
-import { GuidedCreationPanel } from './GuidedCreationPanelV2'
+import { GuidedCreationPanel } from './GuidedCreationPanelV9'
 
 function findMoreGrid() {
   if (typeof document === 'undefined') return null
@@ -46,7 +46,7 @@ export function GuidedCreationBridge() {
         >
           <span className="more-real-card-copy">
             <span className="more-real-card-title">Creación guiada</span>
-            <span className="more-real-card-subtitle">Evento paso a paso</span>
+            <span className="more-real-card-subtitle">Crear paso a paso</span>
           </span>
           <span className="more-real-icon-wrap" aria-hidden="true">✨</span>
         </button>,
