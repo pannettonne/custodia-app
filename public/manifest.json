@@ -10,8 +10,8 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
+      "src": "/nexo-icon.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }
