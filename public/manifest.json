@@ -1,7 +1,7 @@
 {
-  "name": "CustodiaApp",
-  "short_name": "Custodia",
-  "description": "Gestión de custodia compartida de menores",
+  "name": "Nexo",
+  "short_name": "Nexo",
+  "description": "Todo lo importante, conectado.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d1117",
