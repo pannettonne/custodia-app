@@ -1,0 +1,32 @@
+.app-logo {
+  content: url('/nexo-icon.png') !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 14px !important;
+  object-fit: cover !important;
+}
+
+.app-title {
+  font-size: 0 !important;
+  white-space: nowrap !important;
+}
+
+.app-title::after {
+  content: 'Nexo';
+  color: var(--text-strong);
+  font-size: 23px !important;
+  font-weight: 950;
+  line-height: 1.02;
+  letter-spacing: -0.9px;
+}
+
+@media (max-width: 390px) {
+  .app-logo {
+    width: 37px !important;
+    height: 37px !important;
+  }
+
+  .app-title::after {
+    font-size: 21px !important;
+  }
+}
