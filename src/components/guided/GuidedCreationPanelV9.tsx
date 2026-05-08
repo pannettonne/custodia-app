@@ -12,6 +12,7 @@ import { GuidedOptionsStep } from './GuidedOptionsStep'
 import { GuidedChangePanel } from './GuidedChangePanel'
 import { GuidedBlockPanel } from './GuidedBlockPanel'
 import { GuidedTreatmentPanel } from './GuidedTreatmentPanel'
+import { GuidedNotePanel } from './GuidedNotePanel'
 import type { EventCategory, EventReminderAudience } from '@/types'
 
 const STEPS = ['Qué crear', 'Tipo', 'Nombre', 'Cuándo', 'Dónde', 'Custodia', 'Opciones', 'Resumen']
@@ -23,7 +24,7 @@ export function GuidedCreationPanel() {
   const { user } = useAuth()
   const { children, selectedChildId, setSelectedChildId } = useAppStore()
   const child = useMemo(() => children.find(c => c.id === selectedChildId) || null, [children, selectedChildId])
-  const [mode, setMode] = useState<'menu' | 'event' | 'change' | 'block' | 'treatment'>('menu')
+  const [mode, setMode] = useState<'menu' | 'event' | 'change' | 'block' | 'treatment' | 'note'>('menu')
   const [step, setStep] = useState(0)
   const [category, setCategory] = useState<EventCategory>('medico')
   const [title, setTitle] = useState('Cita médica')
@@ -51,6 +52,7 @@ export function GuidedCreationPanel() {
   if (mode === 'change') return <GuidedChangePanel onBack={() => setMode('menu')} />
   if (mode === 'block') return <GuidedBlockPanel onBack={() => setMode('menu')} />
   if (mode === 'treatment') return <GuidedTreatmentPanel onBack={() => setMode('menu')} />
+  if (mode === 'note') return <GuidedNotePanel onBack={() => setMode('menu')} />
 
   const validDate = !!date && (!endDate || endDate >= date)
   const validTime = allDay || !endTime || !time || time < endTime
@@ -79,14 +81,15 @@ export function GuidedCreationPanel() {
     if (name === 'Cambio') { setMode('change'); return }
     if (name === 'Bloqueo') { setMode('block'); return }
     if (name === 'Tratamiento') { setMode('treatment'); return }
+    if (name === 'Nota') { setMode('note'); return }
     showToast({ message: 'Ese flujo lo añadiremos después.', tone: 'info' })
   }
 
-  const menuTone = (index: number) => index === 0 ? '#7c3aed' : index === 1 ? '#10b981' : index === 2 ? '#f59e0b' : index === 3 ? '#ef4444' : 'var(--border)'
-  const menuBg = (index: number) => index === 0 ? 'rgba(124,58,237,.10)' : index === 1 ? 'rgba(16,185,129,.10)' : index === 2 ? 'rgba(245,158,11,.10)' : index === 3 ? 'rgba(239,68,68,.10)' : 'var(--bg-card)'
+  const menuTone = (index: number) => index === 0 ? '#7c3aed' : index === 1 ? '#10b981' : index === 2 ? '#f59e0b' : index === 3 ? '#ef4444' : '#3b82f6'
+  const menuBg = (index: number) => index === 0 ? 'rgba(124,58,237,.10)' : index === 1 ? 'rgba(16,185,129,.10)' : index === 2 ? 'rgba(245,158,11,.10)' : index === 3 ? 'rgba(239,68,68,.10)' : 'rgba(59,130,246,.10)'
 
   const body = () => {
-    if (step === 0) return <div style={{ display: 'grid', gap: 10 }}>{['Evento', 'Cambio', 'Bloqueo', 'Tratamiento', 'Nota'].map((name, i) => <button key={name} type="button" onClick={() => selectMenu(name)} style={{ padding: 12, borderRadius: 18, border: `1px solid ${menuTone(i)}`, background: menuBg(i), color: 'var(--text-strong)', textAlign: 'left' }}><strong>{name}</strong><br /><small style={{ color: 'var(--text-secondary)' }}>{i === 0 ? 'Citas, colegio, actividades y vacaciones.' : i === 1 ? 'Solicitudes de cambio de custodia.' : i === 2 ? 'Bloqueos de disponibilidad.' : i === 3 ? 'Medicación y pautas de tratamiento.' : 'Próximamente.'}</small></button>)}</div>
+    if (step === 0) return <div style={{ display: 'grid', gap: 10 }}>{['Evento', 'Cambio', 'Bloqueo', 'Tratamiento', 'Nota'].map((name, i) => <button key={name} type="button" onClick={() => selectMenu(name)} style={{ padding: 12, borderRadius: 18, border: `1px solid ${menuTone(i)}`, background: menuBg(i), color: 'var(--text-strong)', textAlign: 'left' }}><strong>{name}</strong><br /><small style={{ color: 'var(--text-secondary)' }}>{i === 0 ? 'Citas, colegio, actividades y vacaciones.' : i === 1 ? 'Solicitudes de cambio de custodia.' : i === 2 ? 'Bloqueos de disponibilidad.' : i === 3 ? 'Medicación y pautas de tratamiento.' : 'Notas, avisos y documentos compartidos.'}</small></button>)}</div>
     if (step === 1) return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>{Object.entries(CAT_CONFIG).map(([k, v]) => <button key={k} type="button" onClick={() => { setCategory(k as EventCategory); setTitle(v.label === 'Médico' ? 'Cita médica' : v.label) }} style={{ minHeight: 64, borderRadius: 16, border: `1px solid ${category === k ? v.color : 'var(--border)'}`, background: category === k ? `${v.color}1f` : 'var(--bg-card)', color: category === k ? v.color : 'var(--text-secondary)' }}><span style={{ fontSize: 16 }}>{v.icon}</span><br /><strong style={{ fontSize: 13 }}>{v.label}</strong></button>)}</div>
     if (step === 2) return <div><input className="settings-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Revisión pediatra" /><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>{['Cita médica', 'Reunión colegio', 'Extraescolar', 'Cumpleaños'].map(x => <button key={x} type="button" onClick={() => setTitle(x)} style={{ border: '1px solid var(--border)', borderRadius: 999, background: 'var(--bg-soft)', color: 'var(--text-secondary)', padding: '7px 10px', fontWeight: 800 }}>{x}</button>)}</div></div>
     if (step === 3) return <div style={{ display: 'grid', gap: 10 }}><label><div className="settings-label">Fecha desde</div><input type="date" className="settings-input" value={date} onChange={e => { const d = e.target.value; setDate(d); if (endDate && endDate < d) setEndDate('') }} /></label><label><div className="settings-label">Fecha hasta (opcional)</div><input type="date" className="settings-input" value={endDate} min={date || undefined} onChange={e => setEndDate(e.target.value)} /></label><div className="type-toggle"><button type="button" className={`type-btn ${allDay ? 'active' : ''}`} onClick={() => { setAllDay(true); setTime(''); setEndTime('') }}>Todo el día</button><button type="button" className={`type-btn ${!allDay ? 'active' : ''}`} onClick={() => { setAllDay(false); if (!time) setTime('10:30') }}>Con hora</button></div>{!allDay ? <div className="date-pair"><label><div className="date-pair-label">Hora desde</div><input type="time" className="settings-input" value={time} onChange={e => setTime(e.target.value)} /></label><label><div className="date-pair-label">Hora hasta</div><input type="time" className="settings-input" value={endTime} min={time || undefined} onChange={e => setEndTime(e.target.value)} /></label></div> : null}</div>
