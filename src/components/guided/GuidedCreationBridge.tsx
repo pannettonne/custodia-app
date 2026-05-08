@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
+import { formatAvailabilityBlockLabel } from '@/lib/availability-blocks'
 import { GuidedCreationPanel } from './GuidedCreationPanelV9'
 
 type GuidedEditTarget = {
@@ -68,6 +69,36 @@ export function GuidedCreationBridge() {
 
   useEffect(() => {
     if (typeof document === 'undefined') return
+    const injectBlockEditButtons = () => {
+      const ownCards = Array.from(document.querySelectorAll<HTMLElement>('.card')).filter(card => (card.textContent || '').toLowerCase().includes('tu bloqueo'))
+      ownCards.forEach(card => {
+        if (card.querySelector('[data-guided-block-edit="true"]')) return
+        const cardText = (card.textContent || '').toLowerCase()
+        const block = availabilityBlocks.find(item => item.userId === user?.uid && cardText.includes(formatAvailabilityBlockLabel(item).toLowerCase()))
+        if (!block) return
+        const deleteButton = Array.from(card.querySelectorAll('button')).find(button => (button.textContent || '').trim().toLowerCase() === 'eliminar')
+        if (!deleteButton?.parentElement) return
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.textContent = 'Editar'
+        button.dataset.guidedBlockEdit = 'true'
+        button.className = 'req-action-btn btn-accept'
+        button.addEventListener('click', event => {
+          event.preventDefault()
+          event.stopPropagation()
+          openGuidedEditor({ type: 'block', item: block })
+        })
+        deleteButton.parentElement.insertBefore(button, deleteButton)
+      })
+    }
+    injectBlockEditButtons()
+    const observer = new MutationObserver(injectBlockEditButtons)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [availabilityBlocks, user?.uid, setSelectedChildId])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
     const captureEditClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null
       const button = target?.closest('button')
@@ -80,7 +111,7 @@ export function GuidedCreationBridge() {
       const eventItem = events.find(item => includesText(text, item.title))
       const noteItem = notes.find(item => includesText(text, item.text?.slice(0, 40)))
       const treatmentItem = medications.find(item => includesText(text, item.name))
-      const blockItem = availabilityBlocks.find(item => includesText(text, item.note) || includesText(text, item.userName))
+      const blockItem = availabilityBlocks.find(item => text.includes(formatAvailabilityBlockLabel(item).toLowerCase()) || includesText(text, item.note) || includesText(text, item.userName))
       const requestItem = requests.find(item => includesText(text, item.reason?.slice(0, 40)))
       const found = label.includes('evento') && eventItem ? { type: 'event' as const, item: eventItem }
         : treatmentItem ? { type: 'treatment' as const, item: treatmentItem }
