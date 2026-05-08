@@ -47,18 +47,30 @@
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12) !important;
 }
 
+.app-header-left .app-logo + div > div:first-child {
+  display: none !important;
+}
+
 .app-title {
   color: var(--text-strong) !important;
-  font-size: 21px !important;
+  font-size: 23px !important;
   font-weight: 950 !important;
-  line-height: 1.05 !important;
-  letter-spacing: -0.75px !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.9px !important;
 }
 
 .app-subtitle {
   color: var(--text-secondary) !important;
   font-size: 12px !important;
   font-weight: 850 !important;
+}
+
+.app-header:has(select) .app-subtitle {
+  display: none !important;
+}
+
+.app-header button[title='Consulta rápida'] {
+  display: none !important;
 }
 
 .app-header button,
@@ -87,14 +99,6 @@
   padding: 0 !important;
 }
 
-.app-header button[title='Consulta rápida'] {
-  width: 21px !important;
-  height: 21px !important;
-  min-height: 21px !important;
-  border-radius: 999px !important;
-  box-shadow: none !important;
-}
-
 .app-header .user-avatar {
   background: linear-gradient(180deg, #0ea5b7 0%, #0891a5 100%) !important;
   color: #fff !important;
@@ -103,11 +107,11 @@
 }
 
 .app-header select {
-  max-width: 116px !important;
+  max-width: 118px !important;
   color: var(--text-strong) !important;
-  font-size: 12px !important;
-  font-weight: 850 !important;
-  padding: 7px 9px !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  padding: 7px 10px !important;
 }
 
 .notif-count {
@@ -148,7 +152,7 @@
   }
 
   .app-title {
-    font-size: 19px !important;
+    font-size: 21px !important;
   }
 
   .app-subtitle {
