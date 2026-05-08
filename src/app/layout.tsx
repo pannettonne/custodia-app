@@ -31,16 +31,9 @@ export const metadata: Metadata = {
   description: 'Todo lo importante, conectado.',
   manifest: '/manifest.json',
   icons: {
-    icon: [
-      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
-      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '192x192', type: 'image/png' },
-      { url: '/apple-touch-icon-precomposed.png', sizes: '192x192', type: 'image/png' },
-    ],
-    shortcut: ['/favicon.png'],
+    icon: [{ url: '/nexo-icon.png', sizes: '512x512', type: 'image/png' }],
+    apple: [{ url: '/nexo-icon.png', sizes: '512x512', type: 'image/png' }],
+    shortcut: ['/nexo-icon.png'],
   },
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Nexo' },
 }
@@ -77,10 +70,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Nexo" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" sizes="192x192" href="/apple-touch-icon.png" />
-        <link rel="apple-touch-icon-precomposed" sizes="192x192" href="/apple-touch-icon-precomposed.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon.png" />
-        <link rel="shortcut icon" type="image/png" href="/favicon.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/nexo-icon.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="512x512" href="/nexo-icon.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/nexo-icon.png" />
+        <link rel="shortcut icon" type="image/png" href="/nexo-icon.png" />
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body style={{ fontFamily: 'system-ui, -apple-system, sans-serif', margin: 0, paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
