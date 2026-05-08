@@ -22,6 +22,7 @@ import { AuthProvider } from '@/lib/auth-context'
 import { ThemeProvider } from '@/lib/theme-context'
 import { PwaStatusBridge } from '@/components/pwa/PwaStatusBridge'
 import { GuidedCreationBridge } from '@/components/guided/GuidedCreationBridge'
+import { EventDeleteBridge } from '@/components/events/EventDeleteBridge'
 
 export const metadata: Metadata = {
   title: 'CustodiaApp',
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AuthProvider>
             <PwaStatusBridge />
             <GuidedCreationBridge />
+            <EventDeleteBridge />
             {children}
           </AuthProvider>
         </ThemeProvider>
