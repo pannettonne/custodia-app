@@ -32,35 +32,73 @@ function isIOSStandalone(): boolean {
   return isIOS && isStandalone
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise(resolve => {
+    const timer = window.setTimeout(() => resolve(null), ms)
+    promise
+      .then(value => {
+        window.clearTimeout(timer)
+        resolve(value)
+      })
+      .catch(() => {
+        window.clearTimeout(timer)
+        resolve(null)
+      })
+  })
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
     let unsubscribe: (() => void) | undefined
+
+    const unlockTimer = window.setTimeout(() => {
+      if (mounted) setLoading(false)
+    }, 4500)
+
+    try {
+      unsubscribe = onAuthStateChanged(
+        auth,
+        (firebaseUser) => {
+          if (!mounted) return
+          setUser(firebaseUser)
+          setLoading(false)
+          window.clearTimeout(unlockTimer)
+        },
+        () => {
+          if (!mounted) return
+          setUser(null)
+          setLoading(false)
+          window.clearTimeout(unlockTimer)
+        },
+      )
+    } catch {
+      setLoading(false)
+      window.clearTimeout(unlockTimer)
+    }
 
     const initAuth = async () => {
       try {
-        await setPersistence(auth, browserLocalPersistence)
+        await withTimeout(setPersistence(auth, browserLocalPersistence), 2500)
       } catch {
         // Ignore persistence errors and continue with auth resolution
       }
 
       try {
-        await getRedirectResult(auth)
+        await withTimeout(getRedirectResult(auth), 2500)
       } catch {
         // No pending redirect or redirect result unavailable
       }
-
-      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        setUser(firebaseUser)
-        setLoading(false)
-      })
     }
 
     initAuth()
 
     return () => {
+      mounted = false
+      window.clearTimeout(unlockTimer)
       if (unsubscribe) unsubscribe()
     }
   }, [])
