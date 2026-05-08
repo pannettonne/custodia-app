@@ -5,6 +5,7 @@ import './calendar-polish.css'
 import './calendar-home-look.css'
 import './calendar-action-sheet-polish.css'
 import './app-header-polish.css'
+import './nexo-brand.css'
 import './ui-polish-pack.css'
 import './premium-navigation.css'
 import './documents-vault.css'
@@ -26,18 +27,18 @@ import { EventDeleteBridge } from '@/components/events/EventDeleteBridge'
 import { CalendarGuidedPlusBridge } from '@/components/calendar/CalendarGuidedPlusBridge'
 
 export const metadata: Metadata = {
-  title: 'CustodiaApp',
-  description: 'Gestión de custodia compartida de menores',
-  manifest: '/manifest.json?v=4',
+  title: 'Nexo',
+  description: 'Todo lo importante, conectado.',
+  manifest: '/manifest.json?v=5',
   icons: {
     icon: [
-      { url: '/icons/icon-192.png?v=4', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png?v=4', sizes: '512x512', type: 'image/png' },
+      { url: '/nexo-icon.png?v=5', sizes: '192x192', type: 'image/png' },
+      { url: '/nexo-icon.png?v=5', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-touch-icon.png?v=4', sizes: '180x180', type: 'image/png' }],
-    shortcut: ['/icons/icon-192.png?v=4'],
+    apple: [{ url: '/nexo-icon.png?v=5', sizes: '180x180', type: 'image/png' }],
+    shortcut: ['/nexo-icon.png?v=5'],
   },
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'CustodiaApp' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Nexo' },
 }
 
 export const viewport: Viewport = {
