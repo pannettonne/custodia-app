@@ -1,6 +1,6 @@
-/* Nexo brand integration: selected PNG lockup for header and startup splash. */
+/* Nexo brand integration. */
 :root {
-  --nexo-lockup: url('/nexo-lockup-final.png?v=3');
+  --nexo-brand-image: url('/brand/nexo-logo.png');
 }
 
 .app-header-left .app-logo,
@@ -11,13 +11,12 @@
 .app-header-left::before {
   content: '';
   display: block;
-  width: 176px;
-  height: 52px;
-  background-image: var(--nexo-lockup);
+  width: 142px;
+  height: 38px;
+  background-image: var(--nexo-brand-image);
   background-repeat: no-repeat;
   background-position: left center;
   background-size: contain;
-  mix-blend-mode: multiply;
   flex: 0 0 auto;
 }
 
@@ -32,23 +31,22 @@
   content: '';
   display: block;
   width: min(320px, 82vw);
-  height: 96px;
+  height: 90px;
   margin: 0 auto 18px;
-  background-image: var(--nexo-lockup);
+  background-image: var(--nexo-brand-image);
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  mix-blend-mode: multiply;
 }
 
 @media (max-width: 390px) {
   .app-header-left::before {
-    width: 154px;
-    height: 46px;
+    width: 128px;
+    height: 35px;
   }
 
   .startup-splash-card::before {
     width: min(300px, 82vw);
-    height: 88px;
+    height: 84px;
   }
 }
