@@ -29,14 +29,19 @@ import { CalendarGuidedPlusBridge } from '@/components/calendar/CalendarGuidedPl
 export const metadata: Metadata = {
   title: 'Nexo',
   description: 'Todo lo importante, conectado.',
-  manifest: '/manifest.json?v=10',
+  manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/icons/icon-192.png?v=10', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png?v=10', sizes: '512x512', type: 'image/png' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/favicon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-touch-icon.png?v=10', sizes: '180x180', type: 'image/png' }],
-    shortcut: ['/nexo-icon.png?v=10'],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/nexo-apple-touch-icon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    shortcut: ['/favicon.png'],
   },
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Nexo' },
 }
@@ -70,6 +75,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Nexo" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png" />
+        <link rel="icon" type="image/png" href="/icon.png" />
+        <link rel="shortcut icon" type="image/png" href="/favicon.png" />
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body style={{ fontFamily: 'system-ui, -apple-system, sans-serif', margin: 0, paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
