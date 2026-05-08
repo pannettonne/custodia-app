@@ -9,11 +9,16 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
+  updateDoc,
   where,
   type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import type { AvailabilityBlock } from '@/types'
+
+function compactUndefined<T extends Record<string, any>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined)) as Partial<T>
+}
 
 function sortBlocks(items: AvailabilityBlock[]) {
   return [...items].sort((a, b) => {
@@ -47,6 +52,11 @@ export async function createAvailabilityBlock(data: Omit<AvailabilityBlock, 'id'
   )
   const ref = await addDoc(collection(db, 'availabilityBlocks'), payload)
   return ref.id
+}
+
+export async function updateAvailabilityBlock(id: string, data: Partial<AvailabilityBlock>): Promise<void> {
+  const payload = compactUndefined(data as Record<string, any>)
+  await updateDoc(doc(db, 'availabilityBlocks', id), payload)
 }
 
 export async function deleteAvailabilityBlock(id: string): Promise<void> {
