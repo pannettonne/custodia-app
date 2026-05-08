@@ -29,14 +29,14 @@ import { CalendarGuidedPlusBridge } from '@/components/calendar/CalendarGuidedPl
 export const metadata: Metadata = {
   title: 'Nexo',
   description: 'Todo lo importante, conectado.',
-  manifest: '/manifest.json?v=9',
+  manifest: '/manifest.json?v=10',
   icons: {
     icon: [
-      { url: '/icons/icon-192.png?v=9', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png?v=9', sizes: '512x512', type: 'image/png' },
+      { url: '/icons/icon-192.png?v=10', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png?v=10', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-touch-icon.png?v=9', sizes: '180x180', type: 'image/png' }],
-    shortcut: ['/nexo-icon.png?v=9'],
+    apple: [{ url: '/apple-touch-icon.png?v=10', sizes: '180x180', type: 'image/png' }],
+    shortcut: ['/nexo-icon.png?v=10'],
   },
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Nexo' },
 }
