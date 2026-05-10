@@ -5,6 +5,7 @@ import { LoginPage } from '@/components/ui/LoginPage'
 import { AppShellRealTabs } from '@/components/ui/AppShellRealTabs'
 import { GlobalSearchBridge } from '@/components/ui/GlobalSearchBridge'
 import { SearchSuggestionsGuard } from '@/components/ui/SearchSuggestionsGuard'
+import { BottomNavShellBridge } from '@/components/ui/BottomNavShellBridge'
 import { GlobalPlusBridge } from '@/components/guided/GlobalPlusBridge'
 
 export default function Home() {
@@ -32,6 +33,7 @@ export default function Home() {
       <AppShellRealTabs />
       <GlobalSearchBridge />
       <SearchSuggestionsGuard />
+      <BottomNavShellBridge />
       <GlobalPlusBridge />
     </>
   )
