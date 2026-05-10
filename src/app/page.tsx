@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/auth-context'
 import { LoginPage } from '@/components/ui/LoginPage'
 import { AppShellRealTabs } from '@/components/ui/AppShellRealTabs'
+import { GlobalSearchBridge } from '@/components/ui/GlobalSearchBridge'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -24,5 +25,10 @@ export default function Home() {
   }
 
   if (!user) return <LoginPage />
-  return <AppShellRealTabs />
+  return (
+    <>
+      <AppShellRealTabs />
+      <GlobalSearchBridge />
+    </>
+  )
 }
