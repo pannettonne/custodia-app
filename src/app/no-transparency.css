@@ -1,0 +1,83 @@
+/* Opaque UI pass: remove glass/transparency from the app shell and global search. */
+:root {
+  --bg-elevated: #1a1f2e;
+  --bg-soft: #232a3a;
+  --bg-input: #242c3d;
+  --bg-nav: #0d1117;
+  --border: #2b3447;
+  --border-hover: #3a455b;
+}
+
+:root[data-theme='light'] {
+  --bg-elevated: #ffffff;
+  --bg-soft: #f1f5f9;
+  --bg-input: #f8fafc;
+  --bg-nav: #ffffff;
+  --border: #d9e1ec;
+  --border-hover: #c8d3e1;
+}
+
+.app-header,
+.bottom-nav,
+.header-popup-menu,
+.floating-more-menu,
+.modal-overlay {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-header {
+  background: var(--bg-primary) !important;
+}
+
+.header-popup-menu,
+.floating-more-menu {
+  background: var(--bg-elevated) !important;
+}
+
+.bottom-nav {
+  background: var(--bg-nav) !important;
+}
+
+.modal-overlay {
+  background: var(--bg-primary) !important;
+}
+
+/* Global search: no frosted glass, no translucent cards, no blurred page behind. */
+[role='dialog'][aria-label='Buscar'] {
+  background: var(--bg-primary) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+[role='dialog'][aria-label='Buscar'] *,
+[role='dialog'][aria-label='Buscar'] *::before,
+[role='dialog'][aria-label='Buscar'] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+[role='dialog'][aria-label='Buscar'] section,
+[role='dialog'][aria-label='Buscar'] button,
+[role='dialog'][aria-label='Buscar'] input,
+[role='dialog'][aria-label='Buscar'] [style*='background'] {
+  background-image: none !important;
+}
+
+[role='dialog'][aria-label='Buscar'] section,
+[role='dialog'][aria-label='Buscar'] input,
+[role='dialog'][aria-label='Buscar'] [style*='var(--bg-card)'] {
+  background-color: var(--bg-card) !important;
+}
+
+[role='dialog'][aria-label='Buscar'] button {
+  background-color: var(--bg-card) !important;
+}
+
+[role='dialog'][aria-label='Buscar'] button[style*='rgba(59,130,246'] {
+  background-color: #dbeafe !important;
+}
+
+:root[data-theme='dark'] [role='dialog'][aria-label='Buscar'] button[style*='rgba(59,130,246'] {
+  background-color: #1e3a5f !important;
+}
