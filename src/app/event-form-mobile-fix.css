@@ -112,3 +112,60 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Opaque UI pass */
+:root {
+  --bg-elevated: #1a1f2e;
+  --bg-soft: #232a3a;
+  --bg-input: #242c3d;
+  --bg-nav: #0d1117;
+  --border: #2b3447;
+  --border-hover: #3a455b;
+}
+
+:root[data-theme='light'] {
+  --bg-elevated: #ffffff;
+  --bg-soft: #f1f5f9;
+  --bg-input: #f8fafc;
+  --bg-nav: #ffffff;
+  --border: #d9e1ec;
+  --border-hover: #c8d3e1;
+}
+
+.app-header,
+.bottom-nav,
+.header-popup-menu,
+.floating-more-menu,
+.modal-overlay,
+[role='dialog'][aria-label='Buscar'],
+[role='dialog'][aria-label='Buscar'] * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-header,
+.modal-overlay,
+[role='dialog'][aria-label='Buscar'] {
+  background: var(--bg-primary) !important;
+}
+
+.header-popup-menu,
+.floating-more-menu,
+[role='dialog'][aria-label='Buscar'] section,
+[role='dialog'][aria-label='Buscar'] button,
+[role='dialog'][aria-label='Buscar'] input {
+  background-image: none !important;
+  background-color: var(--bg-card) !important;
+}
+
+.bottom-nav {
+  background: var(--bg-nav) !important;
+}
+
+[role='dialog'][aria-label='Buscar'] section {
+  box-shadow: 0 24px 60px #c8d3e1 !important;
+}
+
+:root[data-theme='dark'] [role='dialog'][aria-label='Buscar'] section {
+  box-shadow: 0 24px 60px #05070b !important;
+}
