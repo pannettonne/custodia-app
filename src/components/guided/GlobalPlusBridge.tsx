@@ -114,6 +114,7 @@ const GLOBAL_PLUS_STYLES = `
     color: #fff !important;
     gap: 3px !important;
     z-index: 4 !important;
+    display: flex !important;
   }
 
   .nav-create-btn:active { transform: translateY(-22px) scale(0.98) !important; }
@@ -210,6 +211,48 @@ function hideDuplicatedPageCreateButtons() {
   }
 }
 
+function configureBottomNav(canCreate: boolean) {
+  if (typeof document === 'undefined') return
+  const nav = document.querySelector<HTMLElement>('.bottom-nav')
+  if (!nav) return
+
+  const labels = Array.from(nav.querySelectorAll<HTMLButtonElement>('button.nav-btn'))
+  for (const button of labels) {
+    if (button.classList.contains('nav-create-btn')) continue
+    const text = normalizeLabel(button.textContent || '')
+    if (text.includes('eventos')) {
+      button.style.display = 'none'
+      button.setAttribute('aria-hidden', 'true')
+      button.tabIndex = -1
+      continue
+    }
+    if (text.includes('hoy')) button.style.order = '1'
+    if (text.includes('calendario')) button.style.order = '2'
+    if (text.includes('cambios')) button.style.order = '4'
+    if (text.includes('mas')) button.style.order = '5'
+  }
+
+  const existing = nav.querySelector<HTMLButtonElement>('.nav-create-btn')
+  if (!canCreate) {
+    existing?.remove()
+    return
+  }
+  if (existing) return
+
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'nav-btn nav-create-btn'
+  button.setAttribute('aria-label', 'Crear')
+  button.title = 'Crear'
+  button.innerHTML = '<span class="nav-create-orb" aria-hidden="true">+</span><span class="nav-create-label">Crear</span>'
+  button.addEventListener('click', event => {
+    event.preventDefault()
+    event.stopPropagation()
+    window.dispatchEvent(new CustomEvent('custodia:open-guided-create'))
+  })
+  nav.appendChild(button)
+}
+
 export function GlobalPlusBridge() {
   const { user } = useAuth()
   const { children, selectedChildId } = useAppStore()
@@ -221,13 +264,14 @@ export function GlobalPlusBridge() {
   useEffect(() => {
     installGlobalPlusStyles()
     hideDuplicatedPageCreateButtons()
-    const observer = new MutationObserver(hideDuplicatedPageCreateButtons)
+    configureBottomNav(canCreate)
+    const sync = () => {
+      hideDuplicatedPageCreateButtons()
+      configureBottomNav(canCreate)
+    }
+    const observer = new MutationObserver(sync)
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    hideDuplicatedPageCreateButtons()
   }, [canCreate])
 
   useEffect(() => {
@@ -237,7 +281,10 @@ export function GlobalPlusBridge() {
     }
     const closeOnNavigate = () => {
       setOpen(false)
-      window.setTimeout(hideDuplicatedPageCreateButtons, 0)
+      window.setTimeout(() => {
+        hideDuplicatedPageCreateButtons()
+        configureBottomNav(canCreate)
+      }, 0)
     }
     window.addEventListener('custodia:open-guided-create', openGuidedCreate)
     window.addEventListener('custodia:navigate', closeOnNavigate)
