@@ -7,6 +7,7 @@ import { GlobalSearchBridge } from '@/components/ui/GlobalSearchBridge'
 import { SearchSuggestionsGuard } from '@/components/ui/SearchSuggestionsGuard'
 import { BottomNavShellBridge } from '@/components/ui/BottomNavShellBridge'
 import { GlobalPlusBridge } from '@/components/guided/GlobalPlusBridge'
+import { MoreEventsShortcutBridge } from '@/components/events/MoreEventsShortcutBridge'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -35,6 +36,7 @@ export default function Home() {
       <SearchSuggestionsGuard />
       <BottomNavShellBridge />
       <GlobalPlusBridge />
+      <MoreEventsShortcutBridge />
     </>
   )
 }
