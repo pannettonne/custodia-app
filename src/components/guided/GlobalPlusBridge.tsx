@@ -7,7 +7,6 @@ import { useAppStore } from '@/store/app'
 import { GuidedCreationPanel } from '@/components/guided/GuidedCreationPanelV9'
 
 const GLOBAL_PLUS_STYLES = `
-  .guided-creation-card { display: none !important; }
   button[aria-label="Abrir acciones rápidas del día"] { display: none !important; }
   .bottom-nav { align-items: stretch; }
   .global-plus-nav-btn {
@@ -50,6 +49,19 @@ const NAV_ORDER: Record<TabLabel, number> = {
   Más: 6,
 }
 
+const DUPLICATED_CREATE_LABELS = [
+  'evento',
+  'nueva nota',
+  'nota',
+  'cambio',
+  'asignacion',
+  'asignación',
+  'medicacion',
+  'medicación',
+  'tratamiento',
+  'documento',
+]
+
 function findBottomNav() {
   if (typeof document === 'undefined') return null
   return document.querySelector<HTMLElement>('.bottom-nav')
@@ -65,6 +77,29 @@ function installGlobalPlusStyles() {
     document.head.appendChild(style)
   }
   style.textContent = GLOBAL_PLUS_STYLES
+}
+
+function normalizeLabel(value: string) {
+  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
+}
+
+function isDuplicatedCreateButton(button: HTMLButtonElement) {
+  if (!button.closest('.app-main')) return false
+  if (button.closest('.bottom-nav, .guided-creation-overlay, .guided-creation-card')) return false
+  const label = normalizeLabel(button.textContent || button.getAttribute('aria-label') || button.getAttribute('title') || '')
+  if (!label.startsWith('+')) return false
+  return DUPLICATED_CREATE_LABELS.some(item => label.includes(item))
+}
+
+function hideDuplicatedPageCreateButtons() {
+  if (typeof document === 'undefined') return
+  for (const button of Array.from(document.querySelectorAll<HTMLButtonElement>('.app-main button'))) {
+    if (!isDuplicatedCreateButton(button)) continue
+    button.dataset.hiddenByGlobalPlus = 'true'
+    button.style.display = 'none'
+    button.setAttribute('aria-hidden', 'true')
+    button.tabIndex = -1
+  }
 }
 
 function reorderBottomNav(nav: HTMLElement | null) {
@@ -94,6 +129,7 @@ export function GlobalPlusBridge() {
       const nav = findBottomNav()
       setBottomNav(nav)
       reorderBottomNav(nav)
+      hideDuplicatedPageCreateButtons()
     }
     sync()
     const observer = new MutationObserver(sync)
@@ -103,11 +139,15 @@ export function GlobalPlusBridge() {
 
   useEffect(() => {
     reorderBottomNav(bottomNav)
+    hideDuplicatedPageCreateButtons()
   }, [bottomNav, canCreate])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const closeOnNavigate = () => setOpen(false)
+    const closeOnNavigate = () => {
+      setOpen(false)
+      window.setTimeout(hideDuplicatedPageCreateButtons, 0)
+    }
     window.addEventListener('custodia:navigate', closeOnNavigate)
     return () => window.removeEventListener('custodia:navigate', closeOnNavigate)
   }, [])
