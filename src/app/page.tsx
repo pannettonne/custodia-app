@@ -5,6 +5,7 @@ import { LoginPage } from '@/components/ui/LoginPage'
 import { AppShellRealTabs } from '@/components/ui/AppShellRealTabs'
 import { GlobalSearchBridge } from '@/components/ui/GlobalSearchBridge'
 import { SearchSuggestionsGuard } from '@/components/ui/SearchSuggestionsGuard'
+import { GlobalPlusBridge } from '@/components/guided/GlobalPlusBridge'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -31,6 +32,7 @@ export default function Home() {
       <AppShellRealTabs />
       <GlobalSearchBridge />
       <SearchSuggestionsGuard />
+      <GlobalPlusBridge />
     </>
   )
 }
