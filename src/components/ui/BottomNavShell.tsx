@@ -57,7 +57,6 @@ export function BottomNavShell<T extends string>({ tabs, activeTab, isMoreActive
           <Slot className="slot-create">
             <button type="button" className="nav-create-btn" aria-label="Crear" title="Crear" onClick={onCreate}>
               <span className="nav-create-orb" aria-hidden="true">+</span>
-              <span className="nav-create-label">Crear</span>
             </button>
           </Slot>
           <Slot className="slot-right-a">
