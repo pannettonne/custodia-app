@@ -21,6 +21,7 @@ export function AvailabilityBlocksPanel() {
   const [endTime, setEndTime] = useState('14:00')
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
+  const [lastError, setLastError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!child?.id) {
@@ -45,14 +46,43 @@ export function AvailabilityBlocksPanel() {
 
   if (!canUse) return null
 
-  const isValid = type === 'partial_slot'
-    ? !!date && !!startTime && !!endTime && startTime < endTime
+  const validationMessage = type === 'partial_slot'
+    ? !date
+      ? 'Elige una fecha para el bloqueo.'
+      : !startTime || !endTime
+        ? 'Indica hora de inicio y hora de fin.'
+        : startTime >= endTime
+          ? 'La hora de fin debe ser posterior a la hora de inicio.'
+          : null
     : type === 'date_range'
-      ? !!startDate && !!endDate && startDate <= endDate
-      : !!date
+      ? !startDate || !endDate
+        ? 'Indica fecha de inicio y fecha de fin.'
+        : startDate > endDate
+          ? 'La fecha final debe ser igual o posterior a la inicial.'
+          : null
+      : !date
+        ? 'Elige una fecha para el bloqueo.'
+        : null
+
+  const isValid = !validationMessage
 
   const handleCreate = async () => {
-    if (!user || !child || !isValid) return
+    setLastError(null)
+
+    if (!user || !child) {
+      const message = 'No se puede guardar porque no hay usuario o menor seleccionado.'
+      setLastError(message)
+      showToast({ message, tone: 'error' })
+      return
+    }
+
+    if (!isValid) {
+      const message = validationMessage || 'Revisa los datos del bloqueo.'
+      setLastError(message)
+      showToast({ message, tone: 'error' })
+      return
+    }
+
     setSaving(true)
     try {
       await createAvailabilityBlock({
@@ -71,7 +101,12 @@ export function AvailabilityBlocksPanel() {
       setNote('')
       showToast({ message: 'Bloqueo guardado.', tone: 'success' })
     } catch (error: any) {
-      showToast({ message: error?.message || 'No se pudo guardar el bloqueo.', tone: 'error' })
+      console.error('Error guardando bloqueo de disponibilidad:', error)
+      const message = error?.code === 'permission-denied'
+        ? 'Firebase ha rechazado el bloqueo. Revisa que las reglas de Firestore publicadas incluyan availabilityBlocks.'
+        : error?.message || 'No se pudo guardar el bloqueo.'
+      setLastError(message)
+      showToast({ message, tone: 'error' })
     } finally {
       setSaving(false)
     }
@@ -86,10 +121,21 @@ export function AvailabilityBlocksPanel() {
       <div style={{ fontSize:12, color:'var(--text-secondary)', marginBottom: own || item.note ? 8 : 0 }}>{formatAvailabilityBlockLabel(item)}</div>
       {item.note ? <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom: own ? 8 : 0 }}>{item.note}</div> : null}
       {own ? (
-        <button className="req-action-btn btn-reject" onClick={async () => {
-          await deleteAvailabilityBlock(item.id)
-          showToast({ message: 'Bloqueo eliminado.', tone: 'success' })
-        }}>Eliminar</button>
+        <button
+          type="button"
+          className="req-action-btn btn-reject"
+          onClick={async () => {
+            try {
+              await deleteAvailabilityBlock(item.id)
+              showToast({ message: 'Bloqueo eliminado.', tone: 'success' })
+            } catch (error: any) {
+              console.error('Error eliminando bloqueo de disponibilidad:', error)
+              showToast({ message: error?.message || 'No se pudo eliminar el bloqueo.', tone: 'error' })
+            }
+          }}
+        >
+          Eliminar
+        </button>
       ) : null}
     </div>
   )
@@ -104,9 +150,9 @@ export function AvailabilityBlocksPanel() {
         <div>
           <div className="settings-label">Tipo de bloqueo</div>
           <div className="type-toggle">
-            <button className={`type-btn ${type === 'full_day' ? 'active' : ''}`} onClick={() => setType('full_day')}>📅 Día completo</button>
-            <button className={`type-btn ${type === 'date_range' ? 'active' : ''}`} onClick={() => setType('date_range')}>↔ Período</button>
-            <button className={`type-btn ${type === 'partial_slot' ? 'active' : ''}`} onClick={() => setType('partial_slot')}>⏰ Tramo parcial</button>
+            <button type="button" className={`type-btn ${type === 'full_day' ? 'active' : ''}`} onClick={() => setType('full_day')}>📅 Día completo</button>
+            <button type="button" className={`type-btn ${type === 'date_range' ? 'active' : ''}`} onClick={() => setType('date_range')}>↔ Período</button>
+            <button type="button" className={`type-btn ${type === 'partial_slot' ? 'active' : ''}`} onClick={() => setType('partial_slot')}>⏰ Tramo parcial</button>
           </div>
         </div>
 
@@ -148,7 +194,25 @@ export function AvailabilityBlocksPanel() {
           <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="settings-textarea" placeholder="Médico, viaje, trabajo, no disponible..." />
         </div>
 
-        <button className="req-action-btn btn-accept" disabled={!isValid || saving} onClick={handleCreate} style={{ opacity: !isValid || saving ? 0.6 : 1, cursor: !isValid || saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Guardando...' : 'Guardar bloqueo'}</button>
+        {validationMessage ? (
+          <div style={{ fontSize: 12, color: '#f59e0b', fontWeight: 700 }}>{validationMessage}</div>
+        ) : null}
+
+        {lastError ? (
+          <div style={{ padding: '9px 10px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.10)', color: '#fca5a5', fontSize: 12, fontWeight: 700 }}>
+            {lastError}
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          className="req-action-btn btn-accept"
+          disabled={!isValid || saving}
+          onClick={handleCreate}
+          style={{ opacity: !isValid || saving ? 0.6 : 1, cursor: !isValid || saving ? 'not-allowed' : 'pointer' }}
+        >
+          {saving ? 'Guardando...' : 'Guardar bloqueo'}
+        </button>
       </div>
 
       {myBlocks.length > 0 && (
