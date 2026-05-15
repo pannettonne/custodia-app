@@ -71,6 +71,15 @@ service cloud.firestore {
       allow update: if isParentForChild(resource.data.childId) || (request.auth != null && request.auth.uid == resource.data.collaboratorId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt']));
       allow delete: if false;
     }
+    match /availabilityBlocks/{blockId} {
+      allow read: if isParentForChild(resource.data.childId) || isCollaboratorForChild(resource.data.childId);
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId
+        && (isParentForChild(request.resource.data.childId) || isCollaboratorForChild(request.resource.data.childId));
+      allow update, delete: if request.auth != null
+        && request.auth.uid == resource.data.userId
+        && (isParentForChild(resource.data.childId) || isCollaboratorForChild(resource.data.childId));
+    }
     match /medications/{medicationId} {
       allow read: if isParentForChild(resource.data.childId) || isCollaboratorForChild(resource.data.childId);
       allow create: if isParentForChild(request.resource.data.childId) && request.auth.uid == request.resource.data.createdBy;
