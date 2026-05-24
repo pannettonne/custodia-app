@@ -8,7 +8,7 @@ type AdminEvent = {
   title: string
   date: string
   endDate?: string
-  recurrence?: 'none' | 'weekly' | 'monthly'
+  recurrence?: 'none' | 'weekly' | 'biweekly' | 'monthly'
   recurrenceUntil?: string
   recurrenceWeekdays?: number[]
   reminderEnabled?: boolean
@@ -45,6 +45,12 @@ function weekdayFromDate(dateStr: string) {
   return jsDay === 0 ? 7 : jsDay
 }
 
+function weeksBetween(startDate: string, dateStr: string) {
+  const start = new Date(startDate + 'T12:00:00')
+  const current = new Date(dateStr + 'T12:00:00')
+  return Math.floor((current.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000))
+}
+
 function buildMonthlyOccurrence(baseDate: string, year: number, monthIndex: number) {
   const day = Number(baseDate.slice(8, 10))
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate()
@@ -63,9 +69,11 @@ function matchesReminderToday(event: AdminEvent, today: string) {
   if (!event.recurrenceUntil) return { match: false, occurrenceDate: null }
   if (occurrenceTarget < event.date || occurrenceTarget > event.recurrenceUntil) return { match: false, occurrenceDate: null }
 
-  if (event.recurrence === 'weekly') {
+  if (event.recurrence === 'weekly' || event.recurrence === 'biweekly') {
     const weekdays = Array.isArray(event.recurrenceWeekdays) && event.recurrenceWeekdays.length > 0 ? event.recurrenceWeekdays : [weekdayFromDate(event.date)]
-    return { match: weekdays.includes(weekdayFromDate(occurrenceTarget)), occurrenceDate: occurrenceTarget }
+    if (!weekdays.includes(weekdayFromDate(occurrenceTarget))) return { match: false, occurrenceDate: null }
+    if (event.recurrence === 'biweekly' && weeksBetween(event.date, occurrenceTarget) % 2 !== 0) return { match: false, occurrenceDate: null }
+    return { match: true, occurrenceDate: occurrenceTarget }
   }
 
   if (event.recurrence === 'monthly') {
