@@ -119,6 +119,12 @@ export async function updateEvent(id: string, data: Partial<SchoolEvent>): Promi
     time: 'time' in data ? (data.allDay ? deleteField() : (data.time || deleteField())) : undefined,
     endTime: 'endTime' in data ? (data.allDay ? deleteField() : (data.endTime || deleteField())) : undefined,
     customCategory: data.category === 'otro' ? data.customCategory : (data.customCategory || undefined),
+    recurrenceUntil: 'recurrenceUntil' in data ? (data.recurrence === 'none' ? deleteField() : (data.recurrenceUntil || deleteField())) : undefined,
+    recurrenceWeekdays: 'recurrenceWeekdays' in data
+      ? (data.recurrence === 'weekly' || data.recurrence === 'biweekly'
+        ? (Array.isArray(data.recurrenceWeekdays) && data.recurrenceWeekdays.length > 0 ? data.recurrenceWeekdays : deleteField())
+        : deleteField())
+      : undefined,
     updatedAt: serverTimestamp()
   }))
 }
