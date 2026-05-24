@@ -16,21 +16,29 @@ function noteMatchesDate(note: any, dateStr: string) {
   return false
 }
 
+function weekdayNumber(dateStr: string) {
+  const jsDay = new Date(dateStr + 'T12:00:00').getDay()
+  return jsDay === 0 ? 7 : jsDay
+}
+
+function weeksBetween(startDate: string, dateStr: string) {
+  const start = new Date(startDate + 'T12:00:00')
+  const current = new Date(dateStr + 'T12:00:00')
+  return Math.floor((current.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000))
+}
+
 function getEventOccurrenceState(event: any, dateStr: string) {
   const cancelled = Array.isArray(event.cancelledDates) && event.cancelledDates.includes(dateStr)
 
-  if (event.recurrence === 'weekly') {
+  if (event.recurrence === 'weekly' || event.recurrence === 'biweekly') {
     if (!event.date || !event.recurrenceUntil) return { matches: false, cancelled }
     if (dateStr < event.date || dateStr > event.recurrenceUntil) return { matches: false, cancelled }
-    const jsDay = new Date(dateStr + 'T12:00:00').getDay()
-    const weekday = jsDay === 0 ? 7 : jsDay
     const weekdays = Array.isArray(event.recurrenceWeekdays) && event.recurrenceWeekdays.length > 0
       ? event.recurrenceWeekdays
-      : [(() => {
-          const baseDay = new Date(event.date + 'T12:00:00').getDay()
-          return baseDay === 0 ? 7 : baseDay
-        })()]
-    return { matches: weekdays.includes(weekday), cancelled }
+      : [weekdayNumber(event.date)]
+    if (!weekdays.includes(weekdayNumber(dateStr))) return { matches: false, cancelled }
+    if (event.recurrence === 'biweekly') return { matches: weeksBetween(event.date, dateStr) % 2 === 0, cancelled }
+    return { matches: true, cancelled }
   }
 
   if (event.recurrence === 'monthly') {
