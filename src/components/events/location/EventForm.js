@@ -44,19 +44,7 @@ export function EventForm({ event, onClose, initialDate }) {
   const [locationLoading, setLocationLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showMoreOptions, setShowMoreOptions] = useState(() => {
-    if (!event) return false
-    return !!(
-      event.endDate ||
-      event.notes ||
-      event.recurrence && event.recurrence !== 'none' ||
-      event.reminderEnabled ||
-      event.assignedParentId ||
-      event.locationName ||
-      event.locationAddress ||
-      (event.documentIds || []).length > 0
-    )
-  })
+  const [showMoreOptions, setShowMoreOptions] = useState(() => !!event)
 
   const custodyChangeLocked = !!event && event.assignmentStatus === 'accepted' && !!event.assignedParentId
   const linkedDocuments = (documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
@@ -194,7 +182,7 @@ export function EventForm({ event, onClose, initialDate }) {
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom: 14, minWidth: 0 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-strong)' }}>{event ? 'Editar evento' : 'Nuevo evento'}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Primero lo básico. Lo demás solo si hace falta.</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{event ? 'Revisa fecha, repetición y recordatorios antes de guardar.' : 'Primero lo básico. Lo demás solo si hace falta.'}</div>
         </div>
         <div style={{ flexShrink: 0, padding:'6px 10px', borderRadius:999, background:'rgba(16,185,129,0.12)', color:'#10b981', fontSize:11, fontWeight:800 }}>{showMoreOptions ? 'Completo' : 'Rápido'}</div>
       </div>
