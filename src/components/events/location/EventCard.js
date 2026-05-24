@@ -89,7 +89,7 @@ export function EventCard({ event, onEdit }) {
   const isPast = event.date < today
   const isToday = event.date === today
   const categoryLabel = event.category === 'otro' ? event.customCategory || cat.label : cat.label
-  const recurrenceLabel = event.recurrence === 'weekly' ? 'Semanal' : event.recurrence === 'monthly' ? 'Mensual' : ''
+  const recurrenceLabel = event.recurrence === 'weekly' ? 'Semanal' : event.recurrence === 'biweekly' ? 'Quincenal' : event.recurrence === 'monthly' ? 'Mensual' : ''
   const assignedName = event.assignedParentId && child ? child.parentNames?.[event.assignedParentId] : null
   const canRespondAssignment = event.assignmentStatus === 'pending' && user?.uid === event.assignmentRequestToParentId
   const effectiveOwnerId = useMemo(() => {
