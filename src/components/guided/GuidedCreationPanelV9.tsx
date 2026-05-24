@@ -5,8 +5,9 @@ import { useAuth } from '@/lib/auth-context'
 import { useAppStore } from '@/store/app'
 import { createEvent, updateEvent } from '@/lib/db'
 import { showToast } from '@/lib/toast'
-import { CAT_CONFIG, notifyEventAssignmentPending } from '@/components/events/location/shared'
+import { CAT_CONFIG, buildMonthlyDate, notifyEventAssignmentPending } from '@/components/events/location/shared'
 import { AssignmentSelector } from '@/components/events/location/AssignmentSelector'
+import { RecurrenceFields } from '@/components/events/location/RecurrenceFields'
 import { GuidedLocationStep2 } from './GuidedLocationStep2'
 import { GuidedOptionsStep } from './GuidedOptionsStep'
 import { GuidedChangePanel } from './GuidedChangePanel'
@@ -22,6 +23,8 @@ const STEPS = ['Qué crear', 'Tipo', 'Nombre', 'Cuándo', 'Dónde', 'Custodia', 
 const QUESTIONS = ['¿Qué quieres crear?', '¿Qué tipo de evento es?', '¿Cómo lo llamamos?', '¿Cuándo será?', '¿Dónde será?', '¿Quieres asignarlo a alguien?', '¿Quieres añadir algo más?', '¿Está todo correcto?']
 const today = () => new Date().toISOString().slice(0, 10)
 const bar = (i: number, s: number) => ({ flex: 1, height: 5, borderRadius: 999, background: i <= s ? 'linear-gradient(90deg,#7c3aed,#4f46e5)' : 'rgba(148,163,184,.24)' })
+const usesWeekdays = (recurrence: string) => recurrence === 'weekly' || recurrence === 'biweekly'
+const recurrenceLabel = (recurrence: string) => recurrence === 'weekly' ? 'Semanal' : recurrence === 'biweekly' ? 'Quincenal' : recurrence === 'monthly' ? 'Mensual' : 'Una vez'
 
 export function GuidedCreationPanel({ editTarget = null, onDone }: Props) {
   const { user } = useAuth()
@@ -39,6 +42,10 @@ export function GuidedCreationPanel({ editTarget = null, onDone }: Props) {
   const [allDay, setAllDay] = useState(editingEvent?.allDay ?? true)
   const [time, setTime] = useState(editingEvent?.time || '')
   const [endTime, setEndTime] = useState(editingEvent?.endTime || '')
+  const [recurrence, setRecurrence] = useState(editingEvent?.recurrence || 'none')
+  const [recurrenceUntil, setRecurrenceUntil] = useState(editingEvent?.recurrenceUntil || '')
+  const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>(editingEvent?.recurrenceWeekdays || [])
+  const [monthlyDay, setMonthlyDay] = useState(editingEvent ? Number((editingEvent.date || '').slice(8, 10)) || 1 : 1)
   const [locationName, setLocationName] = useState(editingEvent?.locationName || '')
   const [locationAddress, setLocationAddress] = useState(editingEvent?.locationAddress || '')
   const [locationLatitude, setLocationLatitude] = useState<number | undefined>(editingEvent?.locationLatitude)
@@ -60,30 +67,62 @@ export function GuidedCreationPanel({ editTarget = null, onDone }: Props) {
   if (mode === 'treatment') return <GuidedTreatmentPanel editItem={editTarget?.type === 'treatment' ? editTarget.item : null} onBack={() => editTarget ? onDone?.() : setMode('menu')} onDone={onDone} />
   if (mode === 'note') return <GuidedNotePanel editItem={editTarget?.type === 'note' ? editTarget.item : null} onBack={() => editTarget ? onDone?.() : setMode('menu')} onDone={onDone} />
 
+  const recurrenceUsesWeekdays = usesWeekdays(recurrence)
+  const validRecurrence = recurrence === 'none' || (!!recurrenceUntil && (!recurrenceUsesWeekdays || recurrenceWeekdays.length > 0) && (recurrence !== 'monthly' || (monthlyDay >= 1 && monthlyDay <= 31)))
   const validDate = !!date && (!endDate || endDate >= date)
   const validTime = allDay || !endTime || !time || time < endTime
-  const canNext = step === 0 ? !!child : step === 2 ? !!title.trim() : step === 3 ? validDate && validTime : true
-  const next = () => { if (!canNext) { setError(step === 0 ? 'Selecciona primero un menor en la app.' : 'Completa esta pantalla para continuar.'); return }; setError(''); setStep(v => Math.min(STEPS.length - 1, v + 1)) }
+  const canNext = step === 0 ? !!child : step === 2 ? !!title.trim() : step === 3 ? validDate && validTime && validRecurrence : true
+  const next = () => { if (!canNext) { setError(step === 0 ? 'Selecciona primero un menor en la app.' : step === 3 ? 'Completa la fecha, hora y temporalidad para continuar.' : 'Completa esta pantalla para continuar.'); return }; setError(''); setStep(v => Math.min(STEPS.length - 1, v + 1)) }
+  const toggleWeekday = (day: number) => setRecurrenceWeekdays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort((a, b) => a - b))
 
   async function save() {
-    if (!user || !child || saving || !title.trim() || !validDate || !validTime) return
+    if (!user || !child || saving || !title.trim() || !validDate || !validTime || !validRecurrence) return
     setSaving(true); setError('')
     try {
+      const finalDate = recurrence === 'monthly' ? buildMonthlyDate(date, monthlyDay) : date
       const otherParentId = child.parents.find(pid => pid !== user.uid)
       const wantsAssignment = !!assignedParentId && !!otherParentId
-      const payload: any = { childId: child.id, createdBy: editingEvent?.createdBy || user.uid, title: title.trim(), category, date, endDate: endDate || undefined, allDay, time: allDay ? undefined : time || undefined, endTime: allDay ? undefined : endTime || undefined, notes: notesEnabled ? notes.trim() || undefined : undefined, documentIds: documentsEnabled ? documentIds : [], recurrence: editingEvent?.recurrence || 'none', assignedParentId: wantsAssignment ? assignedParentId : editingEvent?.assignedParentId, assignmentStatus: wantsAssignment ? (editingEvent?.assignmentStatus || 'pending') : editingEvent?.assignmentStatus, assignmentRequestedBy: wantsAssignment ? (editingEvent?.assignmentRequestedBy || user.uid) : editingEvent?.assignmentRequestedBy, assignmentRequestedByName: wantsAssignment ? (editingEvent?.assignmentRequestedByName || user.displayName || user.email || 'Progenitor') : editingEvent?.assignmentRequestedByName, assignmentRequestToParentId: wantsAssignment ? (editingEvent?.assignmentRequestToParentId || otherParentId) : editingEvent?.assignmentRequestToParentId, reminderEnabled, reminderDaysBefore: reminderEnabled ? reminderDaysBefore : undefined, reminderAudience: reminderEnabled ? reminderAudience : undefined, locationName: locationName.trim() || undefined, locationAddress: locationAddress.trim() || undefined, locationLatitude, locationLongitude, locationPlaceId: locationPlaceId || undefined }
+      const payload: any = {
+        childId: child.id,
+        createdBy: editingEvent?.createdBy || user.uid,
+        title: title.trim(),
+        category,
+        date: finalDate,
+        endDate: endDate || undefined,
+        allDay,
+        time: allDay ? undefined : time || undefined,
+        endTime: allDay ? undefined : endTime || undefined,
+        notes: notesEnabled ? notes.trim() || undefined : undefined,
+        documentIds: documentsEnabled ? documentIds : [],
+        recurrence,
+        recurrenceUntil: recurrence === 'none' ? undefined : recurrenceUntil,
+        recurrenceWeekdays: recurrenceUsesWeekdays ? recurrenceWeekdays : undefined,
+        assignedParentId: wantsAssignment ? assignedParentId : editingEvent?.assignedParentId,
+        assignmentStatus: wantsAssignment ? (editingEvent?.assignmentStatus || 'pending') : editingEvent?.assignmentStatus,
+        assignmentRequestedBy: wantsAssignment ? (editingEvent?.assignmentRequestedBy || user.uid) : editingEvent?.assignmentRequestedBy,
+        assignmentRequestedByName: wantsAssignment ? (editingEvent?.assignmentRequestedByName || user.displayName || user.email || 'Progenitor') : editingEvent?.assignmentRequestedByName,
+        assignmentRequestToParentId: wantsAssignment ? (editingEvent?.assignmentRequestToParentId || otherParentId) : editingEvent?.assignmentRequestToParentId,
+        reminderEnabled,
+        reminderDaysBefore: reminderEnabled ? reminderDaysBefore : undefined,
+        reminderAudience: reminderEnabled ? reminderAudience : undefined,
+        locationName: locationName.trim() || undefined,
+        locationAddress: locationAddress.trim() || undefined,
+        locationLatitude,
+        locationLongitude,
+        locationPlaceId: locationPlaceId || undefined,
+      }
       if (editingEvent?.id) {
         await updateEvent(editingEvent.id, payload)
         showToast({ message: 'Evento actualizado.', tone: 'success' })
-        window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: 'events', childId: child.id, date, focusTargetId: `event-${editingEvent.id}` } }))
+        window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: 'events', childId: child.id, date: finalDate, focusTargetId: `event-${editingEvent.id}` } }))
         onDone?.()
         return
       }
       const eventId = await createEvent(payload)
-      if (wantsAssignment && otherParentId) await notifyEventAssignmentPending({ toUserId: otherParentId, childId: child.id, childName: child.name, eventTitle: title.trim(), dateKey: date, requesterName: user.displayName || user.email || 'Progenitor' })
+      if (wantsAssignment && otherParentId) await notifyEventAssignmentPending({ toUserId: otherParentId, childId: child.id, childName: child.name, eventTitle: title.trim(), dateKey: finalDate, requesterName: user.displayName || user.email || 'Progenitor' })
       setSelectedChildId(child.id)
       showToast({ message: 'Evento creado desde la creación guiada.', tone: 'success' })
-      window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: 'events', childId: child.id, date, focusTargetId: `event-${eventId}` } }))
+      window.dispatchEvent(new CustomEvent('custodia:navigate', { detail: { tab: 'events', childId: child.id, date: finalDate, focusTargetId: `event-${eventId}` } }))
       onDone?.()
     } catch (err) {
       const message = err instanceof Error ? err.message : (isEditing ? 'No se pudo actualizar el evento.' : 'No se pudo guardar el evento.')
@@ -107,11 +146,11 @@ export function GuidedCreationPanel({ editTarget = null, onDone }: Props) {
     if (step === 0) return <div style={{ display: 'grid', gap: 10 }}>{['Evento', 'Cambio', 'Bloqueo', 'Tratamiento', 'Nota'].map((name, i) => <button key={name} type="button" onClick={() => selectMenu(name)} style={{ padding: 12, borderRadius: 18, border: `1px solid ${menuTone(i)}`, background: menuBg(i), color: 'var(--text-strong)', textAlign: 'left' }}><strong>{name}</strong><br /><small style={{ color: 'var(--text-secondary)' }}>{i === 0 ? 'Citas, colegio, actividades y vacaciones.' : i === 1 ? 'Solicitudes de cambio de custodia.' : i === 2 ? 'Bloqueos de disponibilidad.' : i === 3 ? 'Medicación y pautas de tratamiento.' : 'Notas, avisos y documentos compartidos.'}</small></button>)}</div>
     if (step === 1) return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>{Object.entries(CAT_CONFIG).map(([k, v]) => <button key={k} type="button" onClick={() => { setCategory(k as EventCategory); if (!isEditing) setTitle(v.label === 'Médico' ? 'Cita médica' : v.label) }} style={{ minHeight: 64, borderRadius: 16, border: `1px solid ${category === k ? v.color : 'var(--border)'}`, background: category === k ? `${v.color}1f` : 'var(--bg-card)', color: category === k ? v.color : 'var(--text-secondary)' }}><span style={{ fontSize: 16 }}>{v.icon}</span><br /><strong style={{ fontSize: 13 }}>{v.label}</strong></button>)}</div>
     if (step === 2) return <div><input className="settings-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: Revisión pediatra" /><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>{['Cita médica', 'Reunión colegio', 'Extraescolar', 'Cumpleaños'].map(x => <button key={x} type="button" onClick={() => setTitle(x)} style={{ border: '1px solid var(--border)', borderRadius: 999, background: 'var(--bg-soft)', color: 'var(--text-secondary)', padding: '7px 10px', fontWeight: 800 }}>{x}</button>)}</div></div>
-    if (step === 3) return <div style={{ display: 'grid', gap: 10 }}><label><div className="settings-label">Fecha desde</div><input type="date" className="settings-input" value={date} onChange={e => { const d = e.target.value; setDate(d); if (endDate && endDate < d) setEndDate('') }} /></label><label><div className="settings-label">Fecha hasta (opcional)</div><input type="date" className="settings-input" value={endDate} min={date || undefined} onChange={e => setEndDate(e.target.value)} /></label><div className="type-toggle"><button type="button" className={`type-btn ${allDay ? 'active' : ''}`} onClick={() => { setAllDay(true); setTime(''); setEndTime('') }}>Todo el día</button><button type="button" className={`type-btn ${!allDay ? 'active' : ''}`} onClick={() => { setAllDay(false); if (!time) setTime('10:30') }}>Con hora</button></div>{!allDay ? <div className="date-pair"><label><div className="date-pair-label">Hora desde</div><input type="time" className="settings-input" value={time} onChange={e => setTime(e.target.value)} /></label><label><div className="date-pair-label">Hora hasta</div><input type="time" className="settings-input" value={endTime} min={time || undefined} onChange={e => setEndTime(e.target.value)} /></label></div> : null}</div>
+    if (step === 3) return <div style={{ display: 'grid', gap: 10 }}><label><div className="settings-label">Fecha desde</div><input type="date" className="settings-input" value={date} onChange={e => { const d = e.target.value; setDate(d); if (endDate && endDate < d) setEndDate(''); if (recurrenceUntil && recurrenceUntil < d) setRecurrenceUntil(d) }} /></label><label><div className="settings-label">Fecha hasta (opcional)</div><input type="date" className="settings-input" value={endDate} min={date || undefined} onChange={e => setEndDate(e.target.value)} /></label><div className="type-toggle"><button type="button" className={`type-btn ${allDay ? 'active' : ''}`} onClick={() => { setAllDay(true); setTime(''); setEndTime('') }}>Todo el día</button><button type="button" className={`type-btn ${!allDay ? 'active' : ''}`} onClick={() => { setAllDay(false); if (!time) setTime('10:30') }}>Con hora</button></div>{!allDay ? <div className="date-pair"><label><div className="date-pair-label">Hora desde</div><input type="time" className="settings-input" value={time} onChange={e => setTime(e.target.value)} /></label><label><div className="date-pair-label">Hora hasta</div><input type="time" className="settings-input" value={endTime} min={time || undefined} onChange={e => setEndTime(e.target.value)} /></label></div> : null}<div style={{ padding: 12, borderRadius: 18, border: '1px solid rgba(139,92,246,0.28)', background: 'rgba(139,92,246,0.08)' }}><div style={{ color: '#a78bfa', fontSize: 12, fontWeight: 950, marginBottom: 10 }}>Temporalidad</div><RecurrenceFields event={editingEvent} recurrence={recurrence} setRecurrence={setRecurrence} recurrenceWeekdays={recurrenceWeekdays} toggleWeekday={toggleWeekday} recurrenceUntil={recurrenceUntil} setRecurrenceUntil={setRecurrenceUntil} monthlyDay={monthlyDay} setMonthlyDay={setMonthlyDay} date={date} /></div></div>
     if (step === 4) return <GuidedLocationStep2 locationName={locationName} setLocationName={setLocationName} locationAddress={locationAddress} setLocationAddress={setLocationAddress} setLocationLatitude={setLocationLatitude} setLocationLongitude={setLocationLongitude} setLocationPlaceId={setLocationPlaceId} />
     if (step === 5) return <div style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 18, background: 'var(--bg-card)' }}>{child && child.parents.length > 1 ? <AssignmentSelector child={child} assignedParentId={assignedParentId} setAssignedParentId={setAssignedParentId} /> : <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>No hay otro progenitor configurado para asignar este evento.</div>}</div>
     if (step === 6) return <GuidedOptionsStep childId={child?.id} reminderEnabled={reminderEnabled} setReminderEnabled={setReminderEnabled} reminderDaysBefore={reminderDaysBefore} setReminderDaysBefore={setReminderDaysBefore} reminderAudience={reminderAudience} setReminderAudience={setReminderAudience} notesEnabled={notesEnabled} setNotesEnabled={setNotesEnabled} notes={notes} setNotes={setNotes} documentsEnabled={documentsEnabled} setDocumentsEnabled={setDocumentsEnabled} documentIds={documentIds} setDocumentIds={setDocumentIds} />
-    const rows = [['Menor', child?.name || '—'], ['Tipo', CAT_CONFIG[category]?.label || 'Evento'], ['Título', title], ['Fecha', endDate ? `${date} → ${endDate}` : date], ['Hora', allDay ? 'Todo el día' : `${time || 'Sin hora'}${endTime ? `-${endTime}` : ''}`], ['Lugar', locationName || locationAddress || 'Sin lugar'], ['Asignación', assignedParentId && child ? child.parentNames?.[assignedParentId] || 'Progenitor' : 'No'], ['Recordatorio', reminderEnabled ? `${reminderDaysBefore} día(s) antes` : 'No'], ['Notas', notesEnabled && notes.trim() ? 'Sí' : 'No'], ['Documentos', documentsEnabled && documentIds.length ? String(documentIds.length) : 'No']]
+    const rows = [['Menor', child?.name || '—'], ['Tipo', CAT_CONFIG[category]?.label || 'Evento'], ['Título', title], ['Fecha', endDate ? `${date} → ${endDate}` : date], ['Hora', allDay ? 'Todo el día' : `${time || 'Sin hora'}${endTime ? `-${endTime}` : ''}`], ['Temporalidad', recurrence === 'none' ? 'Una vez' : `${recurrenceLabel(recurrence)} hasta ${recurrenceUntil}`], ['Lugar', locationName || locationAddress || 'Sin lugar'], ['Asignación', assignedParentId && child ? child.parentNames?.[assignedParentId] || 'Progenitor' : 'No'], ['Recordatorio', reminderEnabled ? `${reminderDaysBefore} día(s) antes` : 'No'], ['Notas', notesEnabled && notes.trim() ? 'Sí' : 'No'], ['Documentos', documentsEnabled && documentIds.length ? String(documentIds.length) : 'No']]
     return <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 20, background: 'var(--bg-card)' }}>{rows.map(([l, v]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 12 }}><strong>{l}</strong><span style={{ color: 'var(--text-strong)', fontWeight: 900, textAlign: 'right' }}>{v}</span></div>)}</div>
   }
 
