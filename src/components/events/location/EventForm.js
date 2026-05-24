@@ -61,11 +61,12 @@ export function EventForm({ event, onClose, initialDate }) {
   const custodyChangeLocked = !!event && event.assignmentStatus === 'accepted' && !!event.assignedParentId
   const linkedDocuments = (documentIds || []).map(id => documents.find(doc => doc.id === id)).filter(Boolean)
   const hasValidTimeRange = allDay || !time || !endTime || time < endTime
+  const recurrenceUsesWeekdays = recurrence === 'weekly' || recurrence === 'biweekly'
 
   const isValid = !!user && !!child && !!title.trim() && !!date &&
     (category !== 'otro' || !!customCategory.trim()) &&
     (recurrence === 'none' || !!recurrenceUntil) &&
-    (recurrence !== 'weekly' || recurrenceWeekdays.length > 0) &&
+    (!recurrenceUsesWeekdays || recurrenceWeekdays.length > 0) &&
     (recurrence !== 'monthly' || (monthlyDay >= 1 && monthlyDay <= 31)) &&
     hasValidTimeRange
 
@@ -144,7 +145,7 @@ export function EventForm({ event, onClose, initialDate }) {
         documentIds,
         recurrence,
         recurrenceUntil: recurrence === 'none' ? undefined : recurrenceUntil,
-        recurrenceWeekdays: recurrence === 'weekly' ? recurrenceWeekdays : undefined,
+        recurrenceWeekdays: recurrenceUsesWeekdays ? recurrenceWeekdays : undefined,
         assignedParentId: custodyChangeLocked ? event?.assignedParentId : (wantsAssignment ? assignedParentId : undefined),
         assignmentStatus: custodyChangeLocked ? event?.assignmentStatus : (wantsAssignment ? 'pending' : undefined),
         assignmentRequestedBy: custodyChangeLocked ? event?.assignmentRequestedBy : (wantsAssignment ? user.uid : undefined),
