@@ -236,7 +236,7 @@ export type EventCategory =
   | 'vacaciones'
   | 'otro'
 
-export type EventRecurrence = 'none' | 'weekly' | 'monthly'
+export type EventRecurrence = 'none' | 'weekly' | 'biweekly' | 'monthly'
 export type EventAssignmentStatus = 'pending' | 'accepted' | 'rejected'
 export type EventReminderAudience = 'self' | 'both'
 export type NotificationTargetTab =
