@@ -210,6 +210,11 @@ export function EventForm({ event, onClose, initialDate }) {
         <input type="date" value={date} onChange={e => { const next = e.target.value; setDate(next); if (!endDate || endDate < next) setEndDate(next); if (!recurrenceUntil || recurrenceUntil < next) setRecurrenceUntil(next) }} className="settings-input" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
       </div>
 
+      <div style={{ marginBottom: 12, padding: '12px', borderRadius: 18, border: '1px solid rgba(139,92,246,0.28)', background: 'rgba(139,92,246,0.08)', minWidth: 0, overflowX: 'hidden' }}>
+        <div style={{ fontSize: 12, fontWeight: 900, color: '#a78bfa', marginBottom: 10 }}>Temporalidad</div>
+        <RecurrenceFields event={event} recurrence={recurrence} setRecurrence={setRecurrence} recurrenceWeekdays={recurrenceWeekdays} toggleWeekday={toggleWeekday} recurrenceUntil={recurrenceUntil} setRecurrenceUntil={setRecurrenceUntil} monthlyDay={monthlyDay} setMonthlyDay={setMonthlyDay} date={date} />
+      </div>
+
       <div style={{ marginBottom: 12, minWidth: 0 }}>
         <div className="settings-label">Duración</div>
         <div className="type-toggle" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
@@ -242,7 +247,7 @@ export function EventForm({ event, onClose, initialDate }) {
       <button type="button" onClick={() => setShowMoreOptions(prev => !prev)} style={{ width:'100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, border:'1px solid var(--border)', background:'var(--bg-soft)', borderRadius:16, padding:'12px 14px', marginBottom: showMoreOptions ? 12 : 14, cursor:'pointer' }}>
         <div style={{ textAlign:'left', minWidth: 0 }}>
           <div style={{ fontSize:13, fontWeight:800, color:'var(--text-strong)' }}>{showMoreOptions ? 'Menos opciones' : 'Más opciones'}</div>
-          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:3 }}>{showMoreOptions ? 'Ocultar repetición, asignación, recordatorio, notas y documentos' : 'Abrir ajustes avanzados del evento'}</div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:3 }}>{showMoreOptions ? 'Ocultar rango, asignación, recordatorio, notas y documentos' : 'Abrir ajustes avanzados del evento'}</div>
         </div>
         <div style={{ flexShrink: 0, fontSize:20, color:'var(--text-secondary)', lineHeight:1 }}>{showMoreOptions ? '−' : '+'}</div>
       </button>
@@ -250,20 +255,17 @@ export function EventForm({ event, onClose, initialDate }) {
       {showMoreOptions && (
         <div style={{ display:'grid', gap: 12, marginBottom: 14, minWidth: 0 }}>
           <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)', minWidth: 0, overflowX: 'hidden' }}>
-            <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Repetición y rango</div>
-            <div style={{ marginBottom: 10 }}>
-              <div className="date-pair" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div className="date-pair-label">Termina el (opcional)</div>
-                  <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div className="date-pair-label">Estado</div>
-                  <div className="settings-input" style={{ display:'flex', alignItems:'center', color:'var(--text-muted)', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>{endDate ? 'Evento con rango' : 'Solo un día'}</div>
-                </div>
+            <div style={{ fontSize:12, fontWeight:800, color:'var(--text-secondary)', marginBottom:10 }}>Rango adicional</div>
+            <div className="date-pair" style={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
+              <div style={{ minWidth: 0 }}>
+                <div className="date-pair-label">Termina el (opcional)</div>
+                <input type="date" value={endDate} min={date} onChange={e => setEndDate(e.target.value)} className="settings-input" style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="date-pair-label">Estado</div>
+                <div className="settings-input" style={{ display:'flex', alignItems:'center', color:'var(--text-muted)', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>{endDate ? 'Evento con rango' : 'Solo un día'}</div>
               </div>
             </div>
-            <RecurrenceFields event={event} recurrence={recurrence} setRecurrence={setRecurrence} recurrenceWeekdays={recurrenceWeekdays} toggleWeekday={toggleWeekday} recurrenceUntil={recurrenceUntil} setRecurrenceUntil={setRecurrenceUntil} monthlyDay={monthlyDay} setMonthlyDay={setMonthlyDay} date={date} />
           </div>
 
           <div style={{ padding:'12px', borderRadius:18, border:'1px solid var(--border)', background:'var(--bg-card)', minWidth: 0, overflowX: 'hidden' }}>
