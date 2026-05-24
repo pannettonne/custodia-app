@@ -21,18 +21,27 @@ function noteMatchesDate(note: any, dateStr: string) {
   return false
 }
 
+function weekdayNumber(dateStr: string) {
+  const jsDay = new Date(dateStr + 'T12:00:00').getDay()
+  return jsDay === 0 ? 7 : jsDay
+}
+
+function weeksBetween(startDate: string, dateStr: string) {
+  const start = new Date(startDate + 'T12:00:00')
+  const current = new Date(dateStr + 'T12:00:00')
+  return Math.floor((current.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000))
+}
+
 function eventMatchesDate(event: any, dateStr: string) {
   if (Array.isArray(event.cancelledDates) && event.cancelledDates.includes(dateStr)) return false
 
-  if (event.recurrence === 'weekly') {
+  if (event.recurrence === 'weekly' || event.recurrence === 'biweekly') {
     if (!event.date || !event.recurrenceUntil) return false
     if (dateStr < event.date || dateStr > event.recurrenceUntil) return false
-    const jsDay = new Date(dateStr + 'T12:00:00').getDay()
-    const weekday = jsDay === 0 ? 7 : jsDay
-    const baseDay = new Date(event.date + 'T12:00:00').getDay()
-    const fallbackDay = baseDay === 0 ? 7 : baseDay
-    const weekdays = Array.isArray(event.recurrenceWeekdays) && event.recurrenceWeekdays.length > 0 ? event.recurrenceWeekdays : [fallbackDay]
-    return weekdays.includes(weekday)
+    const weekdays = Array.isArray(event.recurrenceWeekdays) && event.recurrenceWeekdays.length > 0 ? event.recurrenceWeekdays : [weekdayNumber(event.date)]
+    if (!weekdays.includes(weekdayNumber(dateStr))) return false
+    if (event.recurrence === 'biweekly') return weeksBetween(event.date, dateStr) % 2 === 0
+    return true
   }
 
   if (event.recurrence === 'monthly') {
