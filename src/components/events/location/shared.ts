@@ -108,15 +108,16 @@ export function buildEventDateRange(event: SchoolEvent) {
 }
 
 export function buildRecurrenceRule(event: SchoolEvent) {
-  if (event.recurrence === 'weekly' && event.recurrenceUntil) {
+  if ((event.recurrence === 'weekly' || event.recurrence === 'biweekly') && event.recurrenceUntil) {
     const byDay =
       (event.recurrenceWeekdays || [])
         .map(day => ICS_WEEKDAY_MAP[day])
         .filter(Boolean)
         .join(',') || ICS_WEEKDAY_MAP[new Date(`${event.date}T12:00:00`).getDay() || 7]
 
+    const interval = event.recurrence === 'biweekly' ? ';INTERVAL=2' : ''
     const until = new Date(`${event.recurrenceUntil}T23:59:59Z`)
-    return `RRULE:FREQ=WEEKLY;BYDAY=${byDay};UNTIL=${formatICSDateUTC(until)}`
+    return `RRULE:FREQ=WEEKLY${interval};BYDAY=${byDay};UNTIL=${formatICSDateUTC(until)}`
   }
 
   if (event.recurrence === 'monthly' && event.recurrenceUntil) {
