@@ -1,6 +1,15 @@
 'use client'
 import { WEEKDAYS } from './shared'
 
+const RECURRENCE_OPTIONS = [
+  { value: 'none', label: 'Una vez' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'biweekly', label: 'Quincenal' },
+  { value: 'monthly', label: 'Mensual' },
+]
+
+const usesWeekdays = recurrence => recurrence === 'weekly' || recurrence === 'biweekly'
+
 export function RecurrenceFields({
   event,
   recurrence,
@@ -13,40 +22,52 @@ export function RecurrenceFields({
   setMonthlyDay,
   date,
 }) {
-  if (event) return null
+  const selectRecurrence = value => {
+    setRecurrence(value)
+    if (value !== 'none' && date && (!recurrenceUntil || recurrenceUntil < date)) {
+      setRecurrenceUntil(date)
+    }
+  }
 
   return (
     <div style={{ marginBottom: 10 }}>
       <div className="settings-label">Repetición</div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        {['none', 'weekly', 'monthly'].map(value => (
+      {event ? (
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+          Puedes cambiar la temporalidad del evento sin perder los días ni la frecuencia guardados.
+        </div>
+      ) : null}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 8 }}>
+        {RECURRENCE_OPTIONS.map(option => (
           <button
-            key={value}
-            onClick={() => setRecurrence(value)}
+            key={option.value}
+            type="button"
+            onClick={() => selectRecurrence(option.value)}
             style={{
               flex: 1,
               padding: '8px 6px',
               borderRadius: 12,
-              border: `1px solid ${recurrence === value ? '#8b5cf6' : 'var(--border)'}`,
-              background: recurrence === value ? 'rgba(139,92,246,0.18)' : 'var(--bg-soft)',
-              color: recurrence === value ? '#a78bfa' : 'var(--text-secondary)',
+              border: `1px solid ${recurrence === option.value ? '#8b5cf6' : 'var(--border)'}`,
+              background: recurrence === option.value ? 'rgba(139,92,246,0.18)' : 'var(--bg-soft)',
+              color: recurrence === option.value ? '#a78bfa' : 'var(--text-secondary)',
               fontSize: 11,
               fontWeight: 800,
               cursor: 'pointer',
             }}
           >
-            {value === 'none' ? 'Una vez' : value === 'weekly' ? 'Semanal' : 'Mensual'}
+            {option.label}
           </button>
         ))}
       </div>
 
-      {recurrence === 'weekly' && (
+      {usesWeekdays(recurrence) && (
         <>
           <div className="settings-label" style={{ marginBottom: 6 }}>Días de la semana</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
             {WEEKDAYS.map(day => (
               <button
                 key={day.value}
+                type="button"
                 onClick={() => toggleWeekday(day.value)}
                 style={{
                   width: 34,
